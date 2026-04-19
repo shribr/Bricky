@@ -82,23 +82,6 @@ final class CameraViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isScanning)
     }
 
-    // MARK: - Analysis Mode
-
-    func testSetAnalysisModeOffline() {
-        viewModel.setAnalysisMode(.offline)
-        XCTAssertEqual(viewModel.analysisMode, .offline)
-    }
-
-    func testSetAnalysisModeOnline() {
-        viewModel.setAnalysisMode(.online)
-        XCTAssertEqual(viewModel.analysisMode, .online)
-    }
-
-    func testSetAnalysisModeHybrid() {
-        viewModel.setAnalysisMode(.hybrid)
-        XCTAssertEqual(viewModel.analysisMode, .hybrid)
-    }
-
     // MARK: - Reset Session
 
     func testResetSession() {

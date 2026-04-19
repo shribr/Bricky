@@ -7,7 +7,6 @@ enum AnalyticsEvent: String, CaseIterable {
     case scanStarted = "scan_started"
     case scanCompleted = "scan_completed"
     case buildViewed = "build_viewed"
-    case aiIdeasGenerated = "ai_ideas_generated"
     case stlExported = "stl_exported"
     case subscriptionStarted = "subscription_started"
     case paywallViewed = "paywall_viewed"

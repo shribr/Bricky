@@ -1,25 +1,9 @@
 import SwiftUI
 
-/// Settings view for Azure configuration and app preferences
+/// Settings view for app preferences
 struct SettingsView: View {
-    @ObservedObject private var config = AzureConfiguration.shared
     @ObservedObject private var themeManager = ThemeManager.shared
-    @ObservedObject private var authService = AzureAuthService.shared
-    @ObservedObject private var providerRegistry = AIProviderRegistry.shared
     @ObservedObject private var scanSettings = ScanSettings.shared
-    @State private var aiEndpoint: String = ""
-    @State private var oaiEndpoint: String = ""
-    @State private var oaiDeployment: String = ""
-    @State private var aiKey: String = ""
-    @State private var oaiKey: String = ""
-    @State private var showSaved = false
-    @State private var showAddProvider = false
-    @State private var editingProvider: AIProvider?
-    @State private var kvTenantId: String = ""
-    @State private var kvClientId: String = ""
-    @State private var kvVaultName: String = ""
-    @State private var kvLoading = false
-    @State private var kvMessage: String?
     @State private var isRunningBenchmark = false
     @State private var showClearHistoryConfirmation = false
     @ObservedObject private var historyStore = ScanHistoryStore.shared
@@ -42,7 +26,6 @@ struct SettingsView: View {
     // don't have to re-expand their preferred sections every time.
     @AppStorage("settings.expanded.appearance") private var expandedAppearance = false
     @AppStorage("settings.expanded.scanning") private var expandedScanning = false
-    @AppStorage("settings.expanded.aiCloud") private var expandedAICloud = false
     @AppStorage("settings.expanded.icloud") private var expandedICloud = false
     @AppStorage("settings.expanded.account") private var expandedAccount = false
     @AppStorage("settings.expanded.subscription") private var expandedSubscription = false
@@ -213,158 +196,6 @@ struct SettingsView: View {
                 }
                 } label: {
                     Label("Scanning", systemImage: "viewfinder")
-                }
-            }
-
-            // MARK: - AI & Cloud (Analysis Mode + Azure + Providers)
-            Section {
-                DisclosureGroup(isExpanded: $expandedAICloud) {
-                Toggle("Enable Cloud AI", isOn: $config.isOnlineModeEnabled)
-                Text("When enabled, \(AppConfig.appName) uses Azure AI for enhanced piece identification. Offline Vision-based detection is always available.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if config.isOnlineModeEnabled {
-                    Divider()
-                    Text("Azure AI Services")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    TextField("Endpoint URL", text: $aiEndpoint)
-                        .textContentType(.URL)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-
-                    SecureField("API Key", text: $aiKey)
-                        .textContentType(.password)
-
-                    connectionStatusRow(
-                        status: aiServicesStatus,
-                        testAction: {
-                            aiServicesStatus = .testing
-                            Task {
-                                let ok = await AzureAIService.shared.checkAIServicesConnectivity()
-                                aiServicesStatus = ok ? .success : .failed
-                            }
-                        }
-                    )
-
-                    Divider()
-                    Text("Azure OpenAI")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    TextField("Endpoint URL", text: $oaiEndpoint)
-                        .textContentType(.URL)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-
-                    TextField("Deployment Name", text: $oaiDeployment)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-
-                    SecureField("API Key", text: $oaiKey)
-                        .textContentType(.password)
-
-                    connectionStatusRow(
-                        status: openAIStatus,
-                        testAction: {
-                            openAIStatus = .testing
-                            Task {
-                                let ok = await AzureAIService.shared.checkOpenAIConnectivity()
-                                openAIStatus = ok ? .success : .failed
-                            }
-                        }
-                    )
-
-                    Divider()
-
-                    Button {
-                        saveConfiguration()
-                    } label: {
-                        HStack {
-                            Image(systemName: "square.and.arrow.down")
-                            Text("Save Configuration")
-                        }
-                    }
-
-                    if showSaved {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                            Text("Configuration saved")
-                                .foregroundStyle(.green)
-                        }
-                    }
-
-                    Button {
-                        testAllConnections()
-                    } label: {
-                        HStack {
-                            Image(systemName: "antenna.radiowaves.left.and.right")
-                            Text("Test All Connections")
-                        }
-                    }
-                    .disabled(aiServicesStatus == .testing || openAIStatus == .testing)
-
-                    Divider()
-
-                    DisclosureGroup("Additional AI Providers (Advanced)") {
-                        if providerRegistry.providers.isEmpty {
-                            Text("No additional providers configured")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(providerRegistry.providers) { provider in
-                                Button {
-                                    editingProvider = provider
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: provider.providerType.iconName)
-                                            .font(.title3)
-                                            .foregroundStyle(provider.isEnabled ? .blue : .secondary)
-                                            .frame(width: 28)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(provider.name)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                                .foregroundStyle(.primary)
-                                            Text(provider.providerType.rawValue)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-
-                                        Spacer()
-
-                                        if provider.isEnabled && !provider.apiKey.isEmpty {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(.green)
-                                                .font(.caption)
-                                        } else {
-                                            Image(systemName: "exclamationmark.circle")
-                                                .foregroundStyle(.orange)
-                                                .font(.caption)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .onDelete { offsets in
-                                providerRegistry.removeProvider(at: offsets)
-                            }
-                        }
-
-                        Button {
-                            showAddProvider = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Add AI Provider")
-                            }
-                        }
-                    }
-                }
-                } label: {
-                    Label("AI & Cloud", systemImage: "brain")
                 }
             }
 
@@ -636,15 +467,9 @@ struct SettingsView: View {
                     handleVersionTap()
                 }
                 HStack {
-                    Text("Offline Engine")
+                    Text("AI Engine")
                     Spacer()
-                    Text("Vision Framework")
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text("Cloud Engine")
-                    Spacer()
-                    Text("Azure AI + GPT-4o")
+                    Text("Core ML (On-Device)")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
@@ -673,20 +498,6 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            loadConfiguration()
-            kvTenantId = authService.tenantId
-            kvClientId = authService.clientId
-            kvVaultName = authService.keyVaultName
-        }
-        .sheet(isPresented: $showAddProvider) {
-            AIProviderEditorView(provider: nil) { newProvider in
-                providerRegistry.addProvider(newProvider)
-            }
-        }
-        .sheet(item: $editingProvider) { provider in
-            AIProviderEditorView(provider: provider) { updated in
-                providerRegistry.updateProvider(updated)
-            }
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
@@ -697,14 +508,6 @@ struct SettingsView: View {
         .sheet(isPresented: $showHelp) {
             HelpView()
         }
-    }
-
-    private func loadConfiguration() {
-        aiEndpoint = config.aiServicesEndpoint
-        oaiEndpoint = config.openAIEndpoint
-        oaiDeployment = config.openAIDeployment
-        aiKey = config.aiServicesKey
-        oaiKey = config.openAIKey
     }
 
     /// Reveal/hide the Developer section after 7 consecutive taps on Version.
@@ -721,176 +524,6 @@ struct SettingsView: View {
         versionTapResetTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             if !Task.isCancelled { versionTapCount = 0 }
-        }
-    }
-
-    private func saveConfiguration() {
-        config.aiServicesEndpoint = aiEndpoint
-        config.openAIEndpoint = oaiEndpoint
-        config.openAIDeployment = oaiDeployment
-        config.aiServicesKey = aiKey
-        config.openAIKey = oaiKey
-
-        withAnimation {
-            showSaved = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation { showSaved = false }
-        }
-    }
-
-    @State private var isTestingConnection = false
-    @State private var connectionSucceeded: Bool?
-
-    // Per-service connection status
-    @State private var aiServicesStatus: ConnectionTestStatus = .idle
-    @State private var openAIStatus: ConnectionTestStatus = .idle
-
-    private enum ConnectionTestStatus {
-        case idle, testing, success, failed
-    }
-
-    private func testAllConnections() {
-        aiServicesStatus = .testing
-        openAIStatus = .testing
-        Task {
-            let aiOk = await AzureAIService.shared.checkAIServicesConnectivity()
-            aiServicesStatus = aiOk ? .success : .failed
-            let oaiOk = await AzureAIService.shared.checkOpenAIConnectivity()
-            openAIStatus = oaiOk ? .success : .failed
-        }
-    }
-
-    @ViewBuilder
-    private func connectionStatusRow(status: ConnectionTestStatus, testAction: @escaping () -> Void) -> some View {
-        HStack {
-            switch status {
-            case .idle:
-                Button("Test Connection") { testAction() }
-                    .font(.caption)
-            case .testing:
-                ProgressView()
-                    .scaleEffect(0.8)
-                Text("Testing...")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            case .success:
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Text("Connected")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                Spacer()
-                Button("Retest") { testAction() }
-                    .font(.caption)
-            case .failed:
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.red)
-                Text("Connection failed")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                Spacer()
-                Button("Retry") { testAction() }
-                    .font(.caption)
-            }
-        }
-    }
-}
-
-// MARK: - AI Provider Editor
-
-struct AIProviderEditorView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name: String
-    @State private var providerType: AIProvider.ProviderType
-    @State private var endpointURL: String
-    @State private var apiKey: String
-    @State private var modelName: String
-    @State private var isEnabled: Bool
-
-    private let existingId: UUID?
-    private let onSave: (AIProvider) -> Void
-
-    init(provider: AIProvider?, onSave: @escaping (AIProvider) -> Void) {
-        self.existingId = provider?.id
-        self.onSave = onSave
-        _name = State(initialValue: provider?.name ?? "")
-        _providerType = State(initialValue: provider?.providerType ?? .openAI)
-        _endpointURL = State(initialValue: provider?.endpointURL ?? "")
-        _apiKey = State(initialValue: provider?.apiKey ?? "")
-        _modelName = State(initialValue: provider?.modelName ?? "")
-        _isEnabled = State(initialValue: provider?.isEnabled ?? true)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Provider") {
-                    Picker("Type", selection: $providerType) {
-                        ForEach(AIProvider.ProviderType.allCases) { type in
-                            Label(type.rawValue, systemImage: type.iconName).tag(type)
-                        }
-                    }
-                    .onChange(of: providerType) { _, newValue in
-                        if name.isEmpty || AIProvider.ProviderType.allCases.map(\.rawValue).contains(name) {
-                            name = newValue.rawValue
-                        }
-                        if endpointURL.isEmpty {
-                            endpointURL = newValue.defaultEndpointPlaceholder
-                        }
-                        if modelName.isEmpty {
-                            modelName = newValue.defaultModel
-                        }
-                    }
-
-                    TextField("Display Name", text: $name)
-                }
-
-                Section("Connection") {
-                    TextField("Endpoint URL", text: $endpointURL)
-                        .textContentType(.URL)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-
-                    SecureField("API Key", text: $apiKey)
-                        .textContentType(.password)
-
-                    if providerType.requiresModel {
-                        TextField("Model / Deployment Name", text: $modelName)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                }
-
-                Section {
-                    Toggle("Enabled", isOn: $isEnabled)
-                }
-            }
-            .navigationTitle(existingId == nil ? "Add Provider" : "Edit Provider")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let resultId = existingId ?? UUID()
-                        let result = AIProvider(
-                            existingId: resultId,
-                            name: name,
-                            providerType: providerType,
-                            endpointURL: endpointURL,
-                            apiKey: apiKey,
-                            isEnabled: isEnabled,
-                            modelName: modelName
-                        )
-                        onSave(result)
-                        dismiss()
-                    }
-                    .disabled(name.isEmpty || endpointURL.isEmpty || apiKey.isEmpty)
-                }
-            }
         }
     }
 }

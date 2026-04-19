@@ -4,17 +4,12 @@ import SwiftUI
 @MainActor
 final class BuildSuggestionsViewModel: ObservableObject {
     @Published var suggestions: [BuildSuggestionEngine.BuildSuggestion] = []
-    @Published var aiIdeas: [AzureAIService.AIBuildIdea] = []
     @Published var selectedCategory: ProjectCategory?
     @Published var selectedDifficulty: Difficulty?
     @Published var showOnlyCompletable = false
     @Published var isLoading = false
-    @Published var isLoadingAI = false
-    @Published var aiError: String?
 
     private let engine = BuildSuggestionEngine.shared
-    private let aiService = AzureAIService.shared
-    private let config = AzureConfiguration.shared
 
     var filteredSuggestions: [BuildSuggestionEngine.BuildSuggestion] {
         var result = suggestions
@@ -42,10 +37,6 @@ final class BuildSuggestionsViewModel: ObservableObject {
         suggestions.filter { !$0.isCompleteBuild }.count
     }
 
-    var canUseAI: Bool {
-        config.canUseOnlineMode
-    }
-
     func generateSuggestions(from pieces: [LegoPiece]) {
         isLoading = true
         // Simulate a brief loading for better UX
@@ -58,24 +49,5 @@ final class BuildSuggestionsViewModel: ObservableObject {
 
     func refreshSuggestions(from pieces: [LegoPiece]) {
         suggestions = engine.getSuggestions(for: pieces)
-    }
-
-    func generateAIIdeas(from pieces: [LegoPiece]) {
-        guard !pieces.isEmpty else {
-            aiError = "Scan some pieces first to get AI build ideas."
-            return
-        }
-        isLoadingAI = true
-        aiError = nil
-
-        Task {
-            do {
-                let ideas = try await aiService.generateBuildIdeas(from: pieces)
-                self.aiIdeas = ideas
-            } catch {
-                self.aiError = error.localizedDescription
-            }
-            self.isLoadingAI = false
-        }
     }
 }

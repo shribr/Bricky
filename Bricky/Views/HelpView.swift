@@ -115,7 +115,7 @@ private struct ReplayOnboardingView: View {
                    description: "Share your builds, follow other builders, take daily challenges, and compete on puzzles.",
                    color: Color.legoOrange),
         ReplayPage(icon: "sparkles", title: "Powered by AI",
-                   description: "Use offline mode for instant results, or connect Azure AI for enhanced accuracy.",
+                   description: "All scanning runs on-device using Core ML for instant, private results.",
                    color: Color.legoYellow),
     ]
 
@@ -199,8 +199,8 @@ struct TipsListView: View {
                        detail: "Complete a daily challenge or timed build each day to maintain your streak. Your streak count appears on the Home screen and your profile."),
         FeatureTipInfo(icon: "icloud.fill", color: .cyan, title: "iCloud Sync",
                        detail: "Enable iCloud Sync in Settings to keep your inventories, sets, and storage bins in sync across all your devices."),
-        FeatureTipInfo(icon: "wand.and.stars", color: Color.legoYellow, title: "AI Analysis Modes",
-                       detail: "Offline mode uses on-device AI for instant results with no internet needed. Online mode connects to Azure AI for higher accuracy. Hybrid mode tries offline first, then refines with cloud AI."),
+        FeatureTipInfo(icon: "wand.and.stars", color: Color.legoYellow, title: "On-Device AI",
+                       detail: "All scanning uses on-device Core ML for instant results with no internet needed. Your images never leave your device."),
         FeatureTipInfo(icon: "square.grid.3x3.fill", color: .teal, title: "Detailed Scan Mode",
                        detail: "For large collections, use Detailed mode. It divides your view into segments and guides you through each one, ensuring no piece is missed. Great for sorting trays and bins."),
     ]

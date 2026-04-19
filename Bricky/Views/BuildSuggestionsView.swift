@@ -196,11 +196,6 @@ struct BuildSuggestionsView: View {
 
         return ScrollView {
             LazyVStack(spacing: 16) {
-                // AI Build Ideas section
-                if viewModel.canUseAI {
-                    aiIdeasSection
-                }
-
                 ForEach(Array(displaySuggestions.enumerated()), id: \.element.id) { index, suggestion in
                     if subscription.canViewBuild(at: index) {
                         NavigationLink(destination: BuildDetailView(suggestion: suggestion, availablePieces: pieces)) {
@@ -245,65 +240,6 @@ struct BuildSuggestionsView: View {
             }
             .padding()
         }
-    }
-
-    // MARK: - AI Ideas Section
-
-    private var aiIdeasSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "sparkles")
-                    .foregroundStyle(Color.legoYellow)
-                Text("AI Build Ideas")
-                    .font(.headline)
-                Spacer()
-                if viewModel.isLoadingAI {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Button {
-                        viewModel.generateAIIdeas(from: pieces)
-                        HapticManager.impact(.medium)
-                    } label: {
-                        Label(viewModel.aiIdeas.isEmpty ? "Generate" : "Refresh", systemImage: "arrow.trianglehead.2.clockwise")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color.legoBlue)
-                    .controlSize(.small)
-                }
-            }
-
-            if let error = viewModel.aiError {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if viewModel.aiIdeas.isEmpty && !viewModel.isLoadingAI {
-                HStack {
-                    Text("Tap Generate to get custom build ideas from AI based on your pieces.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
-            }
-
-            ForEach(viewModel.aiIdeas) { idea in
-                AIBuildIdeaCard(idea: idea)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-        )
     }
 
     // MARK: - Loading View
@@ -474,121 +410,5 @@ struct BuildSuggestionCard: View {
         case .hard: return .orange
         case .expert: return .red
         }
-    }
-}
-
-// MARK: - AI Build Idea Card
-
-struct AIBuildIdeaCard: View {
-    let idea: AzureAIService.AIBuildIdea
-    @State private var isExpanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(LinearGradient(
-                                colors: [.purple, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                    )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(idea.name)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    Text(idea.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(isExpanded ? nil : 2)
-                }
-
-                Spacer()
-
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            HStack {
-                Label(idea.difficulty.capitalized, systemImage: "chart.bar")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Label("~\(idea.estimatedMinutes) min", systemImage: "clock")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Label(idea.category.capitalized, systemImage: "tag")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            if isExpanded {
-                Divider()
-
-                // Required pieces
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Pieces Needed")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-
-                    ForEach(idea.requiredPieces, id: \.name) { piece in
-                        HStack(spacing: 4) {
-                            Text("•")
-                            Text("\(piece.quantity)× \(piece.color.capitalized) \(piece.name)")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Steps
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Instructions")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-
-                    ForEach(Array(idea.steps.enumerated()), id: \.offset) { index, step in
-                        HStack(alignment: .top, spacing: 6) {
-                            Text("\(index + 1).")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(Color.legoBlue)
-                            Text(step)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.purple.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.purple.opacity(0.15), lineWidth: 1)
-                )
-        )
     }
 }

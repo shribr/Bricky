@@ -339,20 +339,15 @@ struct CameraScanView: View {
                     }
 
                     // Mode indicator
-                    Text(viewModel.analysisMode.rawValue)
+                    Text("On-Device")
                         .font(.caption2)
                         .fontWeight(.medium)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
-                            Capsule().fill(
-                                viewModel.analysisMode == .offline ? Color.white.opacity(0.2) :
-                                viewModel.analysisMode == .online ? Color.blue.opacity(0.4) :
-                                Color.green.opacity(0.4)
-                            )
+                            Capsule().fill(Color.white.opacity(0.2))
                         )
                         .foregroundStyle(.white)
-                        .onTapGesture { showModePicker = true }
 
                     // Tracking mode pill (only visible on LiDAR-capable devices).
                     // Shows whether the LiDAR topographic wireframe is active.
@@ -401,14 +396,10 @@ struct CameraScanView: View {
             .ignoresSafeArea(edges: .top)
         )
         .confirmationDialog("Analysis Mode", isPresented: $showModePicker) {
-            Button("Offline (Vision)") { viewModel.setAnalysisMode(.offline) }
-            if AzureConfiguration.shared.canUseOnlineMode {
-                Button("Cloud AI") { viewModel.setAnalysisMode(.online) }
-                Button("Hybrid (Recommended)") { viewModel.setAnalysisMode(.hybrid) }
-            }
+            Button("On-Device (Core ML)") { }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Choose how pieces are identified")
+            Text("All scanning uses on-device Core ML")
         }
     }
 

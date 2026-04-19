@@ -28,7 +28,7 @@ struct OnboardingView: View {
         OnboardingPage(
             icon: "sparkles",
             title: "Powered by AI",
-            description: "Use offline mode for instant results, or connect Azure AI for enhanced accuracy. Switch modes anytime in Settings.",
+            description: "All scanning runs on-device using Core ML for instant, private results. No internet required.",
             color: .legoYellow
         ),
     ]

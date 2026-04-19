@@ -24,8 +24,8 @@ final class SprintGAppStoreTests: XCTestCase {
     func testProductIDsExist() {
         XCTAssertFalse(SubscriptionManager.monthlyProductID.isEmpty)
         XCTAssertFalse(SubscriptionManager.annualProductID.isEmpty)
-        XCTAssertTrue(SubscriptionManager.monthlyProductID.hasPrefix("com.brickvision."))
-        XCTAssertTrue(SubscriptionManager.annualProductID.hasPrefix("com.brickvision."))
+        XCTAssertTrue(SubscriptionManager.monthlyProductID.hasPrefix("com.bricky."))
+        XCTAssertTrue(SubscriptionManager.annualProductID.hasPrefix("com.bricky."))
     }
 
     @MainActor
@@ -105,7 +105,7 @@ final class SprintGAppStoreTests: XCTestCase {
         // Default should be enabled (opt-in)
         let analytics = AnalyticsService.shared
         // If the user has never changed the setting, it should be true
-        if UserDefaults.standard.object(forKey: "brickvision.analytics.enabled") == nil {
+        if UserDefaults.standard.object(forKey: AppConfig.analyticsEnabledKey) == nil {
             XCTAssertTrue(analytics.isEnabled, "Analytics should default to enabled")
         }
     }
@@ -118,11 +118,11 @@ final class SprintGAppStoreTests: XCTestCase {
 
         analytics.isEnabled = false
         XCTAssertFalse(analytics.isEnabled)
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "brickvision.analytics.enabled"))
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: AppConfig.analyticsEnabledKey))
 
         analytics.isEnabled = true
         XCTAssertTrue(analytics.isEnabled)
-        XCTAssertTrue(UserDefaults.standard.bool(forKey: "brickvision.analytics.enabled"))
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: AppConfig.analyticsEnabledKey))
     }
 
     @MainActor
@@ -151,7 +151,6 @@ final class SprintGAppStoreTests: XCTestCase {
         XCTAssertEqual(AnalyticsEvent.scanStarted.rawValue, "scan_started")
         XCTAssertEqual(AnalyticsEvent.scanCompleted.rawValue, "scan_completed")
         XCTAssertEqual(AnalyticsEvent.buildViewed.rawValue, "build_viewed")
-        XCTAssertEqual(AnalyticsEvent.aiIdeasGenerated.rawValue, "ai_ideas_generated")
         XCTAssertEqual(AnalyticsEvent.stlExported.rawValue, "stl_exported")
         XCTAssertEqual(AnalyticsEvent.subscriptionStarted.rawValue, "subscription_started")
         XCTAssertEqual(AnalyticsEvent.paywallViewed.rawValue, "paywall_viewed")
@@ -162,7 +161,7 @@ final class SprintGAppStoreTests: XCTestCase {
     }
 
     func testAnalyticsEventCount() {
-        XCTAssertEqual(AnalyticsEvent.allCases.count, 12, "Should have 12 analytics events")
+        XCTAssertEqual(AnalyticsEvent.allCases.count, 11, "Should have 11 analytics events")
     }
 
     @MainActor
@@ -304,7 +303,7 @@ final class SprintGAppStoreTests: XCTestCase {
         sub.recordScan()
         let count = sub.dailyScanCount
         // Count should be persisted in UserDefaults
-        let stored = UserDefaults.standard.integer(forKey: "brickvision.daily.scanCount")
+        let stored = UserDefaults.standard.integer(forKey: AppConfig.dailyScanCountKey)
         XCTAssertEqual(count, stored, "Daily scan count should be persisted to UserDefaults")
     }
 
@@ -312,7 +311,7 @@ final class SprintGAppStoreTests: XCTestCase {
     func testScanDatePersistence() {
         let sub = SubscriptionManager.shared
         sub.recordScan()
-        let timestamp = UserDefaults.standard.double(forKey: "brickvision.daily.scanDate")
+        let timestamp = UserDefaults.standard.double(forKey: AppConfig.dailyScanDateKey)
         XCTAssertGreaterThan(timestamp, 0, "Scan date timestamp should be stored")
         // Should be today
         let date = Date(timeIntervalSince1970: timestamp)

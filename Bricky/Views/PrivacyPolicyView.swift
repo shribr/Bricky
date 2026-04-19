@@ -19,23 +19,16 @@ struct PrivacyPolicyView: View {
                             """
                             BrickVision collects minimal data:
 
-                            \u{2022} Camera images: Processed on-device for brick scanning. Images are never uploaded unless you explicitly enable Cloud AI mode.
+                            \u{2022} Camera images: Processed entirely on-device for brick scanning. Images never leave your device.
                             \u{2022} Analytics events: If you opt in, we collect anonymous usage events (e.g., scans started, builds viewed) to improve the app. No personally identifiable information is included.
                             \u{2022} Subscription status: Managed by Apple through StoreKit. We do not store payment information.
                             \u{2022} iCloud data: If you enable iCloud Sync, your inventories and settings are stored in your personal iCloud account, not on our servers.
                             """
                         }
 
-                        policySection("Cloud AI Mode") {
+                        policySection("On-Device AI") {
                             """
-                            When Cloud AI is enabled in Settings, scan images are sent to Azure AI Services for enhanced recognition. Images are:
-
-                            \u{2022} Transmitted over encrypted HTTPS connections
-                            \u{2022} Processed in real-time and not stored on Azure servers
-                            \u{2022} Never used for model training without explicit consent
-                            \u{2022} Subject to Microsoft's Azure AI privacy policy
-
-                            You can disable Cloud AI at any time in Settings. The app works fully offline.
+                            All brick and minifigure scanning uses on-device Core ML. Your images are processed locally and never transmitted to any server. No internet connection is required for scanning.
                             """
                         }
 
@@ -64,7 +57,6 @@ struct PrivacyPolicyView: View {
                             """
                             \u{2022} Apple StoreKit: For subscription management
                             \u{2022} Apple iCloud: For optional data sync (user-controlled)
-                            \u{2022} Azure AI Services: For optional cloud-based recognition (user-controlled)
 
                             No advertising networks, social media SDKs, or third-party analytics services are included.
                             """
@@ -73,7 +65,6 @@ struct PrivacyPolicyView: View {
                         policySection("Your Rights") {
                             """
                             \u{2022} Opt out of analytics at any time in Settings
-                            \u{2022} Disable Cloud AI at any time in Settings
                             \u{2022} Delete all scan history in Settings
                             \u{2022} Disable iCloud Sync at any time in Settings
                             \u{2022} All local data can be removed by deleting the app

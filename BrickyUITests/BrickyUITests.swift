@@ -17,9 +17,10 @@ final class BrickyUITests: XCTestCase {
     func testAppLaunches() {
         app.launch()
         // App should show either onboarding or home
-        let exists = app.staticTexts["Bricky"].waitForExistence(timeout: 5) ||
-                     app.staticTexts["Welcome to Bricky"].waitForExistence(timeout: 5)
-        XCTAssertTrue(exists, "App should display Bricky title or onboarding")
+        // Navigation titles appear in navigationBars, not staticTexts on iOS 26+
+        let homeExists = app.navigationBars["Bricky"].waitForExistence(timeout: 5)
+        let onboardingExists = app.staticTexts["Scan Your Bricks"].waitForExistence(timeout: 5)
+        XCTAssertTrue(homeExists || onboardingExists, "App should display Bricky title or onboarding")
     }
 
     func testOnboardingShowsOnFirstLaunch() {

@@ -15,13 +15,10 @@ final class BuildSuggestionsViewModelTests: XCTestCase {
 
     func testInitialState() {
         XCTAssertTrue(viewModel.suggestions.isEmpty)
-        XCTAssertTrue(viewModel.aiIdeas.isEmpty)
         XCTAssertNil(viewModel.selectedCategory)
         XCTAssertNil(viewModel.selectedDifficulty)
         XCTAssertFalse(viewModel.showOnlyCompletable)
         XCTAssertFalse(viewModel.isLoading)
-        XCTAssertFalse(viewModel.isLoadingAI)
-        XCTAssertNil(viewModel.aiError)
     }
 
     // MARK: - Suggestion Generation
@@ -95,80 +92,6 @@ final class BuildSuggestionsViewModelTests: XCTestCase {
     func testPartialBuildCount() {
         viewModel.refreshSuggestions(from: [])
         XCTAssertEqual(viewModel.partialBuildCount, 0)
-    }
-
-    // MARK: - AI Ideas
-
-    func testGenerateAIIdeasEmptyPieces() {
-        viewModel.generateAIIdeas(from: [])
-        XCTAssertNotNil(viewModel.aiError, "Should set error for empty pieces")
-        XCTAssertTrue(viewModel.aiIdeas.isEmpty)
-    }
-
-    // MARK: - AIBuildIdea Model (JSON Decoding)
-
-    func testAIBuildIdeaDecoding() throws {
-        let json = """
-        {
-            "name": "Test Build",
-            "description": "A test build description",
-            "difficulty": "medium",
-            "category": "vehicle",
-            "estimatedMinutes": 20,
-            "requiredPieces": [
-                {"name": "Red 2×4 Brick", "category": "brick", "color": "red", "quantity": 4}
-            ],
-            "steps": ["Step 1", "Step 2"]
-        }
-        """.data(using: .utf8)!
-
-        let idea = try JSONDecoder().decode(AzureAIService.AIBuildIdea.self, from: json)
-        XCTAssertEqual(idea.name, "Test Build")
-        XCTAssertEqual(idea.difficulty, "medium")
-        XCTAssertEqual(idea.category, "vehicle")
-        XCTAssertEqual(idea.estimatedMinutes, 20)
-        XCTAssertEqual(idea.requiredPieces.count, 1)
-        XCTAssertEqual(idea.requiredPieces[0].name, "Red 2×4 Brick")
-        XCTAssertEqual(idea.requiredPieces[0].quantity, 4)
-        XCTAssertEqual(idea.steps.count, 2)
-        XCTAssertNotNil(idea.id)
-    }
-
-    func testAIBuildIdeaRoundTrip() throws {
-        let json = """
-        {
-            "name": "Spaceship",
-            "description": "A cool spaceship",
-            "difficulty": "hard",
-            "category": "spaceship",
-            "estimatedMinutes": 45,
-            "requiredPieces": [
-                {"name": "Gray 2×6 Brick", "category": "brick", "color": "gray", "quantity": 6},
-                {"name": "Blue 2×4 Plate", "category": "plate", "color": "blue", "quantity": 4}
-            ],
-            "steps": ["Build base", "Add wings", "Attach cockpit"]
-        }
-        """.data(using: .utf8)!
-
-        let decoded = try JSONDecoder().decode(AzureAIService.AIBuildIdea.self, from: json)
-        let encoded = try JSONEncoder().encode(decoded)
-        let reDecoded = try JSONDecoder().decode(AzureAIService.AIBuildIdea.self, from: encoded)
-
-        XCTAssertEqual(decoded.name, reDecoded.name)
-        XCTAssertEqual(decoded.steps.count, reDecoded.steps.count)
-        XCTAssertEqual(decoded.requiredPieces.count, reDecoded.requiredPieces.count)
-    }
-
-    func testAIRequiredPieceDecoding() throws {
-        let json = """
-        {"name": "Blue 2×2 Plate", "category": "plate", "color": "blue", "quantity": 3}
-        """.data(using: .utf8)!
-
-        let piece = try JSONDecoder().decode(AzureAIService.AIRequiredPiece.self, from: json)
-        XCTAssertEqual(piece.name, "Blue 2×2 Plate")
-        XCTAssertEqual(piece.category, "plate")
-        XCTAssertEqual(piece.color, "blue")
-        XCTAssertEqual(piece.quantity, 3)
     }
 
     // MARK: - Helpers

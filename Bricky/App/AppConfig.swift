@@ -57,10 +57,6 @@ enum AppConfig {
 
     // MARK: - Keychain Keys (derived from prefix)
 
-    static let keychainAzureToken = "\(keychainPrefix).azure-token"
-    static let keychainAzureRefresh = "\(keychainPrefix).azure-refresh"
-    static let keychainAIKey = "\(keychainPrefix).ai-key"
-    static let keychainOAIKey = "\(keychainPrefix).oai-key"
     static let keychainAccount = defaultsPrefix
 
     // MARK: - Dispatch Queues
@@ -78,13 +74,6 @@ enum AppConfig {
     static let dailyScanDateKey = "\(defaultsPrefix).daily.scanDate"
     static let analyticsEnabledKey = "\(defaultsPrefix).analytics.enabled"
     static let developerProOverrideKey = "\(defaultsPrefix).developer.proOverride"
-
-    // MARK: - Azure Resources (external — not branded)
-
-    static let azureResourceGroup = "rg-brickvision-dev"
-    static let azureAIEndpoint = "ai-brickvision-dev"
-    static let azureOAIEndpoint = "oai-brickvision-dev"
-    static let azureKeyVault = "kv-brickvision-dev"
 
     // MARK: - Notifications
 

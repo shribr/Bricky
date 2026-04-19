@@ -116,7 +116,6 @@
 		8D3D481A194E56AB21CB7C24 /* PieceFilterSortBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9F0C66986001376904782C /* PieceFilterSortBar.swift */; };
 		8EE0E751C47703F32EDEAF35 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */; };
 		91172B665F3EC29F6AB87203 /* LegoPieceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FDFE37FAD57D27C6FA8B6B /* LegoPieceTests.swift */; };
-		914C38C7B1410B5F4A7EA958 /* AzureAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */; };
 		91A863A337B61D59999DEC22 /* Minifigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */; };
 		95B0EFA598F937D751738193 /* SprintDFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71ABC00264BEE119191B3AA /* SprintDFeatureTests.swift */; };
 		96900AF879493DFD873B37D9 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390E508D00CAA57346A79AB /* AnalyticsService.swift */; };
@@ -134,7 +133,6 @@
 		A5B6579DA97234543BC8B62C /* PieceImageGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */; };
 		A67DFF52AB00E1C71E943CC8 /* ScanTagEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */; };
 		A8CC797927D5A6BD9A2119EF /* LDraw in Resources */ = {isa = PBXBuildFile; fileRef = 2E2375924C87F31026F188BC /* LDraw */; };
-		AB3D24C720EBEFBE3B482694 /* AzureAIService+Minifigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */; };
 		AC3B9D5FE59E071015332224 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53D992EB0C6063AE0CED1FB /* HelpView.swift */; };
 		AE1E9995F023E40405113741 /* BuildSuggestionsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */; };
 		AE4165B8293AD7D55AEC5DD5 /* SortingSuggestionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EDCB32FEB70791BE4BAA6BB /* SortingSuggestionService.swift */; };
@@ -146,7 +144,6 @@
 		B285874AEBBD6B60D562C1EE /* MeshBoundaryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */; };
 		B4C89046439354DBD1934C9C /* ScanLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */; };
 		B6F42166FB1A517BAAD51A2D /* ScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */; };
-		B7CB64283175AA9C62510E4F /* AIProviderConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */; };
 		B9715CEB3E199BE2A858738A /* LegoPartsCatalogExtended6.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554B18ED7D8883CEE12BA0FC /* LegoPartsCatalogExtended6.swift */; };
 		B9C9531C2C57CC18EB92A21C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */; };
 		BA6D44DF5EACC4608E48F82C /* SprintFFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */; };
@@ -193,10 +190,8 @@
 		E40C3AC88DBF8ED966FFBF22 /* LegoPartsCatalogExtended4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55018C723F01B5F0E724140D /* LegoPartsCatalogExtended4.swift */; };
 		E6B3126504A261F5DDAD6D6C /* MinifigureScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */; };
 		E7A8E8E79107D34AC234358A /* InventoryExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */; };
-		E9115BE651121715C156F003 /* AzureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */; };
 		E94BCB3784F0A9BF6909BDCE /* InventoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41895B88ED3E0CDA22B6EB36 /* InventoryDetailView.swift */; };
 		EAA7D5B871EB1FCAB73B51F5 /* ScanAutoStopMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D48E65B45D0B22A22CF6291 /* ScanAutoStopMonitorTests.swift */; };
-		EB5C3B2C08730CBD7A1101A9 /* AzureAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */; };
 		ED133DF6663F69C047A0AC48 /* PileGeometryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */; };
 		EE5BC91C1B48291A85592E99 /* LegoPartsCatalogExtended5.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D51D0B4216E0929A58FDCB /* LegoPartsCatalogExtended5.swift */; };
 		EEB953F03E44137D95277D6B /* ScanLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB86A3EFB207E0117757F00D /* ScanLocationService.swift */; };
@@ -272,7 +267,6 @@
 		37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryServiceTests.swift; sourceTree = "<group>"; };
 		3834943ACD2B2717CAAEE24C /* Color+Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Adaptive.swift"; sourceTree = "<group>"; };
 		39039D53E43A8F204D147F0A /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
-		39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureAIService.swift; sourceTree = "<group>"; };
 		3AAF73D5DAE2D3EBA7978999 /* SprintDCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintDCompletionTests.swift; sourceTree = "<group>"; };
 		3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanTagEditorView.swift; sourceTree = "<group>"; };
 		3CA431A281966BE3D4ED8906 /* PileGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometry.swift; sourceTree = "<group>"; };
@@ -336,7 +330,6 @@
 		88CD20600331E6F94FE41BC2 /* PieceFinderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceFinderButton.swift; sourceTree = "<group>"; };
 		8B5940F2D1173F092D494003 /* ColorCalibrationWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorCalibrationWizardView.swift; sourceTree = "<group>"; };
 		8B86874852D5B48B3807DEF9 /* LDrawColorMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawColorMap.swift; sourceTree = "<group>"; };
-		8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AzureAIService+Minifigure.swift"; sourceTree = "<group>"; };
 		8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryService.swift; sourceTree = "<group>"; };
 		8BD3A9F8333CC94A28950903 /* LegoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoSet.swift; sourceTree = "<group>"; };
 		8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildStepViewer.swift; sourceTree = "<group>"; };
@@ -383,7 +376,6 @@
 		C6D2AAA757CF2ECF7728AE17 /* SortingSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortingSuggestionsView.swift; sourceTree = "<group>"; };
 		C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceImageGenerator.swift; sourceTree = "<group>"; };
 		C76B35002D5D440D2D430958 /* PhotoScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoScanView.swift; sourceTree = "<group>"; };
-		C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureAuthService.swift; sourceTree = "<group>"; };
 		C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		C90F86A1A391930008F7E9E3 /* InventoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStoreTests.swift; sourceTree = "<group>"; };
 		CB22C3F83B16E4FD476197C9 /* Bricky.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bricky.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -395,7 +387,6 @@
 		CF232513B9E25E5D6A958E31 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		CF3F043020FE5C5E9432A511 /* LegoProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoProject.swift; sourceTree = "<group>"; };
 		CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickGeometryGenerator.swift; sourceTree = "<group>"; };
-		CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureConfiguration.swift; sourceTree = "<group>"; };
 		D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		D1A254DC766CA8D26DD06CE6 /* CameraViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModelTests.swift; sourceTree = "<group>"; };
 		D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionTests.swift; sourceTree = "<group>"; };
@@ -408,7 +399,6 @@
 		D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableRoundTripTests.swift; sourceTree = "<group>"; };
 		DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopographicMeshRenderer.swift; sourceTree = "<group>"; };
 		DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoverageOverlayView.swift; sourceTree = "<group>"; };
-		DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderConfiguration.swift; sourceTree = "<group>"; };
 		E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBoundaryStrategy.swift; sourceTree = "<group>"; };
 		E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryExporter.swift; sourceTree = "<group>"; };
 		E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintHFeatureTests.swift; sourceTree = "<group>"; };
@@ -495,13 +485,8 @@
 			children = (
 				7B0BC8BE85D7E17769F689B1 /* LDraw */,
 				6DC4E337F3B0A4C45CA2C064 /* PileGeometry */,
-				DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */,
 				3390E508D00CAA57346A79AB /* AnalyticsService.swift */,
 				39039D53E43A8F204D147F0A /* AuthenticationService.swift */,
-				39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */,
-				8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */,
-				C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */,
-				CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */,
 				1FAB64811A197ABCF1D3C1F4 /* BrickClassificationPipeline.swift */,
 				CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */,
 				70ADD39D0E814FA533C4AB7D /* BrickLinkColorMap.swift */,
@@ -893,7 +878,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B7CB64283175AA9C62510E4F /* AIProviderConfiguration.swift in Sources */,
 				F568C7B20155F1D498A16968 /* ARCameraManager.swift in Sources */,
 				6125FB4B0E8330B8F9363FC0 /* ARCameraPreview.swift in Sources */,
 				8C37ABDE92B68F621EF4C4B8 /* AllInventoriesView.swift in Sources */,
@@ -902,10 +886,6 @@
 				315FE5FAA801B8C56FE53538 /* AppConfig.swift in Sources */,
 				59EB91FF60AF80391CFBC5A1 /* AppEntry.swift in Sources */,
 				4CB46EA18E72ACD86CF57340 /* AuthenticationService.swift in Sources */,
-				AB3D24C720EBEFBE3B482694 /* AzureAIService+Minifigure.swift in Sources */,
-				EB5C3B2C08730CBD7A1101A9 /* AzureAIService.swift in Sources */,
-				914C38C7B1410B5F4A7EA958 /* AzureAuthService.swift in Sources */,
-				E9115BE651121715C156F003 /* AzureConfiguration.swift in Sources */,
 				262C845E1BBE97DCDFBABB2C /* BrickClassificationPipeline.swift in Sources */,
 				DB22ADDD7FE0D4DC10D737AB /* BrickGeometryGenerator.swift in Sources */,
 				7711F2AB0635E299F332B979 /* BrickLinkColorMap.swift in Sources */,

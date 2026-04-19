@@ -12,7 +12,6 @@ final class CameraViewModel: ObservableObject {
     @Published var statusMessage = "Point camera at your LEGO pieces"
     @Published var detectionCount = 0
     @Published var lastCapturedImage: UIImage?
-    @Published var analysisMode: ObjectRecognitionService.AnalysisMode = .offline
     @Published var liveDetections: [ObjectRecognitionService.DetectedObject] = []
 
     /// When set, the scanner enters "find piece" mode — highlighting only this piece type
@@ -65,11 +64,6 @@ final class CameraViewModel: ObservableObject {
     init() {
         scanCoordinator.geometry.arCameraManager = arCameraManager
         setupFrameProcessing()
-        // Sync mode from config
-        let config = AzureConfiguration.shared
-        if config.canUseOnlineMode {
-            analysisMode = .hybrid
-        }
     }
 
     func setupCamera() {
@@ -94,8 +88,7 @@ final class CameraViewModel: ObservableObject {
         if scanSettings.scanMode == .detailed {
             statusMessage = "Slowly sweep camera over your brick pile…"
         } else {
-            let modeLabel = AzureConfiguration.shared.canUseOnlineMode ? " (\(analysisMode.rawValue))" : ""
-            statusMessage = "Scanning…\(modeLabel) Hold steady"
+            statusMessage = "Scanning… Hold steady"
         }
 
         if isARMode {
@@ -143,8 +136,7 @@ final class CameraViewModel: ObservableObject {
     func resumeScanning() {
         isPaused = false
         scanSession.isScanning = true
-        let modeLabel = AzureConfiguration.shared.canUseOnlineMode ? " (\(analysisMode.rawValue))" : ""
-        statusMessage = "Scanning...\(modeLabel) Hold steady"
+        statusMessage = "Scanning... Hold steady"
         if isARMode {
             arCameraManager.startSession()
         } else {
@@ -206,14 +198,8 @@ final class CameraViewModel: ObservableObject {
         stopScanning()
     }
 
-    func setAnalysisMode(_ mode: ObjectRecognitionService.AnalysisMode) {
-        analysisMode = mode
-        recognitionService.analysisMode = mode
-    }
-
     func captureAndAnalyze() {
         statusMessage = "Analyzing image..."
-        recognitionService.analysisMode = analysisMode
         HapticManager.impact(.medium)
         cameraManager.capturePhoto()
 
@@ -639,8 +625,7 @@ final class CameraViewModel: ObservableObject {
         if added > 0 {
             detectionCount = scanSession.totalPiecesFound
             scanProgress = min(1.0, Double(scanSession.totalPiecesFound) / 50.0)
-            let modeLabel = AzureConfiguration.shared.canUseOnlineMode ? " (\(analysisMode.rawValue))" : ""
-            statusMessage = "\(scanSession.totalPiecesFound) pieces found\(modeLabel)"
+            statusMessage = "\(scanSession.totalPiecesFound) pieces found"
             HapticManager.impact(.light)
 
             // Throttled auto-save (at most every 5 seconds)
