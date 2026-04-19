@@ -1,0 +1,1420 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		041D123D659D0A07C7666148 /* ShareCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4CF02322D2006E0C99F8B44 /* ShareCreationView.swift */; };
+		04C452E195B06060AC82EBF4 /* LDrawColorMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B86874852D5B48B3807DEF9 /* LDrawColorMap.swift */; };
+		05377A8DA04EE7EBB0D73A7C /* MinifigurePartClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49447E4BE19517E0C82FC57 /* MinifigurePartClassifierTests.swift */; };
+		0574D530F5B65F1CE1AB6F71 /* BuildSuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F4E25FB64DBA81C66E90F86 /* BuildSuggestionsView.swift */; };
+		07537A8D1F4D7AA4E51B2589 /* CorrectionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF551B07D7C9FEE159BD34 /* CorrectionLogger.swift */; };
+		08D9E052EE1EBB6227F3E7D3 /* ScanSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341503AC5A0E9408BBCF3F91 /* ScanSettings.swift */; };
+		093A526428BD17387406503A /* PieceCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF8881B0005A08F7C282D85 /* PieceCatalogView.swift */; };
+		0A1045951C46F88007550076 /* NaturalLanguageSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22FABFA3E44FCE643ABCB87 /* NaturalLanguageSearchService.swift */; };
+		0B4BEED98C9ECD68C41BAD31 /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F80702B03C212E2C4FC9F11 /* ScanSession.swift */; };
+		0B54274FD754DEB2EAC1CD3B /* SprintHFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */; };
+		0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */; };
+		0D494F0879D5C9E7DB730720 /* AllScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */; };
+		11281C7B158EF2DCA81E6FF8 /* FavoritesStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */; };
+		1248FD3DAA4503F99D861775 /* CameraScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A989E630393136FB68A0F3D2 /* CameraScanView.swift */; };
+		129C11009B2C8EC8D1B9B1AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9E5318E5F2A286859D4087 /* ContentView.swift */; };
+		140544C77B1D03BC4FB1EC3D /* SetCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9001A7238D055A31B3B8C09B /* SetCollectionView.swift */; };
+		17E3854041DA4D68D66C2977 /* LegoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BD3A9F8333CC94A28950903 /* LegoSet.swift */; };
+		1AC9DDB1336FB20559E41606 /* CameraViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A254DC766CA8D26DD06CE6 /* CameraViewModelTests.swift */; };
+		1BF511568DAB411ACA48FC86 /* FeatureTipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */; };
+		1F0439B1AC3A9BA2E28E7581 /* MinifigureCorrectionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1B8B3848144EBE953A1103 /* MinifigureCorrectionPicker.swift */; };
+		2032055BD21AC987D2909A61 /* TopographicMeshRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */; };
+		2188657E2B22B0D86B90F6B1 /* ColorCalibrationWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5940F2D1173F092D494003 /* ColorCalibrationWizardView.swift */; };
+		22184BDF590C6B08A3FBD539 /* SprintJCommunityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC6B3E9E9AAC132713F85AB /* SprintJCommunityTests.swift */; };
+		262C845E1BBE97DCDFBABB2C /* BrickClassificationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAB64811A197ABCF1D3C1F4 /* BrickClassificationPipeline.swift */; };
+		277EA536808369FADD7468E6 /* ScanAutoStopMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A363F7355521EB78CF0886A /* ScanAutoStopMonitor.swift */; };
+		278B21965B3DB12DC774A0B1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83531232B8BF9A9B795E914 /* OnboardingView.swift */; };
+		27D029C163B8A4A8DA649216 /* DailyChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81040741125F65C2B8ED671E /* DailyChallenge.swift */; };
+		2A8587975280DFC2B5C9562E /* MinifigureCollectionStoreScanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D1665C0A02A1A385D5E70E /* MinifigureCollectionStoreScanTests.swift */; };
+		2AA74D2BFAB044A5E1D4B8F6 /* InventoryImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3C659E7105107DB0922F98 /* InventoryImporter.swift */; };
+		2D10DD9EC183DBB261FBCF2D /* MinifigureIdentificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD3890394088A8DB19DECD5 /* MinifigureIdentificationServiceTests.swift */; };
+		2DFD33D8232F79446647AD78 /* ARCameraManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE7607A39AAA879183E0FA9 /* ARCameraManagerTests.swift */; };
+		30D5276335F1ACB479608392 /* MinifigureAddToCatalogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC75E5D0A15D3C00526F5FE /* MinifigureAddToCatalogSheet.swift */; };
+		315FE5FAA801B8C56FE53538 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF232513B9E25E5D6A958E31 /* AppConfig.swift */; };
+		35786DA2B66428B54EFFF0A1 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727291AC9F944667FFD0396C /* CameraViewModel.swift */; };
+		3753741E07C6D0314B8DFB61 /* CameraViewModelARTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDAF34A45E595FE235AD9969 /* CameraViewModelARTests.swift */; };
+		383A0AD42FAB8341A3E48CD9 /* EnvironmentMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 183A4BC94CC9800F3236BFDE /* EnvironmentMonitor.swift */; };
+		3E62779CD68BDEED3A0CBC27 /* PieceLocationOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C2C9A6D9C8C6703C7096AA /* PieceLocationOverlayView.swift */; };
+		3EA0F501BF9E15D43896D1D5 /* MinifigureCollectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */; };
+		3EB018073E64318F06236DFA /* ContinuousScanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86A110BD7D384132B08AD87 /* ContinuousScanCoordinator.swift */; };
+		402866F6D34997CF50220FCE /* MinifigureCatalogUserFiguresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68F10331A7DBE97B6AE405C /* MinifigureCatalogUserFiguresTests.swift */; };
+		40CC2C705DCB440A158D3B72 /* PileGeometryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */; };
+		44596FD79D13AE56D5912B22 /* OrganicBoundaryTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F44F56B0CFE34F8018C3769 /* OrganicBoundaryTracker.swift */; };
+		45657379F1C5741CF0D78752 /* MinifigureTrainingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F05AC84333E4482214E0DFB2 /* MinifigureTrainingStore.swift */; };
+		459A330FF64F5A3758B8B288 /* MinifigureImageCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441BA4C0E0F0868E0AA8CDE4 /* MinifigureImageCacheTests.swift */; };
+		4B733BDE26FBDEE9652994C0 /* BrickitBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9FCC3E73A6228E59EFE447 /* BrickitBoundingBoxView.swift */; };
+		4CB46EA18E72ACD86CF57340 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39039D53E43A8F204D147F0A /* AuthenticationService.swift */; };
+		4D0E5A258F6028EF88FBA79D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC337C3CA7930100725641C0 /* Assets.xcassets */; };
+		5097313F7C1B1094A511CBAE /* SortingSuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6D2AAA757CF2ECF7728AE17 /* SortingSuggestionsView.swift */; };
+		50BA88F855CBF3BB33ABF6AA /* Comment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AD14346743A75D0BA8A27F /* Comment.swift */; };
+		530F13ACDA73618A8EF3DD80 /* PieceLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F803ED8C2E551A4E3616FB /* PieceLocationService.swift */; };
+		5368CDFC5C4D85A6E5898C59 /* HelpAndTipsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF3F97DEB042BAD5BFDDD65 /* HelpAndTipsTests.swift */; };
+		548E42CFC79DC3AFDC885B20 /* CodableRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */; };
+		55D4AAAB07FA81B0756CA2AF /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AFAE0ABD5A7FEBDFE28290 /* UserProfile.swift */; };
+		5648A48E2EC65C3EC1060AFE /* ZoomableImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C3FB53FD13493CF42AEB11 /* ZoomableImageView.swift */; };
+		56FF033F3FB326CB1B401D44 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E271909EA72E6BCA74B3A0C /* CameraPreview.swift */; };
+		579DC316F2E895CA69FFCF31 /* LiDARTopographicRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26D16F859D5B68C96CC68AC /* LiDARTopographicRenderer.swift */; };
+		5809ED45C985CF23490E6649 /* LiDARTopographicRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC883C3B9260A99734D2106 /* LiDARTopographicRendererTests.swift */; };
+		5950E537F4F82EFFAED30622 /* PieceCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33A0DBCEE1FF6A32C7D8AA4 /* PieceCatalogViewModel.swift */; };
+		596B31199D8F6C0CFBE08C7D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7FEA1824DC800D077B22B714 /* PrivacyInfo.xcprivacy */; };
+		59EB91FF60AF80391CFBC5A1 /* AppEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A35CDEF9B628677047F1B04 /* AppEntry.swift */; };
+		5B4BFAA9885CC916D4E2511A /* DailyChallengeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94735FD2C6A5358AF7B8DC47 /* DailyChallengeCard.swift */; };
+		5BE2CAEBF90D0FD3E5605A58 /* LegoPiece.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83CC8DA6570B80F29F9C562 /* LegoPiece.swift */; };
+		5E035242918813A585958FAC /* LDrawLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 806060A04B07F3F1BA5AA723 /* LDrawLibrary.swift */; };
+		5E16D20416A6D40C3E3048C2 /* StorageBin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BF55BE400C39A582C522D8 /* StorageBin.swift */; };
+		5E20B6372432B41BF07DA730 /* InventoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55CB1B06779D65EBCD57B680 /* InventoryStore.swift */; };
+		5E6E4E0EA60ED32F78D5F178 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E984841C290B9FF9EE9A0DB /* ScanHistoryStore.swift */; };
+		61143957DDF1F92798E3D2C0 /* PileDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08AF16D812AE6A373255CAE /* PileDiffView.swift */; };
+		6125FB4B0E8330B8F9363FC0 /* ARCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EA5295D9ADE9E473502C551 /* ARCameraPreview.swift */; };
+		634398F03B7404BC69695767 /* ContinuousScanCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6235F31196148177708FAD03 /* ContinuousScanCoordinatorTests.swift */; };
+		63663F3858E81BDFA1598B6F /* LegoPartsCatalogExtended.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA9EF5B245FADDF264F8EA6 /* LegoPartsCatalogExtended.swift */; };
+		64D78D48234A12BD0C6DB791 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10DCC98BF2ADC75548CD3C0F /* HapticManager.swift */; };
+		651E12FF9139F02B0735EBEB /* PieceFinderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CD20600331E6F94FE41BC2 /* PieceFinderButton.swift */; };
+		6610CB9D96C3907B8EEA2067 /* MinifigureScanStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA74B2566CA02216A404C80 /* MinifigureScanStatusView.swift */; };
+		663A3386CF4B31EEB3652E2B /* MinifigureCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E73A004AC376E75A118FBED /* MinifigureCatalogTests.swift */; };
+		672E3C051DF88366CCCC04CE /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10725F43D64040D81314A92 /* PrivacyPolicyView.swift */; };
+		6A438D773318DDA2B50A82D9 /* MinifigureScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F5A40CFF97FF2D821A76DA /* MinifigureScanHistoryView.swift */; };
+		6AD109C830B95C194224A87E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */; };
+		6B7F5CE0D1BC6B10FB4C9134 /* CloudKitCommunityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */; };
+		72E89504E4AE7F009D69BE27 /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */; };
+		732CC68E06EB97C3EC91BAF2 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */; };
+		73AEE54DF84D7E5470A2262F /* StorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153709824478E08403412691 /* StorageView.swift */; };
+		74F30FA19A99FB71ECD259ED /* ObjectRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CCDD6FBB615821CE170B56 /* ObjectRecognitionService.swift */; };
+		760A5082C8F9B4736610EEC8 /* LegoProjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC6BCC2E625333E59FFB6CE /* LegoProjectTests.swift */; };
+		7711F2AB0635E299F332B979 /* BrickLinkColorMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ADD39D0E814FA533C4AB7D /* BrickLinkColorMap.swift */; };
+		77E619AAFE87B3FFD4F7CC80 /* BuildSuggestionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982B984D8E7D946CCC0E2EEC /* BuildSuggestionsViewModel.swift */; };
+		78280E54CCB780DD43733145 /* SprintIDataSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7362E8AE109BBA57C2B8E3EC /* SprintIDataSyncTests.swift */; };
+		7885CD86477D94F496F446AF /* LegoPartsCatalogExtended3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E0CC63CB8328E70B5080484 /* LegoPartsCatalogExtended3.swift */; };
+		7913315BA0C86664A609F157 /* BrickyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B11C42C5F3775B0B5AB8D1C /* BrickyUITests.swift */; };
+		7A666B50341070DADF030DFF /* LiveDetectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEAAF95967902DEE9F5BE82 /* LiveDetectionOverlayView.swift */; };
+		7ACFFDB48ED3320C539CE25D /* MinifigureCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA05B92EC78929F43533B495 /* MinifigureCatalog.swift */; };
+		7BFE2324B8420F41B64A28E1 /* ScanResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32DE4A487EB8448E02A6667A /* ScanResultsView.swift */; };
+		7E8731EF1505F42AA37AF1CB /* BuildSuggestionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BD1E8270C591FF0FC91A3E /* BuildSuggestionEngine.swift */; };
+		7ED84243362C0366C4E29554 /* BuildDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90005FAD8B7F3778215ED3AB /* BuildDetailView.swift */; };
+		80C797BDFCC3D8119D0EB85D /* ScanSessionAssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186F14B76D4796166E069B13 /* ScanSessionAssetStore.swift */; };
+		8280ED874D3B24A20300260A /* PileTopographicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F5BA6480A08BA0EBA5559C9 /* PileTopographicView.swift */; };
+		8437436BAF820B041765C10A /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */; };
+		8535CDC4074356D75747E783 /* BuildSuggestionEngineExtended.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B25C96124C8AB43AE59F45 /* BuildSuggestionEngineExtended.swift */; };
+		8551CF3456FDAD55E488D0C5 /* MinifigureCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64791025FC767A2813750BE /* MinifigureCatalogView.swift */; };
+		8886C9DD2B4B2E607F1CA140 /* PileMeshOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */; };
+		89F8CE50F2C4AE82EA5FC707 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F5A0FA3E0551C2CF84341D /* Color+Extensions.swift */; };
+		8A96F25F619F0F86FDE6E7C2 /* FindPieceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */; };
+		8BF98A43B36968309CD81C02 /* STLExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B042C4549FDD1E117F6E44 /* STLExporter.swift */; };
+		8C37ABDE92B68F621EF4C4B8 /* AllInventoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40E2EA403938AFBD9529A7DE /* AllInventoriesView.swift */; };
+		8C48B4E735B5E6FD9854A48D /* LocationConsentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */; };
+		8C9489D27229335FA2EA2BEC /* LegoPartsCatalogExtended2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC623064033CA232718B137 /* LegoPartsCatalogExtended2.swift */; };
+		8C9B491670DC5A477D2297D7 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877449AA444CB12ACB349003 /* PaywallView.swift */; };
+		8D3D481A194E56AB21CB7C24 /* PieceFilterSortBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9F0C66986001376904782C /* PieceFilterSortBar.swift */; };
+		8EE0E751C47703F32EDEAF35 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */; };
+		91172B665F3EC29F6AB87203 /* LegoPieceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FDFE37FAD57D27C6FA8B6B /* LegoPieceTests.swift */; };
+		914C38C7B1410B5F4A7EA958 /* AzureAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */; };
+		91A863A337B61D59999DEC22 /* Minifigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */; };
+		95B0EFA598F937D751738193 /* SprintDFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71ABC00264BEE119191B3AA /* SprintDFeatureTests.swift */; };
+		96900AF879493DFD873B37D9 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390E508D00CAA57346A79AB /* AnalyticsService.swift */; };
+		97D1059930F03189B13BEC1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC425B20D8B2BADA0FB3C317 /* SettingsView.swift */; };
+		9B09A1DBF37FDBEA078DDE8B /* MinifigureImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9CCEE644C88405251311A3A /* MinifigureImageView.swift */; };
+		9BC83D6EA300F635379B00F4 /* StreakTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E05CFCC1E1D428E54709D3 /* StreakTracker.swift */; };
+		9D4BF5EFCBD72FE6B6938D38 /* ScanCoverageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94EC4AD6FE61E96D5770C947 /* ScanCoverageTracker.swift */; };
+		9D4E66576DC6EAD0900368CE /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */; };
+		A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */; };
+		A2CB46692366042DFA24D41E /* BrickLinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F6129A14CE15B1121EE20A /* BrickLinkService.swift */; };
+		A2CEB2D26C6B51D850E8CB5A /* MinifigureIdentificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F90204EE4194D35F7FBE42D /* MinifigureIdentificationService.swift */; };
+		A300C642700D56ABAFE3E411 /* MultiScanFindResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */; };
+		A576B7C37A8517859A7D1FE2 /* ScanGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2272923D35B2120D8C0F4B /* ScanGuideView.swift */; };
+		A584D8FDBB7FEF05D49CE802 /* MinifigureDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0960168ADA1F03521746E701 /* MinifigureDetailView.swift */; };
+		A5B6579DA97234543BC8B62C /* PieceImageGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */; };
+		A67DFF52AB00E1C71E943CC8 /* ScanTagEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */; };
+		A8CC797927D5A6BD9A2119EF /* LDraw in Resources */ = {isa = PBXBuildFile; fileRef = 2E2375924C87F31026F188BC /* LDraw */; };
+		AB3D24C720EBEFBE3B482694 /* AzureAIService+Minifigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */; };
+		AC3B9D5FE59E071015332224 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53D992EB0C6063AE0CED1FB /* HelpView.swift */; };
+		AE1E9995F023E40405113741 /* BuildSuggestionsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */; };
+		AE4165B8293AD7D55AEC5DD5 /* SortingSuggestionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EDCB32FEB70791BE4BAA6BB /* SortingSuggestionService.swift */; };
+		AF4BBB503CEE6CFE3F678331 /* MinifigureScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9598800607FE66FCA7EB02 /* MinifigureScanHistoryStore.swift */; };
+		B0066CB4D6BA178BD42560C5 /* BuildSuggestionEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7258A02119F014757C85ED01 /* BuildSuggestionEngineTests.swift */; };
+		B019790133E705E3A3695721 /* InventoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90F86A1A391930008F7E9E3 /* InventoryStoreTests.swift */; };
+		B07CEDBB06FE65C2FCD76DE8 /* LocalizedStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C76038568B87A4FD43A022 /* LocalizedStrings.swift */; };
+		B0A6769DF69696ACE5374B0F /* FindABrickHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2643F3D5FD09C928C4DC109 /* FindABrickHubView.swift */; };
+		B285874AEBBD6B60D562C1EE /* MeshBoundaryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */; };
+		B4C89046439354DBD1934C9C /* ScanLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */; };
+		B6F42166FB1A517BAAD51A2D /* ScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */; };
+		B7CB64283175AA9C62510E4F /* AIProviderConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */; };
+		B9715CEB3E199BE2A858738A /* LegoPartsCatalogExtended6.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554B18ED7D8883CEE12BA0FC /* LegoPartsCatalogExtended6.swift */; };
+		B9C9531C2C57CC18EB92A21C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */; };
+		BA6D44DF5EACC4608E48F82C /* SprintFFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */; };
+		BB98A24621905435A037361B /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61338725147C0143FDFD72F5 /* UserProfileView.swift */; };
+		BBF054401C5AFB9948638772 /* LDrawGeometryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC8F80C4E0982F2258E2AEE /* LDrawGeometryBuilder.swift */; };
+		BCB5CFCDDC7E4933E35B151F /* SprintEModelGenerationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11129867B4A0A4EEEA1D991 /* SprintEModelGenerationTests.swift */; };
+		BCE29E51ECCA85D3F5C3F5B3 /* BuildSuggestionEngineExtended3.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F4210780DD5C1816DB1297 /* BuildSuggestionEngineExtended3.swift */; };
+		BDBE2D4BC1A2EA3BFFB636DB /* LegoSetCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F615C73B1527FB02F905C /* LegoSetCatalog.swift */; };
+		BE3A653B5767F09CB9EB038D /* MinifigureClassificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D90C3A6A2B7C168C4C12872 /* MinifigureClassificationService.swift */; };
+		BEE177AD1169107C70D85CF7 /* Sprint5FeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80F4A5D7DC42D08A066E6E1 /* Sprint5FeatureTests.swift */; };
+		C0F4B858683620DC227B7188 /* FindABrickTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F44C3A349FB7B59F7690004 /* FindABrickTests.swift */; };
+		C195C8B376562449CD29CF55 /* SprintDCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AAF73D5DAE2D3EBA7978999 /* SprintDCompletionTests.swift */; };
+		C1ACFAE3448CD011548E88A3 /* PileBoundaryLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869D6030E25BF39280135812 /* PileBoundaryLocationView.swift */; };
+		C2E8CEBC6A55988AC82EBF36 /* TopographicMeshRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80A790919432D63489718D6 /* TopographicMeshRendererTests.swift */; };
+		C6E84040B81C1CF22723CB9A /* BuildTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECFDC4C269BA2D9DE559517D /* BuildTimerView.swift */; };
+		C8F1C49801A97F9C7FE3358A /* FindInSavedScanPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5172D06746279C57684B691 /* FindInSavedScanPickerView.swift */; };
+		CA615390D092FE27754DD9C4 /* MinifigureCollectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D235600C5D0BCDBE60EE7D /* MinifigureCollectionStore.swift */; };
+		CACCB3C2A3AA09494935B55E /* LegoPartsCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014D8EABBD76E661E983DDAA /* LegoPartsCatalog.swift */; };
+		CB445C8F06B403EE18177E2D /* Color+Adaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3834943ACD2B2717CAAEE24C /* Color+Adaptive.swift */; };
+		CBABE111290D8895AD52A11A /* ScanMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34F62C4664682E64D816799 /* ScanMapView.swift */; };
+		CC45C8546897DBA00FFE73FA /* PuzzleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FD8EF2530B8F31277D8279 /* PuzzleEngine.swift */; };
+		CD5AA670AF8EEB1046DEC964 /* GeometryUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2CA9EC539356E82EA2EE4D /* GeometryUtils.swift */; };
+		CFE0338FD0406EE392C5A882 /* PieceCatalogViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */; };
+		D092FD0C3491C4DDE7DDDD5A /* TipManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 686081141A769871976AC3BC /* TipManager.swift */; };
+		D18E94E7FD0A18F36922B7DD /* ScanCoverageOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */; };
+		D2B1A14CBB82CEB47A64BDA2 /* PhotoScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76B35002D5D440D2D430958 /* PhotoScanView.swift */; };
+		D3C15A6C88D0EE831CD425CF /* PileGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA431A281966BE3D4ED8906 /* PileGeometry.swift */; };
+		D48C9C8D6459D93FC5030E79 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD8F5AC878433FC4A489CAF /* CameraManager.swift */; };
+		D4A9800989C275434721EDDA /* CommunityFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985E30E418139D7252D46E77 /* CommunityFeedView.swift */; };
+		D5AD61C950BBF662E3A6873C /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */; };
+		D885A3F57419D722DECD92A0 /* MinifigurePartClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */; };
+		DA5B38B6D328AFBDEAE20697 /* MinifigureConfirmationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223D25FC8EFB4FB6EAF2BFC5 /* MinifigureConfirmationSheet.swift */; };
+		DB22ADDD7FE0D4DC10D737AB /* BrickGeometryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */; };
+		DBAC33A2FFA87D3C37E2A6AD /* CommunityPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD6DCED0E9A382C3B24A27F /* CommunityPost.swift */; };
+		DBDDC5CFDE9FB02CDF31F687 /* DailyChallengeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8BC98F9E123AAC1A2E388F /* DailyChallengeService.swift */; };
+		DC9DE6AA5050C071A445DC36 /* PuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E97D4FC646BBBC60D65238 /* PuzzleView.swift */; };
+		DE4E2645BB357B9F065CBFE7 /* ModelViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */; };
+		E0B82ABE3C7A14FA0F45BFEC /* SprintGAppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */; };
+		E104BAB8FB74108365A8F9F0 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99695881DBDD8B0B9F983E7F /* ThemeManager.swift */; };
+		E283A486E8DE664FCF1A062B /* LDrawTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBB702DF4BD9264251C72D1 /* LDrawTests.swift */; };
+		E2B93D6145637C659A2AE7F3 /* PieceLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A52E74B4552366C5A59D95 /* PieceLocationView.swift */; };
+		E353E9BAF6EAB4E20324ACCD /* LDrawParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E9288C2505F74A7BB3BCD /* LDrawParser.swift */; };
+		E38B834A2CA583E76569107B /* MinifigureCatalog.json.gz in Resources */ = {isa = PBXBuildFile; fileRef = 039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */; };
+		E40C3AC88DBF8ED966FFBF22 /* LegoPartsCatalogExtended4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55018C723F01B5F0E724140D /* LegoPartsCatalogExtended4.swift */; };
+		E6B3126504A261F5DDAD6D6C /* MinifigureScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */; };
+		E7A8E8E79107D34AC234358A /* InventoryExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */; };
+		E9115BE651121715C156F003 /* AzureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */; };
+		E94BCB3784F0A9BF6909BDCE /* InventoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41895B88ED3E0CDA22B6EB36 /* InventoryDetailView.swift */; };
+		EAA7D5B871EB1FCAB73B51F5 /* ScanAutoStopMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D48E65B45D0B22A22CF6291 /* ScanAutoStopMonitorTests.swift */; };
+		EB5C3B2C08730CBD7A1101A9 /* AzureAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */; };
+		ED133DF6663F69C047A0AC48 /* PileGeometryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */; };
+		EE5BC91C1B48291A85592E99 /* LegoPartsCatalogExtended5.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D51D0B4216E0929A58FDCB /* LegoPartsCatalogExtended5.swift */; };
+		EEB953F03E44137D95277D6B /* ScanLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB86A3EFB207E0117757F00D /* ScanLocationService.swift */; };
+		EEF879275171D8C287B416E1 /* LegoPartsCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */; };
+		F116571048A46356A15AB0A0 /* LegoProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3F043020FE5C5E9432A511 /* LegoProject.swift */; };
+		F265650A3AD65D4CF4DBD38B /* BuildStepViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */; };
+		F2E648B8FA73E8843368A64A /* DepthBoundaryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73609C0C3AF7791CFE6F171C /* DepthBoundaryStrategy.swift */; };
+		F3F81C79CC5B49C51379A2B3 /* BuildSuggestionEngineExtended2.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9EDEE09F843CC52D920B0D /* BuildSuggestionEngineExtended2.swift */; };
+		F43CCB1C6AA4004F7F73FE9B /* DetailedScanOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0004B89780348419A95B7249 /* DetailedScanOverlayView.swift */; };
+		F4F4F189E5416EE4A540C9A1 /* PileResultsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */; };
+		F568C7B20155F1D498A16968 /* ARCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A6DCA2C9B6A4A54B492659 /* ARCameraManager.swift */; };
+		FD1A781F06A8BB347C239F69 /* PileDiffService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4716DEF5B361CBC8B1267080 /* PileDiffService.swift */; };
+		FFC974C1A306069D23B676A4 /* ColorCalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8CF48AD2021CB33057E172B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EBB53D6B46A4A1FBB5FDE77D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FAA26B62F3E06E9AB9AB6710;
+			remoteInfo = Bricky;
+		};
+		F729D110F088E39FBBAFBA87 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EBB53D6B46A4A1FBB5FDE77D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FAA26B62F3E06E9AB9AB6710;
+			remoteInfo = Bricky;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0004B89780348419A95B7249 /* DetailedScanOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedScanOverlayView.swift; sourceTree = "<group>"; };
+		014D8EABBD76E661E983DDAA /* LegoPartsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalog.swift; sourceTree = "<group>"; };
+		0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanView.swift; sourceTree = "<group>"; };
+		039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = MinifigureCatalog.json.gz; sourceTree = "<group>"; };
+		04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigurePartClassifier.swift; sourceTree = "<group>"; };
+		05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintGAppStoreTests.swift; sourceTree = "<group>"; };
+		06F6129A14CE15B1121EE20A /* BrickLinkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkService.swift; sourceTree = "<group>"; };
+		07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		0960168ADA1F03521746E701 /* MinifigureDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureDetailView.swift; sourceTree = "<group>"; };
+		0C9598800607FE66FCA7EB02 /* MinifigureScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanHistoryStore.swift; sourceTree = "<group>"; };
+		0CBB702DF4BD9264251C72D1 /* LDrawTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawTests.swift; sourceTree = "<group>"; };
+		10DCC98BF2ADC75548CD3C0F /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		11A52E74B4552366C5A59D95 /* PieceLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceLocationView.swift; sourceTree = "<group>"; };
+		153709824478E08403412691 /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
+		1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreTests.swift; sourceTree = "<group>"; };
+		183A4BC94CC9800F3236BFDE /* EnvironmentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentMonitor.swift; sourceTree = "<group>"; };
+		186F14B76D4796166E069B13 /* ScanSessionAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionAssetStore.swift; sourceTree = "<group>"; };
+		1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
+		1EA5295D9ADE9E473502C551 /* ARCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraPreview.swift; sourceTree = "<group>"; };
+		1F1B8B3848144EBE953A1103 /* MinifigureCorrectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCorrectionPicker.swift; sourceTree = "<group>"; };
+		1F44F56B0CFE34F8018C3769 /* OrganicBoundaryTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrganicBoundaryTracker.swift; sourceTree = "<group>"; };
+		1F4E25FB64DBA81C66E90F86 /* BuildSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionsView.swift; sourceTree = "<group>"; };
+		1F90204EE4194D35F7FBE42D /* MinifigureIdentificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureIdentificationService.swift; sourceTree = "<group>"; };
+		1FAB64811A197ABCF1D3C1F4 /* BrickClassificationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickClassificationPipeline.swift; sourceTree = "<group>"; };
+		223D25FC8EFB4FB6EAF2BFC5 /* MinifigureConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureConfirmationSheet.swift; sourceTree = "<group>"; };
+		2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintKEngagementTests.swift; sourceTree = "<group>"; };
+		25C3FB53FD13493CF42AEB11 /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
+		289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLocationTests.swift; sourceTree = "<group>"; };
+		29D1665C0A02A1A385D5E70E /* MinifigureCollectionStoreScanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreScanTests.swift; sourceTree = "<group>"; };
+		2A35CDEF9B628677047F1B04 /* AppEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEntry.swift; sourceTree = "<group>"; };
+		2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationConsentSheet.swift; sourceTree = "<group>"; };
+		2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
+		2D90C3A6A2B7C168C4C12872 /* MinifigureClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureClassificationService.swift; sourceTree = "<group>"; };
+		2DD6DCED0E9A382C3B24A27F /* CommunityPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPost.swift; sourceTree = "<group>"; };
+		2E2375924C87F31026F188BC /* LDraw */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LDraw; path = Bricky/Resources/LDraw; sourceTree = SOURCE_ROOT; };
+		31C76038568B87A4FD43A022 /* LocalizedStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedStrings.swift; sourceTree = "<group>"; };
+		32DE4A487EB8448E02A6667A /* ScanResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanResultsView.swift; sourceTree = "<group>"; };
+		3390E508D00CAA57346A79AB /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
+		341503AC5A0E9408BBCF3F91 /* ScanSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSettings.swift; sourceTree = "<group>"; };
+		37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryServiceTests.swift; sourceTree = "<group>"; };
+		3834943ACD2B2717CAAEE24C /* Color+Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Adaptive.swift"; sourceTree = "<group>"; };
+		39039D53E43A8F204D147F0A /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
+		39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureAIService.swift; sourceTree = "<group>"; };
+		3AAF73D5DAE2D3EBA7978999 /* SprintDCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintDCompletionTests.swift; sourceTree = "<group>"; };
+		3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanTagEditorView.swift; sourceTree = "<group>"; };
+		3CA431A281966BE3D4ED8906 /* PileGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometry.swift; sourceTree = "<group>"; };
+		3EF8881B0005A08F7C282D85 /* PieceCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceCatalogView.swift; sourceTree = "<group>"; };
+		3F2CA9EC539356E82EA2EE4D /* GeometryUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryUtils.swift; sourceTree = "<group>"; };
+		3F5BA6480A08BA0EBA5559C9 /* PileTopographicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileTopographicView.swift; sourceTree = "<group>"; };
+		40E2EA403938AFBD9529A7DE /* AllInventoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllInventoriesView.swift; sourceTree = "<group>"; };
+		40F5A0FA3E0551C2CF84341D /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
+		41895B88ED3E0CDA22B6EB36 /* InventoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryDetailView.swift; sourceTree = "<group>"; };
+		42F5A40CFF97FF2D821A76DA /* MinifigureScanHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanHistoryView.swift; sourceTree = "<group>"; };
+		441BA4C0E0F0868E0AA8CDE4 /* MinifigureImageCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureImageCacheTests.swift; sourceTree = "<group>"; };
+		45D235600C5D0BCDBE60EE7D /* MinifigureCollectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStore.swift; sourceTree = "<group>"; };
+		4716DEF5B361CBC8B1267080 /* PileDiffService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileDiffService.swift; sourceTree = "<group>"; };
+		47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileResultsSheetView.swift; sourceTree = "<group>"; };
+		4BEAAF95967902DEE9F5BE82 /* LiveDetectionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDetectionOverlayView.swift; sourceTree = "<group>"; };
+		4D3C659E7105107DB0922F98 /* InventoryImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryImporter.swift; sourceTree = "<group>"; };
+		4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
+		4E73A004AC376E75A118FBED /* MinifigureCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogTests.swift; sourceTree = "<group>"; };
+		4FF3F97DEB042BAD5BFDDD65 /* HelpAndTipsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpAndTipsTests.swift; sourceTree = "<group>"; };
+		55018C723F01B5F0E724140D /* LegoPartsCatalogExtended4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended4.swift; sourceTree = "<group>"; };
+		554B18ED7D8883CEE12BA0FC /* LegoPartsCatalogExtended6.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended6.swift; sourceTree = "<group>"; };
+		55CB1B06779D65EBCD57B680 /* InventoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStore.swift; sourceTree = "<group>"; };
+		590E9288C2505F74A7BB3BCD /* LDrawParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawParser.swift; sourceTree = "<group>"; };
+		5E271909EA72E6BCA74B3A0C /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCommunityService.swift; sourceTree = "<group>"; };
+		61338725147C0143FDFD72F5 /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
+		6235F31196148177708FAD03 /* ContinuousScanCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousScanCoordinatorTests.swift; sourceTree = "<group>"; };
+		64BF55BE400C39A582C522D8 /* StorageBin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBin.swift; sourceTree = "<group>"; };
+		686081141A769871976AC3BC /* TipManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipManager.swift; sourceTree = "<group>"; };
+		6A8BC98F9E123AAC1A2E388F /* DailyChallengeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallengeService.swift; sourceTree = "<group>"; };
+		6AC6B3E9E9AAC132713F85AB /* SprintJCommunityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintJCommunityTests.swift; sourceTree = "<group>"; };
+		6B11C42C5F3775B0B5AB8D1C /* BrickyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickyUITests.swift; sourceTree = "<group>"; };
+		6BE7607A39AAA879183E0FA9 /* ARCameraManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraManagerTests.swift; sourceTree = "<group>"; };
+		6C2272923D35B2120D8C0F4B /* ScanGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanGuideView.swift; sourceTree = "<group>"; };
+		6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Minifigure.swift; sourceTree = "<group>"; };
+		6F80702B03C212E2C4FC9F11 /* ScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSession.swift; sourceTree = "<group>"; };
+		6FC75E5D0A15D3C00526F5FE /* MinifigureAddToCatalogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureAddToCatalogSheet.swift; sourceTree = "<group>"; };
+		6FD3890394088A8DB19DECD5 /* MinifigureIdentificationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureIdentificationServiceTests.swift; sourceTree = "<group>"; };
+		7074CE7C499C81B2C51E926A /* BrickyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		70ADD39D0E814FA533C4AB7D /* BrickLinkColorMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkColorMap.swift; sourceTree = "<group>"; };
+		7258A02119F014757C85ED01 /* BuildSuggestionEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngineTests.swift; sourceTree = "<group>"; };
+		727291AC9F944667FFD0396C /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
+		731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintFFeatureTests.swift; sourceTree = "<group>"; };
+		73609C0C3AF7791CFE6F171C /* DepthBoundaryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthBoundaryStrategy.swift; sourceTree = "<group>"; };
+		7362E8AE109BBA57C2B8E3EC /* SprintIDataSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintIDataSyncTests.swift; sourceTree = "<group>"; };
+		76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceCatalogViewModelTests.swift; sourceTree = "<group>"; };
+		79BD1E8270C591FF0FC91A3E /* BuildSuggestionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngine.swift; sourceTree = "<group>"; };
+		7C2E2298948645AF1AC08783 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		7D1F615C73B1527FB02F905C /* LegoSetCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoSetCatalog.swift; sourceTree = "<group>"; };
+		7D48E65B45D0B22A22CF6291 /* ScanAutoStopMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAutoStopMonitorTests.swift; sourceTree = "<group>"; };
+		7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		7EDCB32FEB70791BE4BAA6BB /* SortingSuggestionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortingSuggestionService.swift; sourceTree = "<group>"; };
+		7FC623064033CA232718B137 /* LegoPartsCatalogExtended2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended2.swift; sourceTree = "<group>"; };
+		7FEA1824DC800D077B22B714 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		806060A04B07F3F1BA5AA723 /* LDrawLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawLibrary.swift; sourceTree = "<group>"; };
+		81040741125F65C2B8ED671E /* DailyChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallenge.swift; sourceTree = "<group>"; };
+		83AD14346743A75D0BA8A27F /* Comment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comment.swift; sourceTree = "<group>"; };
+		869D6030E25BF39280135812 /* PileBoundaryLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileBoundaryLocationView.swift; sourceTree = "<group>"; };
+		877449AA444CB12ACB349003 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		87C5B1E154A868ECF7C9DD28 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		88CD20600331E6F94FE41BC2 /* PieceFinderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceFinderButton.swift; sourceTree = "<group>"; };
+		8B5940F2D1173F092D494003 /* ColorCalibrationWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorCalibrationWizardView.swift; sourceTree = "<group>"; };
+		8B86874852D5B48B3807DEF9 /* LDrawColorMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawColorMap.swift; sourceTree = "<group>"; };
+		8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AzureAIService+Minifigure.swift"; sourceTree = "<group>"; };
+		8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryService.swift; sourceTree = "<group>"; };
+		8BD3A9F8333CC94A28950903 /* LegoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoSet.swift; sourceTree = "<group>"; };
+		8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildStepViewer.swift; sourceTree = "<group>"; };
+		8E0CC63CB8328E70B5080484 /* LegoPartsCatalogExtended3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended3.swift; sourceTree = "<group>"; };
+		8E984841C290B9FF9EE9A0DB /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
+		8F44C3A349FB7B59F7690004 /* FindABrickTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindABrickTests.swift; sourceTree = "<group>"; };
+		90005FAD8B7F3778215ED3AB /* BuildDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildDetailView.swift; sourceTree = "<group>"; };
+		9001A7238D055A31B3B8C09B /* SetCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetCollectionView.swift; sourceTree = "<group>"; };
+		91B042C4549FDD1E117F6E44 /* STLExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STLExporter.swift; sourceTree = "<group>"; };
+		94735FD2C6A5358AF7B8DC47 /* DailyChallengeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallengeCard.swift; sourceTree = "<group>"; };
+		94EC4AD6FE61E96D5770C947 /* ScanCoverageTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoverageTracker.swift; sourceTree = "<group>"; };
+		982B984D8E7D946CCC0E2EEC /* BuildSuggestionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionsViewModel.swift; sourceTree = "<group>"; };
+		985E30E418139D7252D46E77 /* CommunityFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityFeedView.swift; sourceTree = "<group>"; };
+		99695881DBDD8B0B9F983E7F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		9A363F7355521EB78CF0886A /* ScanAutoStopMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAutoStopMonitor.swift; sourceTree = "<group>"; };
+		9BD8F5AC878433FC4A489CAF /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		9CA74B2566CA02216A404C80 /* MinifigureScanStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanStatusView.swift; sourceTree = "<group>"; };
+		A10725F43D64040D81314A92 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyView.swift; sourceTree = "<group>"; };
+		A26D16F859D5B68C96CC68AC /* LiDARTopographicRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARTopographicRenderer.swift; sourceTree = "<group>"; };
+		A33A0DBCEE1FF6A32C7D8AA4 /* PieceCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceCatalogViewModel.swift; sourceTree = "<group>"; };
+		A4F4210780DD5C1816DB1297 /* BuildSuggestionEngineExtended3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngineExtended3.swift; sourceTree = "<group>"; };
+		A64791025FC767A2813750BE /* MinifigureCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogView.swift; sourceTree = "<group>"; };
+		A71ABC00264BEE119191B3AA /* SprintDFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintDFeatureTests.swift; sourceTree = "<group>"; };
+		A7B25C96124C8AB43AE59F45 /* BuildSuggestionEngineExtended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngineExtended.swift; sourceTree = "<group>"; };
+		A989E630393136FB68A0F3D2 /* CameraScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScanView.swift; sourceTree = "<group>"; };
+		AA9F0C66986001376904782C /* PieceFilterSortBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceFilterSortBar.swift; sourceTree = "<group>"; };
+		AB86A3EFB207E0117757F00D /* ScanLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLocationService.swift; sourceTree = "<group>"; };
+		ADBF551B07D7C9FEE159BD34 /* CorrectionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectionLogger.swift; sourceTree = "<group>"; };
+		AEC8F80C4E0982F2258E2AEE /* LDrawGeometryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawGeometryBuilder.swift; sourceTree = "<group>"; };
+		B08AF16D812AE6A373255CAE /* PileDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileDiffView.swift; sourceTree = "<group>"; };
+		B11129867B4A0A4EEEA1D991 /* SprintEModelGenerationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintEModelGenerationTests.swift; sourceTree = "<group>"; };
+		B2643F3D5FD09C928C4DC109 /* FindABrickHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindABrickHubView.swift; sourceTree = "<group>"; };
+		B3C2C9A6D9C8C6703C7096AA /* PieceLocationOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceLocationOverlayView.swift; sourceTree = "<group>"; };
+		B4CF02322D2006E0C99F8B44 /* ShareCreationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCreationView.swift; sourceTree = "<group>"; };
+		B5172D06746279C57684B691 /* FindInSavedScanPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindInSavedScanPickerView.swift; sourceTree = "<group>"; };
+		BAA9EF5B245FADDF264F8EA6 /* LegoPartsCatalogExtended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended.swift; sourceTree = "<group>"; };
+		BAC6BCC2E625333E59FFB6CE /* LegoProjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoProjectTests.swift; sourceTree = "<group>"; };
+		BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorCalibrationStore.swift; sourceTree = "<group>"; };
+		C1AA631EAC9DCAA62EF95165 /* BrickyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C22FABFA3E44FCE643ABCB87 /* NaturalLanguageSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaturalLanguageSearchService.swift; sourceTree = "<group>"; };
+		C34F62C4664682E64D816799 /* ScanMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMapView.swift; sourceTree = "<group>"; };
+		C53D992EB0C6063AE0CED1FB /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		C68F10331A7DBE97B6AE405C /* MinifigureCatalogUserFiguresTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogUserFiguresTests.swift; sourceTree = "<group>"; };
+		C6D2AAA757CF2ECF7728AE17 /* SortingSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortingSuggestionsView.swift; sourceTree = "<group>"; };
+		C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceImageGenerator.swift; sourceTree = "<group>"; };
+		C76B35002D5D440D2D430958 /* PhotoScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoScanView.swift; sourceTree = "<group>"; };
+		C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureAuthService.swift; sourceTree = "<group>"; };
+		C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
+		C90F86A1A391930008F7E9E3 /* InventoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStoreTests.swift; sourceTree = "<group>"; };
+		CB22C3F83B16E4FD476197C9 /* Bricky.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bricky.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
+		CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindPieceView.swift; sourceTree = "<group>"; };
+		CC337C3CA7930100725641C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStoreTests.swift; sourceTree = "<group>"; };
+		CDAF34A45E595FE235AD9969 /* CameraViewModelARTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModelARTests.swift; sourceTree = "<group>"; };
+		CF232513B9E25E5D6A958E31 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		CF3F043020FE5C5E9432A511 /* LegoProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoProject.swift; sourceTree = "<group>"; };
+		CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickGeometryGenerator.swift; sourceTree = "<group>"; };
+		CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzureConfiguration.swift; sourceTree = "<group>"; };
+		D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		D1A254DC766CA8D26DD06CE6 /* CameraViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModelTests.swift; sourceTree = "<group>"; };
+		D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionTests.swift; sourceTree = "<group>"; };
+		D49447E4BE19517E0C82FC57 /* MinifigurePartClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigurePartClassifierTests.swift; sourceTree = "<group>"; };
+		D5D51D0B4216E0929A58FDCB /* LegoPartsCatalogExtended5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogExtended5.swift; sourceTree = "<group>"; };
+		D6E97D4FC646BBBC60D65238 /* PuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleView.swift; sourceTree = "<group>"; };
+		D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllScanHistoryView.swift; sourceTree = "<group>"; };
+		D83531232B8BF9A9B795E914 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		D86A110BD7D384132B08AD87 /* ContinuousScanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousScanCoordinator.swift; sourceTree = "<group>"; };
+		D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableRoundTripTests.swift; sourceTree = "<group>"; };
+		DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopographicMeshRenderer.swift; sourceTree = "<group>"; };
+		DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoverageOverlayView.swift; sourceTree = "<group>"; };
+		DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderConfiguration.swift; sourceTree = "<group>"; };
+		E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBoundaryStrategy.swift; sourceTree = "<group>"; };
+		E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryExporter.swift; sourceTree = "<group>"; };
+		E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintHFeatureTests.swift; sourceTree = "<group>"; };
+		E8CCDD6FBB615821CE170B56 /* ObjectRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectRecognitionService.swift; sourceTree = "<group>"; };
+		E8F803ED8C2E551A4E3616FB /* PieceLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceLocationService.swift; sourceTree = "<group>"; };
+		E9E05CFCC1E1D428E54709D3 /* StreakTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakTracker.swift; sourceTree = "<group>"; };
+		EA05B92EC78929F43533B495 /* MinifigureCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalog.swift; sourceTree = "<group>"; };
+		EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogTests.swift; sourceTree = "<group>"; };
+		EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileMeshOverlayView.swift; sourceTree = "<group>"; };
+		ECC883C3B9260A99734D2106 /* LiDARTopographicRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARTopographicRendererTests.swift; sourceTree = "<group>"; };
+		ECFDC4C269BA2D9DE559517D /* BuildTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildTimerView.swift; sourceTree = "<group>"; };
+		ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionsViewModelTests.swift; sourceTree = "<group>"; };
+		F05AC84333E4482214E0DFB2 /* MinifigureTrainingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureTrainingStore.swift; sourceTree = "<group>"; };
+		F1FD8EF2530B8F31277D8279 /* PuzzleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleEngine.swift; sourceTree = "<group>"; };
+		F3A6DCA2C9B6A4A54B492659 /* ARCameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraManager.swift; sourceTree = "<group>"; };
+		F4AFAE0ABD5A7FEBDFE28290 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		F4FDFE37FAD57D27C6FA8B6B /* LegoPieceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPieceTests.swift; sourceTree = "<group>"; };
+		F80A790919432D63489718D6 /* TopographicMeshRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopographicMeshRendererTests.swift; sourceTree = "<group>"; };
+		F80F4A5D7DC42D08A066E6E1 /* Sprint5FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sprint5FeatureTests.swift; sourceTree = "<group>"; };
+		F83CC8DA6570B80F29F9C562 /* LegoPiece.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPiece.swift; sourceTree = "<group>"; };
+		F9CCEE644C88405251311A3A /* MinifigureImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureImageView.swift; sourceTree = "<group>"; };
+		FC425B20D8B2BADA0FB3C317 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FC9E5318E5F2A286859D4087 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
+		FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkURLTests.swift; sourceTree = "<group>"; };
+		FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiScanFindResultsView.swift; sourceTree = "<group>"; };
+		FE9EDEE09F843CC52D920B0D /* BuildSuggestionEngineExtended2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngineExtended2.swift; sourceTree = "<group>"; };
+		FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTipView.swift; sourceTree = "<group>"; };
+		FF9FCC3E73A6228E59EFE447 /* BrickitBoundingBoxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickitBoundingBoxView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0CE1E19F0B3165DA297EB54B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CB22C3F83B16E4FD476197C9 /* Bricky.app */,
+				7074CE7C499C81B2C51E926A /* BrickyTests.xctest */,
+				C1AA631EAC9DCAA62EF95165 /* BrickyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		18769367D3ACA756B6A85DC2 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				F3A6DCA2C9B6A4A54B492659 /* ARCameraManager.swift */,
+				1EA5295D9ADE9E473502C551 /* ARCameraPreview.swift */,
+				9BD8F5AC878433FC4A489CAF /* CameraManager.swift */,
+				5E271909EA72E6BCA74B3A0C /* CameraPreview.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		2D6684FF7EEC0DE04B3F66C6 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7C2E2298948645AF1AC08783 /* App.entitlements */,
+				CC337C3CA7930100725641C0 /* Assets.xcassets */,
+				87C5B1E154A868ECF7C9DD28 /* Info.plist */,
+				7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */,
+				039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */,
+				7FEA1824DC800D077B22B714 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		48E641AAA0BDF9C98CF1EDEF /* Bricky */ = {
+			isa = PBXGroup;
+			children = (
+				C33D4D5F38FEAAF745EDF8A3 /* App */,
+				18769367D3ACA756B6A85DC2 /* Camera */,
+				B6F026048D2438038ED27242 /* Extensions */,
+				C95263619BB048A5BD8D241B /* Models */,
+				2D6684FF7EEC0DE04B3F66C6 /* Resources */,
+				4B564B5AE068C05A66B0FB27 /* Services */,
+				4EFD7209277E47ABC6E84835 /* ViewModels */,
+				DBFD6C3C07FF0E8DA3E7FF41 /* Views */,
+			);
+			path = Bricky;
+			sourceTree = "<group>";
+		};
+		4B564B5AE068C05A66B0FB27 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				7B0BC8BE85D7E17769F689B1 /* LDraw */,
+				6DC4E337F3B0A4C45CA2C064 /* PileGeometry */,
+				DFB73159E4277A24D0B6F50B /* AIProviderConfiguration.swift */,
+				3390E508D00CAA57346A79AB /* AnalyticsService.swift */,
+				39039D53E43A8F204D147F0A /* AuthenticationService.swift */,
+				39DE7FE7287613FB0CF6DFF9 /* AzureAIService.swift */,
+				8BA37E420299BFF785B15530 /* AzureAIService+Minifigure.swift */,
+				C79D3A24E8BFF285586B5B6E /* AzureAuthService.swift */,
+				CF7AEFB915E8F2B41E05F781 /* AzureConfiguration.swift */,
+				1FAB64811A197ABCF1D3C1F4 /* BrickClassificationPipeline.swift */,
+				CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */,
+				70ADD39D0E814FA533C4AB7D /* BrickLinkColorMap.swift */,
+				06F6129A14CE15B1121EE20A /* BrickLinkService.swift */,
+				79BD1E8270C591FF0FC91A3E /* BuildSuggestionEngine.swift */,
+				A7B25C96124C8AB43AE59F45 /* BuildSuggestionEngineExtended.swift */,
+				FE9EDEE09F843CC52D920B0D /* BuildSuggestionEngineExtended2.swift */,
+				A4F4210780DD5C1816DB1297 /* BuildSuggestionEngineExtended3.swift */,
+				5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */,
+				CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */,
+				BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */,
+				D86A110BD7D384132B08AD87 /* ContinuousScanCoordinator.swift */,
+				ADBF551B07D7C9FEE159BD34 /* CorrectionLogger.swift */,
+				6A8BC98F9E123AAC1A2E388F /* DailyChallengeService.swift */,
+				183A4BC94CC9800F3236BFDE /* EnvironmentMonitor.swift */,
+				FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */,
+				10DCC98BF2ADC75548CD3C0F /* HapticManager.swift */,
+				E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */,
+				4D3C659E7105107DB0922F98 /* InventoryImporter.swift */,
+				55CB1B06779D65EBCD57B680 /* InventoryStore.swift */,
+				014D8EABBD76E661E983DDAA /* LegoPartsCatalog.swift */,
+				BAA9EF5B245FADDF264F8EA6 /* LegoPartsCatalogExtended.swift */,
+				7FC623064033CA232718B137 /* LegoPartsCatalogExtended2.swift */,
+				8E0CC63CB8328E70B5080484 /* LegoPartsCatalogExtended3.swift */,
+				55018C723F01B5F0E724140D /* LegoPartsCatalogExtended4.swift */,
+				D5D51D0B4216E0929A58FDCB /* LegoPartsCatalogExtended5.swift */,
+				554B18ED7D8883CEE12BA0FC /* LegoPartsCatalogExtended6.swift */,
+				7D1F615C73B1527FB02F905C /* LegoSetCatalog.swift */,
+				EA05B92EC78929F43533B495 /* MinifigureCatalog.swift */,
+				2D90C3A6A2B7C168C4C12872 /* MinifigureClassificationService.swift */,
+				45D235600C5D0BCDBE60EE7D /* MinifigureCollectionStore.swift */,
+				1F90204EE4194D35F7FBE42D /* MinifigureIdentificationService.swift */,
+				04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */,
+				0C9598800607FE66FCA7EB02 /* MinifigureScanHistoryStore.swift */,
+				F05AC84333E4482214E0DFB2 /* MinifigureTrainingStore.swift */,
+				C22FABFA3E44FCE643ABCB87 /* NaturalLanguageSearchService.swift */,
+				E8CCDD6FBB615821CE170B56 /* ObjectRecognitionService.swift */,
+				1F44F56B0CFE34F8018C3769 /* OrganicBoundaryTracker.swift */,
+				2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */,
+				C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */,
+				E8F803ED8C2E551A4E3616FB /* PieceLocationService.swift */,
+				4716DEF5B361CBC8B1267080 /* PileDiffService.swift */,
+				F1FD8EF2530B8F31277D8279 /* PuzzleEngine.swift */,
+				9A363F7355521EB78CF0886A /* ScanAutoStopMonitor.swift */,
+				94EC4AD6FE61E96D5770C947 /* ScanCoverageTracker.swift */,
+				8E984841C290B9FF9EE9A0DB /* ScanHistoryStore.swift */,
+				AB86A3EFB207E0117757F00D /* ScanLocationService.swift */,
+				186F14B76D4796166E069B13 /* ScanSessionAssetStore.swift */,
+				341503AC5A0E9408BBCF3F91 /* ScanSettings.swift */,
+				7EDCB32FEB70791BE4BAA6BB /* SortingSuggestionService.swift */,
+				91B042C4549FDD1E117F6E44 /* STLExporter.swift */,
+				E9E05CFCC1E1D428E54709D3 /* StreakTracker.swift */,
+				07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */,
+				99695881DBDD8B0B9F983E7F /* ThemeManager.swift */,
+				686081141A769871976AC3BC /* TipManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4EFD7209277E47ABC6E84835 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				982B984D8E7D946CCC0E2EEC /* BuildSuggestionsViewModel.swift */,
+				727291AC9F944667FFD0396C /* CameraViewModel.swift */,
+				4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */,
+				A33A0DBCEE1FF6A32C7D8AA4 /* PieceCatalogViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		6DC4E337F3B0A4C45CA2C064 /* PileGeometry */ = {
+			isa = PBXGroup;
+			children = (
+				73609C0C3AF7791CFE6F171C /* DepthBoundaryStrategy.swift */,
+				3F2CA9EC539356E82EA2EE4D /* GeometryUtils.swift */,
+				A26D16F859D5B68C96CC68AC /* LiDARTopographicRenderer.swift */,
+				E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */,
+				3CA431A281966BE3D4ED8906 /* PileGeometry.swift */,
+				8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */,
+				DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */,
+			);
+			path = PileGeometry;
+			sourceTree = "<group>";
+		};
+		7B0BC8BE85D7E17769F689B1 /* LDraw */ = {
+			isa = PBXGroup;
+			children = (
+				8B86874852D5B48B3807DEF9 /* LDrawColorMap.swift */,
+				AEC8F80C4E0982F2258E2AEE /* LDrawGeometryBuilder.swift */,
+				806060A04B07F3F1BA5AA723 /* LDrawLibrary.swift */,
+				590E9288C2505F74A7BB3BCD /* LDrawParser.swift */,
+			);
+			path = LDraw;
+			sourceTree = "<group>";
+		};
+		9B800996B61BE39D58475E9D /* BrickyUITests */ = {
+			isa = PBXGroup;
+			children = (
+				6B11C42C5F3775B0B5AB8D1C /* BrickyUITests.swift */,
+			);
+			path = BrickyUITests;
+			sourceTree = "<group>";
+		};
+		B6F026048D2438038ED27242 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				3834943ACD2B2717CAAEE24C /* Color+Adaptive.swift */,
+				40F5A0FA3E0551C2CF84341D /* Color+Extensions.swift */,
+				31C76038568B87A4FD43A022 /* LocalizedStrings.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		C11394E245BE075AD0BD69B3 /* BrickyTests */ = {
+			isa = PBXGroup;
+			children = (
+				6BE7607A39AAA879183E0FA9 /* ARCameraManagerTests.swift */,
+				FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */,
+				7258A02119F014757C85ED01 /* BuildSuggestionEngineTests.swift */,
+				ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */,
+				CDAF34A45E595FE235AD9969 /* CameraViewModelARTests.swift */,
+				D1A254DC766CA8D26DD06CE6 /* CameraViewModelTests.swift */,
+				D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */,
+				6235F31196148177708FAD03 /* ContinuousScanCoordinatorTests.swift */,
+				CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */,
+				8F44C3A349FB7B59F7690004 /* FindABrickTests.swift */,
+				4FF3F97DEB042BAD5BFDDD65 /* HelpAndTipsTests.swift */,
+				C90F86A1A391930008F7E9E3 /* InventoryStoreTests.swift */,
+				0CBB702DF4BD9264251C72D1 /* LDrawTests.swift */,
+				EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */,
+				F4FDFE37FAD57D27C6FA8B6B /* LegoPieceTests.swift */,
+				BAC6BCC2E625333E59FFB6CE /* LegoProjectTests.swift */,
+				ECC883C3B9260A99734D2106 /* LiDARTopographicRendererTests.swift */,
+				4E73A004AC376E75A118FBED /* MinifigureCatalogTests.swift */,
+				C68F10331A7DBE97B6AE405C /* MinifigureCatalogUserFiguresTests.swift */,
+				29D1665C0A02A1A385D5E70E /* MinifigureCollectionStoreScanTests.swift */,
+				1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */,
+				6FD3890394088A8DB19DECD5 /* MinifigureIdentificationServiceTests.swift */,
+				441BA4C0E0F0868E0AA8CDE4 /* MinifigureImageCacheTests.swift */,
+				D49447E4BE19517E0C82FC57 /* MinifigurePartClassifierTests.swift */,
+				76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */,
+				37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */,
+				7D48E65B45D0B22A22CF6291 /* ScanAutoStopMonitorTests.swift */,
+				289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */,
+				D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */,
+				F80F4A5D7DC42D08A066E6E1 /* Sprint5FeatureTests.swift */,
+				3AAF73D5DAE2D3EBA7978999 /* SprintDCompletionTests.swift */,
+				A71ABC00264BEE119191B3AA /* SprintDFeatureTests.swift */,
+				B11129867B4A0A4EEEA1D991 /* SprintEModelGenerationTests.swift */,
+				731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */,
+				05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */,
+				E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */,
+				7362E8AE109BBA57C2B8E3EC /* SprintIDataSyncTests.swift */,
+				6AC6B3E9E9AAC132713F85AB /* SprintJCommunityTests.swift */,
+				2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */,
+				F80A790919432D63489718D6 /* TopographicMeshRendererTests.swift */,
+			);
+			path = BrickyTests;
+			sourceTree = "<group>";
+		};
+		C33D4D5F38FEAAF745EDF8A3 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				CF232513B9E25E5D6A958E31 /* AppConfig.swift */,
+				2A35CDEF9B628677047F1B04 /* AppEntry.swift */,
+				FC9E5318E5F2A286859D4087 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C95263619BB048A5BD8D241B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				83AD14346743A75D0BA8A27F /* Comment.swift */,
+				2DD6DCED0E9A382C3B24A27F /* CommunityPost.swift */,
+				81040741125F65C2B8ED671E /* DailyChallenge.swift */,
+				F83CC8DA6570B80F29F9C562 /* LegoPiece.swift */,
+				CF3F043020FE5C5E9432A511 /* LegoProject.swift */,
+				8BD3A9F8333CC94A28950903 /* LegoSet.swift */,
+				6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */,
+				6F80702B03C212E2C4FC9F11 /* ScanSession.swift */,
+				64BF55BE400C39A582C522D8 /* StorageBin.swift */,
+				F4AFAE0ABD5A7FEBDFE28290 /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DBFD6C3C07FF0E8DA3E7FF41 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				40E2EA403938AFBD9529A7DE /* AllInventoriesView.swift */,
+				D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */,
+				FF9FCC3E73A6228E59EFE447 /* BrickitBoundingBoxView.swift */,
+				90005FAD8B7F3778215ED3AB /* BuildDetailView.swift */,
+				8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */,
+				1F4E25FB64DBA81C66E90F86 /* BuildSuggestionsView.swift */,
+				ECFDC4C269BA2D9DE559517D /* BuildTimerView.swift */,
+				A989E630393136FB68A0F3D2 /* CameraScanView.swift */,
+				8B5940F2D1173F092D494003 /* ColorCalibrationWizardView.swift */,
+				C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */,
+				985E30E418139D7252D46E77 /* CommunityFeedView.swift */,
+				94735FD2C6A5358AF7B8DC47 /* DailyChallengeCard.swift */,
+				0004B89780348419A95B7249 /* DetailedScanOverlayView.swift */,
+				FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */,
+				B2643F3D5FD09C928C4DC109 /* FindABrickHubView.swift */,
+				B5172D06746279C57684B691 /* FindInSavedScanPickerView.swift */,
+				CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */,
+				C53D992EB0C6063AE0CED1FB /* HelpView.swift */,
+				D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */,
+				41895B88ED3E0CDA22B6EB36 /* InventoryDetailView.swift */,
+				4BEAAF95967902DEE9F5BE82 /* LiveDetectionOverlayView.swift */,
+				2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */,
+				6FC75E5D0A15D3C00526F5FE /* MinifigureAddToCatalogSheet.swift */,
+				A64791025FC767A2813750BE /* MinifigureCatalogView.swift */,
+				223D25FC8EFB4FB6EAF2BFC5 /* MinifigureConfirmationSheet.swift */,
+				1F1B8B3848144EBE953A1103 /* MinifigureCorrectionPicker.swift */,
+				0960168ADA1F03521746E701 /* MinifigureDetailView.swift */,
+				F9CCEE644C88405251311A3A /* MinifigureImageView.swift */,
+				42F5A40CFF97FF2D821A76DA /* MinifigureScanHistoryView.swift */,
+				9CA74B2566CA02216A404C80 /* MinifigureScanStatusView.swift */,
+				0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */,
+				1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */,
+				FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */,
+				D83531232B8BF9A9B795E914 /* OnboardingView.swift */,
+				877449AA444CB12ACB349003 /* PaywallView.swift */,
+				C76B35002D5D440D2D430958 /* PhotoScanView.swift */,
+				3EF8881B0005A08F7C282D85 /* PieceCatalogView.swift */,
+				AA9F0C66986001376904782C /* PieceFilterSortBar.swift */,
+				88CD20600331E6F94FE41BC2 /* PieceFinderButton.swift */,
+				B3C2C9A6D9C8C6703C7096AA /* PieceLocationOverlayView.swift */,
+				11A52E74B4552366C5A59D95 /* PieceLocationView.swift */,
+				869D6030E25BF39280135812 /* PileBoundaryLocationView.swift */,
+				B08AF16D812AE6A373255CAE /* PileDiffView.swift */,
+				EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */,
+				47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */,
+				3F5BA6480A08BA0EBA5559C9 /* PileTopographicView.swift */,
+				A10725F43D64040D81314A92 /* PrivacyPolicyView.swift */,
+				D6E97D4FC646BBBC60D65238 /* PuzzleView.swift */,
+				DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */,
+				6C2272923D35B2120D8C0F4B /* ScanGuideView.swift */,
+				C34F62C4664682E64D816799 /* ScanMapView.swift */,
+				32DE4A487EB8448E02A6667A /* ScanResultsView.swift */,
+				3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */,
+				9001A7238D055A31B3B8C09B /* SetCollectionView.swift */,
+				FC425B20D8B2BADA0FB3C317 /* SettingsView.swift */,
+				B4CF02322D2006E0C99F8B44 /* ShareCreationView.swift */,
+				C6D2AAA757CF2ECF7728AE17 /* SortingSuggestionsView.swift */,
+				153709824478E08403412691 /* StorageView.swift */,
+				61338725147C0143FDFD72F5 /* UserProfileView.swift */,
+				25C3FB53FD13493CF42AEB11 /* ZoomableImageView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		E60FF05969242ED8CAF99C7F = {
+			isa = PBXGroup;
+			children = (
+				48E641AAA0BDF9C98CF1EDEF /* Bricky */,
+				C11394E245BE075AD0BD69B3 /* BrickyTests */,
+				9B800996B61BE39D58475E9D /* BrickyUITests */,
+				2E2375924C87F31026F188BC /* LDraw */,
+				0CE1E19F0B3165DA297EB54B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7181CD0E37D1DDC8F71737B2 /* BrickyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2D3CBF1531298EA22402C82E /* Build configuration list for PBXNativeTarget "BrickyUITests" */;
+			buildPhases = (
+				EC1727CFFF3AE3B1684C259D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				153BFB3076EA2B60F78A11A3 /* PBXTargetDependency */,
+			);
+			name = BrickyUITests;
+			packageProductDependencies = (
+			);
+			productName = BrickyUITests;
+			productReference = C1AA631EAC9DCAA62EF95165 /* BrickyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		A3F947E9F37A2CA3F47C23C7 /* BrickyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A61A8B94DAF274460841AF81 /* Build configuration list for PBXNativeTarget "BrickyTests" */;
+			buildPhases = (
+				E43788B95EB12C6E2FED37D9 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				93B8AA468528FE3048298411 /* PBXTargetDependency */,
+			);
+			name = BrickyTests;
+			packageProductDependencies = (
+			);
+			productName = BrickyTests;
+			productReference = 7074CE7C499C81B2C51E926A /* BrickyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		FAA26B62F3E06E9AB9AB6710 /* Bricky */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B42945B479E5FB4A7B29886 /* Build configuration list for PBXNativeTarget "Bricky" */;
+			buildPhases = (
+				9DE231856EB2BB20CE0B3CD4 /* Sources */,
+				B346B1CBAC74D707706C8560 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Bricky;
+			packageProductDependencies = (
+			);
+			productName = Bricky;
+			productReference = CB22C3F83B16E4FD476197C9 /* Bricky.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EBB53D6B46A4A1FBB5FDE77D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					7181CD0E37D1DDC8F71737B2 = {
+						DevelopmentTeam = 6UN3X7Q6SP;
+						ProvisioningStyle = Automatic;
+						TestTargetID = FAA26B62F3E06E9AB9AB6710;
+					};
+					A3F947E9F37A2CA3F47C23C7 = {
+						DevelopmentTeam = 6UN3X7Q6SP;
+						ProvisioningStyle = Automatic;
+					};
+					FAA26B62F3E06E9AB9AB6710 = {
+						DevelopmentTeam = 6UN3X7Q6SP;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 5AECB471472270F14B585431 /* Build configuration list for PBXProject "Bricky" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				de,
+				en,
+				es,
+				fr,
+				ja,
+			);
+			mainGroup = E60FF05969242ED8CAF99C7F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0CE1E19F0B3165DA297EB54B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FAA26B62F3E06E9AB9AB6710 /* Bricky */,
+				A3F947E9F37A2CA3F47C23C7 /* BrickyTests */,
+				7181CD0E37D1DDC8F71737B2 /* BrickyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B346B1CBAC74D707706C8560 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D0E5A258F6028EF88FBA79D /* Assets.xcassets in Resources */,
+				A8CC797927D5A6BD9A2119EF /* LDraw in Resources */,
+				B9C9531C2C57CC18EB92A21C /* Localizable.xcstrings in Resources */,
+				E38B834A2CA583E76569107B /* MinifigureCatalog.json.gz in Resources */,
+				596B31199D8F6C0CFBE08C7D /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9DE231856EB2BB20CE0B3CD4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B7CB64283175AA9C62510E4F /* AIProviderConfiguration.swift in Sources */,
+				F568C7B20155F1D498A16968 /* ARCameraManager.swift in Sources */,
+				6125FB4B0E8330B8F9363FC0 /* ARCameraPreview.swift in Sources */,
+				8C37ABDE92B68F621EF4C4B8 /* AllInventoriesView.swift in Sources */,
+				0D494F0879D5C9E7DB730720 /* AllScanHistoryView.swift in Sources */,
+				96900AF879493DFD873B37D9 /* AnalyticsService.swift in Sources */,
+				315FE5FAA801B8C56FE53538 /* AppConfig.swift in Sources */,
+				59EB91FF60AF80391CFBC5A1 /* AppEntry.swift in Sources */,
+				4CB46EA18E72ACD86CF57340 /* AuthenticationService.swift in Sources */,
+				AB3D24C720EBEFBE3B482694 /* AzureAIService+Minifigure.swift in Sources */,
+				EB5C3B2C08730CBD7A1101A9 /* AzureAIService.swift in Sources */,
+				914C38C7B1410B5F4A7EA958 /* AzureAuthService.swift in Sources */,
+				E9115BE651121715C156F003 /* AzureConfiguration.swift in Sources */,
+				262C845E1BBE97DCDFBABB2C /* BrickClassificationPipeline.swift in Sources */,
+				DB22ADDD7FE0D4DC10D737AB /* BrickGeometryGenerator.swift in Sources */,
+				7711F2AB0635E299F332B979 /* BrickLinkColorMap.swift in Sources */,
+				A2CB46692366042DFA24D41E /* BrickLinkService.swift in Sources */,
+				4B733BDE26FBDEE9652994C0 /* BrickitBoundingBoxView.swift in Sources */,
+				7ED84243362C0366C4E29554 /* BuildDetailView.swift in Sources */,
+				F265650A3AD65D4CF4DBD38B /* BuildStepViewer.swift in Sources */,
+				7E8731EF1505F42AA37AF1CB /* BuildSuggestionEngine.swift in Sources */,
+				8535CDC4074356D75747E783 /* BuildSuggestionEngineExtended.swift in Sources */,
+				F3F81C79CC5B49C51379A2B3 /* BuildSuggestionEngineExtended2.swift in Sources */,
+				BCE29E51ECCA85D3F5C3F5B3 /* BuildSuggestionEngineExtended3.swift in Sources */,
+				0574D530F5B65F1CE1AB6F71 /* BuildSuggestionsView.swift in Sources */,
+				77E619AAFE87B3FFD4F7CC80 /* BuildSuggestionsViewModel.swift in Sources */,
+				C6E84040B81C1CF22723CB9A /* BuildTimerView.swift in Sources */,
+				D48C9C8D6459D93FC5030E79 /* CameraManager.swift in Sources */,
+				56FF033F3FB326CB1B401D44 /* CameraPreview.swift in Sources */,
+				1248FD3DAA4503F99D861775 /* CameraScanView.swift in Sources */,
+				35786DA2B66428B54EFFF0A1 /* CameraViewModel.swift in Sources */,
+				6B7F5CE0D1BC6B10FB4C9134 /* CloudKitCommunityService.swift in Sources */,
+				D5AD61C950BBF662E3A6873C /* CloudSyncManager.swift in Sources */,
+				CB445C8F06B403EE18177E2D /* Color+Adaptive.swift in Sources */,
+				89F8CE50F2C4AE82EA5FC707 /* Color+Extensions.swift in Sources */,
+				FFC974C1A306069D23B676A4 /* ColorCalibrationStore.swift in Sources */,
+				2188657E2B22B0D86B90F6B1 /* ColorCalibrationWizardView.swift in Sources */,
+				50BA88F855CBF3BB33ABF6AA /* Comment.swift in Sources */,
+				8EE0E751C47703F32EDEAF35 /* CommentsView.swift in Sources */,
+				D4A9800989C275434721EDDA /* CommunityFeedView.swift in Sources */,
+				DBAC33A2FFA87D3C37E2A6AD /* CommunityPost.swift in Sources */,
+				72E89504E4AE7F009D69BE27 /* CommunityViewModel.swift in Sources */,
+				129C11009B2C8EC8D1B9B1AF /* ContentView.swift in Sources */,
+				3EB018073E64318F06236DFA /* ContinuousScanCoordinator.swift in Sources */,
+				07537A8D1F4D7AA4E51B2589 /* CorrectionLogger.swift in Sources */,
+				27D029C163B8A4A8DA649216 /* DailyChallenge.swift in Sources */,
+				5B4BFAA9885CC916D4E2511A /* DailyChallengeCard.swift in Sources */,
+				DBDDC5CFDE9FB02CDF31F687 /* DailyChallengeService.swift in Sources */,
+				F2E648B8FA73E8843368A64A /* DepthBoundaryStrategy.swift in Sources */,
+				F43CCB1C6AA4004F7F73FE9B /* DetailedScanOverlayView.swift in Sources */,
+				383A0AD42FAB8341A3E48CD9 /* EnvironmentMonitor.swift in Sources */,
+				8437436BAF820B041765C10A /* FavoritesStore.swift in Sources */,
+				1BF511568DAB411ACA48FC86 /* FeatureTipView.swift in Sources */,
+				B0A6769DF69696ACE5374B0F /* FindABrickHubView.swift in Sources */,
+				C8F1C49801A97F9C7FE3358A /* FindInSavedScanPickerView.swift in Sources */,
+				8A96F25F619F0F86FDE6E7C2 /* FindPieceView.swift in Sources */,
+				CD5AA670AF8EEB1046DEC964 /* GeometryUtils.swift in Sources */,
+				64D78D48234A12BD0C6DB791 /* HapticManager.swift in Sources */,
+				AC3B9D5FE59E071015332224 /* HelpView.swift in Sources */,
+				6AD109C830B95C194224A87E /* HomeView.swift in Sources */,
+				E94BCB3784F0A9BF6909BDCE /* InventoryDetailView.swift in Sources */,
+				E7A8E8E79107D34AC234358A /* InventoryExporter.swift in Sources */,
+				2AA74D2BFAB044A5E1D4B8F6 /* InventoryImporter.swift in Sources */,
+				5E20B6372432B41BF07DA730 /* InventoryStore.swift in Sources */,
+				04C452E195B06060AC82EBF4 /* LDrawColorMap.swift in Sources */,
+				BBF054401C5AFB9948638772 /* LDrawGeometryBuilder.swift in Sources */,
+				5E035242918813A585958FAC /* LDrawLibrary.swift in Sources */,
+				E353E9BAF6EAB4E20324ACCD /* LDrawParser.swift in Sources */,
+				CACCB3C2A3AA09494935B55E /* LegoPartsCatalog.swift in Sources */,
+				63663F3858E81BDFA1598B6F /* LegoPartsCatalogExtended.swift in Sources */,
+				8C9489D27229335FA2EA2BEC /* LegoPartsCatalogExtended2.swift in Sources */,
+				7885CD86477D94F496F446AF /* LegoPartsCatalogExtended3.swift in Sources */,
+				E40C3AC88DBF8ED966FFBF22 /* LegoPartsCatalogExtended4.swift in Sources */,
+				EE5BC91C1B48291A85592E99 /* LegoPartsCatalogExtended5.swift in Sources */,
+				B9715CEB3E199BE2A858738A /* LegoPartsCatalogExtended6.swift in Sources */,
+				5BE2CAEBF90D0FD3E5605A58 /* LegoPiece.swift in Sources */,
+				F116571048A46356A15AB0A0 /* LegoProject.swift in Sources */,
+				17E3854041DA4D68D66C2977 /* LegoSet.swift in Sources */,
+				BDBE2D4BC1A2EA3BFFB636DB /* LegoSetCatalog.swift in Sources */,
+				579DC316F2E895CA69FFCF31 /* LiDARTopographicRenderer.swift in Sources */,
+				7A666B50341070DADF030DFF /* LiveDetectionOverlayView.swift in Sources */,
+				B07CEDBB06FE65C2FCD76DE8 /* LocalizedStrings.swift in Sources */,
+				8C48B4E735B5E6FD9854A48D /* LocationConsentSheet.swift in Sources */,
+				B285874AEBBD6B60D562C1EE /* MeshBoundaryStrategy.swift in Sources */,
+				91A863A337B61D59999DEC22 /* Minifigure.swift in Sources */,
+				30D5276335F1ACB479608392 /* MinifigureAddToCatalogSheet.swift in Sources */,
+				7ACFFDB48ED3320C539CE25D /* MinifigureCatalog.swift in Sources */,
+				8551CF3456FDAD55E488D0C5 /* MinifigureCatalogView.swift in Sources */,
+				BE3A653B5767F09CB9EB038D /* MinifigureClassificationService.swift in Sources */,
+				CA615390D092FE27754DD9C4 /* MinifigureCollectionStore.swift in Sources */,
+				DA5B38B6D328AFBDEAE20697 /* MinifigureConfirmationSheet.swift in Sources */,
+				1F0439B1AC3A9BA2E28E7581 /* MinifigureCorrectionPicker.swift in Sources */,
+				A584D8FDBB7FEF05D49CE802 /* MinifigureDetailView.swift in Sources */,
+				A2CEB2D26C6B51D850E8CB5A /* MinifigureIdentificationService.swift in Sources */,
+				9B09A1DBF37FDBEA078DDE8B /* MinifigureImageView.swift in Sources */,
+				D885A3F57419D722DECD92A0 /* MinifigurePartClassifier.swift in Sources */,
+				AF4BBB503CEE6CFE3F678331 /* MinifigureScanHistoryStore.swift in Sources */,
+				6A438D773318DDA2B50A82D9 /* MinifigureScanHistoryView.swift in Sources */,
+				6610CB9D96C3907B8EEA2067 /* MinifigureScanStatusView.swift in Sources */,
+				E6B3126504A261F5DDAD6D6C /* MinifigureScanView.swift in Sources */,
+				45657379F1C5741CF0D78752 /* MinifigureTrainingStore.swift in Sources */,
+				DE4E2645BB357B9F065CBFE7 /* ModelViewerView.swift in Sources */,
+				A300C642700D56ABAFE3E411 /* MultiScanFindResultsView.swift in Sources */,
+				0A1045951C46F88007550076 /* NaturalLanguageSearchService.swift in Sources */,
+				74F30FA19A99FB71ECD259ED /* ObjectRecognitionService.swift in Sources */,
+				278B21965B3DB12DC774A0B1 /* OnboardingView.swift in Sources */,
+				44596FD79D13AE56D5912B22 /* OrganicBoundaryTracker.swift in Sources */,
+				8C9B491670DC5A477D2297D7 /* PaywallView.swift in Sources */,
+				732CC68E06EB97C3EC91BAF2 /* PerformanceMonitor.swift in Sources */,
+				D2B1A14CBB82CEB47A64BDA2 /* PhotoScanView.swift in Sources */,
+				093A526428BD17387406503A /* PieceCatalogView.swift in Sources */,
+				5950E537F4F82EFFAED30622 /* PieceCatalogViewModel.swift in Sources */,
+				8D3D481A194E56AB21CB7C24 /* PieceFilterSortBar.swift in Sources */,
+				651E12FF9139F02B0735EBEB /* PieceFinderButton.swift in Sources */,
+				A5B6579DA97234543BC8B62C /* PieceImageGenerator.swift in Sources */,
+				3E62779CD68BDEED3A0CBC27 /* PieceLocationOverlayView.swift in Sources */,
+				530F13ACDA73618A8EF3DD80 /* PieceLocationService.swift in Sources */,
+				E2B93D6145637C659A2AE7F3 /* PieceLocationView.swift in Sources */,
+				C1ACFAE3448CD011548E88A3 /* PileBoundaryLocationView.swift in Sources */,
+				FD1A781F06A8BB347C239F69 /* PileDiffService.swift in Sources */,
+				61143957DDF1F92798E3D2C0 /* PileDiffView.swift in Sources */,
+				D3C15A6C88D0EE831CD425CF /* PileGeometry.swift in Sources */,
+				40CC2C705DCB440A158D3B72 /* PileGeometryService.swift in Sources */,
+				8886C9DD2B4B2E607F1CA140 /* PileMeshOverlayView.swift in Sources */,
+				F4F4F189E5416EE4A540C9A1 /* PileResultsSheetView.swift in Sources */,
+				8280ED874D3B24A20300260A /* PileTopographicView.swift in Sources */,
+				672E3C051DF88366CCCC04CE /* PrivacyPolicyView.swift in Sources */,
+				CC45C8546897DBA00FFE73FA /* PuzzleEngine.swift in Sources */,
+				DC9DE6AA5050C071A445DC36 /* PuzzleView.swift in Sources */,
+				8BF98A43B36968309CD81C02 /* STLExporter.swift in Sources */,
+				277EA536808369FADD7468E6 /* ScanAutoStopMonitor.swift in Sources */,
+				D18E94E7FD0A18F36922B7DD /* ScanCoverageOverlayView.swift in Sources */,
+				9D4BF5EFCBD72FE6B6938D38 /* ScanCoverageTracker.swift in Sources */,
+				A576B7C37A8517859A7D1FE2 /* ScanGuideView.swift in Sources */,
+				5E6E4E0EA60ED32F78D5F178 /* ScanHistoryStore.swift in Sources */,
+				EEB953F03E44137D95277D6B /* ScanLocationService.swift in Sources */,
+				CBABE111290D8895AD52A11A /* ScanMapView.swift in Sources */,
+				7BFE2324B8420F41B64A28E1 /* ScanResultsView.swift in Sources */,
+				0B4BEED98C9ECD68C41BAD31 /* ScanSession.swift in Sources */,
+				80C797BDFCC3D8119D0EB85D /* ScanSessionAssetStore.swift in Sources */,
+				08D9E052EE1EBB6227F3E7D3 /* ScanSettings.swift in Sources */,
+				A67DFF52AB00E1C71E943CC8 /* ScanTagEditorView.swift in Sources */,
+				140544C77B1D03BC4FB1EC3D /* SetCollectionView.swift in Sources */,
+				97D1059930F03189B13BEC1B /* SettingsView.swift in Sources */,
+				041D123D659D0A07C7666148 /* ShareCreationView.swift in Sources */,
+				AE4165B8293AD7D55AEC5DD5 /* SortingSuggestionService.swift in Sources */,
+				5097313F7C1B1094A511CBAE /* SortingSuggestionsView.swift in Sources */,
+				5E16D20416A6D40C3E3048C2 /* StorageBin.swift in Sources */,
+				73AEE54DF84D7E5470A2262F /* StorageView.swift in Sources */,
+				9BC83D6EA300F635379B00F4 /* StreakTracker.swift in Sources */,
+				9D4E66576DC6EAD0900368CE /* SubscriptionManager.swift in Sources */,
+				E104BAB8FB74108365A8F9F0 /* ThemeManager.swift in Sources */,
+				D092FD0C3491C4DDE7DDDD5A /* TipManager.swift in Sources */,
+				2032055BD21AC987D2909A61 /* TopographicMeshRenderer.swift in Sources */,
+				55D4AAAB07FA81B0756CA2AF /* UserProfile.swift in Sources */,
+				BB98A24621905435A037361B /* UserProfileView.swift in Sources */,
+				5648A48E2EC65C3EC1060AFE /* ZoomableImageView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E43788B95EB12C6E2FED37D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DFD33D8232F79446647AD78 /* ARCameraManagerTests.swift in Sources */,
+				A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */,
+				B0066CB4D6BA178BD42560C5 /* BuildSuggestionEngineTests.swift in Sources */,
+				AE1E9995F023E40405113741 /* BuildSuggestionsViewModelTests.swift in Sources */,
+				3753741E07C6D0314B8DFB61 /* CameraViewModelARTests.swift in Sources */,
+				1AC9DDB1336FB20559E41606 /* CameraViewModelTests.swift in Sources */,
+				548E42CFC79DC3AFDC885B20 /* CodableRoundTripTests.swift in Sources */,
+				634398F03B7404BC69695767 /* ContinuousScanCoordinatorTests.swift in Sources */,
+				11281C7B158EF2DCA81E6FF8 /* FavoritesStoreTests.swift in Sources */,
+				C0F4B858683620DC227B7188 /* FindABrickTests.swift in Sources */,
+				5368CDFC5C4D85A6E5898C59 /* HelpAndTipsTests.swift in Sources */,
+				B019790133E705E3A3695721 /* InventoryStoreTests.swift in Sources */,
+				E283A486E8DE664FCF1A062B /* LDrawTests.swift in Sources */,
+				EEF879275171D8C287B416E1 /* LegoPartsCatalogTests.swift in Sources */,
+				91172B665F3EC29F6AB87203 /* LegoPieceTests.swift in Sources */,
+				760A5082C8F9B4736610EEC8 /* LegoProjectTests.swift in Sources */,
+				5809ED45C985CF23490E6649 /* LiDARTopographicRendererTests.swift in Sources */,
+				663A3386CF4B31EEB3652E2B /* MinifigureCatalogTests.swift in Sources */,
+				402866F6D34997CF50220FCE /* MinifigureCatalogUserFiguresTests.swift in Sources */,
+				2A8587975280DFC2B5C9562E /* MinifigureCollectionStoreScanTests.swift in Sources */,
+				3EA0F501BF9E15D43896D1D5 /* MinifigureCollectionStoreTests.swift in Sources */,
+				2D10DD9EC183DBB261FBCF2D /* MinifigureIdentificationServiceTests.swift in Sources */,
+				459A330FF64F5A3758B8B288 /* MinifigureImageCacheTests.swift in Sources */,
+				05377A8DA04EE7EBB0D73A7C /* MinifigurePartClassifierTests.swift in Sources */,
+				CFE0338FD0406EE392C5A882 /* PieceCatalogViewModelTests.swift in Sources */,
+				ED133DF6663F69C047A0AC48 /* PileGeometryServiceTests.swift in Sources */,
+				EAA7D5B871EB1FCAB73B51F5 /* ScanAutoStopMonitorTests.swift in Sources */,
+				B4C89046439354DBD1934C9C /* ScanLocationTests.swift in Sources */,
+				B6F42166FB1A517BAAD51A2D /* ScanSessionTests.swift in Sources */,
+				BEE177AD1169107C70D85CF7 /* Sprint5FeatureTests.swift in Sources */,
+				C195C8B376562449CD29CF55 /* SprintDCompletionTests.swift in Sources */,
+				95B0EFA598F937D751738193 /* SprintDFeatureTests.swift in Sources */,
+				BCB5CFCDDC7E4933E35B151F /* SprintEModelGenerationTests.swift in Sources */,
+				BA6D44DF5EACC4608E48F82C /* SprintFFeatureTests.swift in Sources */,
+				E0B82ABE3C7A14FA0F45BFEC /* SprintGAppStoreTests.swift in Sources */,
+				0B54274FD754DEB2EAC1CD3B /* SprintHFeatureTests.swift in Sources */,
+				78280E54CCB780DD43733145 /* SprintIDataSyncTests.swift in Sources */,
+				22184BDF590C6B08A3FBD539 /* SprintJCommunityTests.swift in Sources */,
+				0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */,
+				C2E8CEBC6A55988AC82EBF36 /* TopographicMeshRendererTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC1727CFFF3AE3B1684C259D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7913315BA0C86664A609F157 /* BrickyUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		153BFB3076EA2B60F78A11A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FAA26B62F3E06E9AB9AB6710 /* Bricky */;
+			targetProxy = F729D110F088E39FBBAFBA87 /* PBXContainerItemProxy */;
+		};
+		93B8AA468528FE3048298411 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FAA26B62F3E06E9AB9AB6710 /* Bricky */;
+			targetProxy = 8CF48AD2021CB33057E172B2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		142267C69A846B95046EBB5E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bricky.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bricky";
+			};
+			name = Debug;
+		};
+		2151E5346DE548252C2FC1AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Bricky/Resources/App.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Bricky/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		23929D92D7185C311168913D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 6UN3X7Q6SP;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.4.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		24558F342E74ECEEFAD75C57 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Bricky/Resources/App.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Bricky/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		2CB17130D46F675F64212D39 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Bricky;
+			};
+			name = Debug;
+		};
+		58F48C6743DFE3761C9B8593 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Bricky;
+			};
+			name = Release;
+		};
+		B31B03B03E010C673B2185CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bricky.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bricky.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bricky";
+			};
+			name = Release;
+		};
+		E1F3DCAD0FA84F77FF8DD1F8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 6UN3X7Q6SP;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.4.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2B42945B479E5FB4A7B29886 /* Build configuration list for PBXNativeTarget "Bricky" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24558F342E74ECEEFAD75C57 /* Debug */,
+				2151E5346DE548252C2FC1AC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2D3CBF1531298EA22402C82E /* Build configuration list for PBXNativeTarget "BrickyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2CB17130D46F675F64212D39 /* Debug */,
+				58F48C6743DFE3761C9B8593 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5AECB471472270F14B585431 /* Build configuration list for PBXProject "Bricky" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E1F3DCAD0FA84F77FF8DD1F8 /* Debug */,
+				23929D92D7185C311168913D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A61A8B94DAF274460841AF81 /* Build configuration list for PBXNativeTarget "BrickyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				142267C69A846B95046EBB5E /* Debug */,
+				B31B03B03E010C673B2185CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EBB53D6B46A4A1FBB5FDE77D /* Project object */;
+}
