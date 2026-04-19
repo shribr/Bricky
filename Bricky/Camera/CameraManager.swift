@@ -12,6 +12,7 @@ final class CameraManager: NSObject, ObservableObject {
     private let sessionQueue = DispatchQueue(label: AppConfig.keychainPrefix + ".camera.session")
     private let videoOutput = AVCaptureVideoDataOutput()
     private var photoOutput = AVCapturePhotoOutput()
+    private var isConfigured = false
 
     var onFrameCaptured: ((CVPixelBuffer) -> Void)?
 
@@ -64,11 +65,24 @@ final class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self else { return }
 
+            // Guard against double configuration
+            guard !self.isConfigured else {
+                // Already configured — just ensure it's running
+                if !self.session.isRunning {
+                    self.session.startRunning()
+                    DispatchQueue.main.async {
+                        self.isSessionRunning = self.session.isRunning
+                    }
+                }
+                return
+            }
+
             self.session.beginConfiguration()
             self.session.sessionPreset = .high
 
             // Add video input
             guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                self.session.commitConfiguration()
                 DispatchQueue.main.async { self.error = .cameraUnavailable }
                 return
             }
@@ -76,6 +90,7 @@ final class CameraManager: NSObject, ObservableObject {
             do {
                 let input = try AVCaptureDeviceInput(device: camera)
                 guard self.session.canAddInput(input) else {
+                    self.session.commitConfiguration()
                     DispatchQueue.main.async { self.error = .cannotAddInput }
                     return
                 }
@@ -94,6 +109,7 @@ final class CameraManager: NSObject, ObservableObject {
                     camera.unlockForConfiguration()
                 }
             } catch {
+                self.session.commitConfiguration()
                 DispatchQueue.main.async { self.error = .cannotAddInput }
                 return
             }
@@ -106,6 +122,7 @@ final class CameraManager: NSObject, ObservableObject {
             ]
 
             guard self.session.canAddOutput(self.videoOutput) else {
+                self.session.commitConfiguration()
                 DispatchQueue.main.async { self.error = .cannotAddOutput }
                 return
             }
@@ -113,12 +130,14 @@ final class CameraManager: NSObject, ObservableObject {
 
             // Add photo output for high-res captures
             guard self.session.canAddOutput(self.photoOutput) else {
+                self.session.commitConfiguration()
                 DispatchQueue.main.async { self.error = .cannotAddOutput }
                 return
             }
             self.session.addOutput(self.photoOutput)
 
             self.session.commitConfiguration()
+            self.isConfigured = true
 
             self.session.startRunning()
             DispatchQueue.main.async {
@@ -141,6 +160,30 @@ final class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
+            DispatchQueue.main.async {
+                self.isSessionRunning = false
+            }
+        }
+    }
+
+    /// Fully release the camera session: stop, remove all inputs/outputs,
+    /// and reset `isConfigured`. Call before navigating to a view that
+    /// creates its own camera session, so the hardware is available.
+    func releaseCamera() {
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            if self.session.isRunning {
+                self.session.stopRunning()
+            }
+            self.session.beginConfiguration()
+            for input in self.session.inputs {
+                self.session.removeInput(input)
+            }
+            for output in self.session.outputs {
+                self.session.removeOutput(output)
+            }
+            self.session.commitConfiguration()
+            self.isConfigured = false
             DispatchQueue.main.async {
                 self.isSessionRunning = false
             }

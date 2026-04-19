@@ -108,6 +108,7 @@
 		8886C9DD2B4B2E607F1CA140 /* PileMeshOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */; };
 		89F8CE50F2C4AE82EA5FC707 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F5A0FA3E0551C2CF84341D /* Color+Extensions.swift */; };
 		8A96F25F619F0F86FDE6E7C2 /* FindPieceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */; };
+		APQ0AG794QF668BFP145UGUA /* FindInPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK0AIHN39DT4KTONJXZ8G9XC /* FindInPhotoView.swift */; };
 		8BF98A43B36968309CD81C02 /* STLExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B042C4549FDD1E117F6E44 /* STLExporter.swift */; };
 		8C37ABDE92B68F621EF4C4B8 /* AllInventoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40E2EA403938AFBD9529A7DE /* AllInventoriesView.swift */; };
 		8C48B4E735B5E6FD9854A48D /* LocationConsentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */; };
@@ -202,6 +203,7 @@
 		F3F81C79CC5B49C51379A2B3 /* BuildSuggestionEngineExtended2.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9EDEE09F843CC52D920B0D /* BuildSuggestionEngineExtended2.swift */; };
 		F43CCB1C6AA4004F7F73FE9B /* DetailedScanOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0004B89780348419A95B7249 /* DetailedScanOverlayView.swift */; };
 		F4F4F189E5416EE4A540C9A1 /* PileResultsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */; };
+		CMNHW3A9QGOICJ82ZVD9Q0N9 /* PreScanAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BM1YXS79M04MTPXODO9KNMY7 /* PreScanAnalysisView.swift */; };
 		F568C7B20155F1D498A16968 /* ARCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A6DCA2C9B6A4A54B492659 /* ARCameraManager.swift */; };
 		FD1A781F06A8BB347C239F69 /* PileDiffService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4716DEF5B361CBC8B1267080 /* PileDiffService.swift */; };
 		FFC974C1A306069D23B676A4 /* ColorCalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */; };
@@ -281,6 +283,7 @@
 		45D235600C5D0BCDBE60EE7D /* MinifigureCollectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStore.swift; sourceTree = "<group>"; };
 		4716DEF5B361CBC8B1267080 /* PileDiffService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileDiffService.swift; sourceTree = "<group>"; };
 		47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileResultsSheetView.swift; sourceTree = "<group>"; };
+		BM1YXS79M04MTPXODO9KNMY7 /* PreScanAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreScanAnalysisView.swift; sourceTree = "<group>"; };
 		4BEAAF95967902DEE9F5BE82 /* LiveDetectionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDetectionOverlayView.swift; sourceTree = "<group>"; };
 		4D3C659E7105107DB0922F98 /* InventoryImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryImporter.swift; sourceTree = "<group>"; };
 		4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
@@ -381,6 +384,7 @@
 		CB22C3F83B16E4FD476197C9 /* Bricky.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bricky.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
 		CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindPieceView.swift; sourceTree = "<group>"; };
+		CK0AIHN39DT4KTONJXZ8G9XC /* FindInPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindInPhotoView.swift; sourceTree = "<group>"; };
 		CC337C3CA7930100725641C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStoreTests.swift; sourceTree = "<group>"; };
 		CDAF34A45E595FE235AD9969 /* CameraViewModelARTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModelARTests.swift; sourceTree = "<group>"; };
@@ -694,6 +698,7 @@
 				B2643F3D5FD09C928C4DC109 /* FindABrickHubView.swift */,
 				B5172D06746279C57684B691 /* FindInSavedScanPickerView.swift */,
 				CB7F6B73A4C1F0326C15CAD4 /* FindPieceView.swift */,
+				CK0AIHN39DT4KTONJXZ8G9XC /* FindInPhotoView.swift */,
 				C53D992EB0C6063AE0CED1FB /* HelpView.swift */,
 				D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */,
 				41895B88ED3E0CDA22B6EB36 /* InventoryDetailView.swift */,
@@ -722,6 +727,7 @@
 				B08AF16D812AE6A373255CAE /* PileDiffView.swift */,
 				EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */,
 				47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */,
+				BM1YXS79M04MTPXODO9KNMY7 /* PreScanAnalysisView.swift */,
 				3F5BA6480A08BA0EBA5559C9 /* PileTopographicView.swift */,
 				A10725F43D64040D81314A92 /* PrivacyPolicyView.swift */,
 				D6E97D4FC646BBBC60D65238 /* PuzzleView.swift */,
@@ -929,6 +935,7 @@
 				B0A6769DF69696ACE5374B0F /* FindABrickHubView.swift in Sources */,
 				C8F1C49801A97F9C7FE3358A /* FindInSavedScanPickerView.swift in Sources */,
 				8A96F25F619F0F86FDE6E7C2 /* FindPieceView.swift in Sources */,
+				APQ0AG794QF668BFP145UGUA /* FindInPhotoView.swift in Sources */,
 				CD5AA670AF8EEB1046DEC964 /* GeometryUtils.swift in Sources */,
 				64D78D48234A12BD0C6DB791 /* HapticManager.swift in Sources */,
 				AC3B9D5FE59E071015332224 /* HelpView.swift in Sources */,
@@ -998,6 +1005,7 @@
 				40CC2C705DCB440A158D3B72 /* PileGeometryService.swift in Sources */,
 				8886C9DD2B4B2E607F1CA140 /* PileMeshOverlayView.swift in Sources */,
 				F4F4F189E5416EE4A540C9A1 /* PileResultsSheetView.swift in Sources */,
+				CMNHW3A9QGOICJ82ZVD9Q0N9 /* PreScanAnalysisView.swift in Sources */,
 				8280ED874D3B24A20300260A /* PileTopographicView.swift in Sources */,
 				672E3C051DF88366CCCC04CE /* PrivacyPolicyView.swift in Sources */,
 				CC45C8546897DBA00FFE73FA /* PuzzleEngine.swift in Sources */,

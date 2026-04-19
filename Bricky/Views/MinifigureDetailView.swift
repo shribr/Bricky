@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Detail view for a single minifigure: silhouette layout with owned/missing
 /// slots, missing-parts list, BrickLink deep links, and ownership toggle.
@@ -13,6 +14,7 @@ struct MinifigureDetailView: View {
     @State private var showWantedListShare = false
     @State private var wantedListURL: URL?
     @State private var showZoomImage = false
+    @State private var photoPickerItem: PhotosPickerItem?
     @Environment(\.openURL) private var openURL
 
     private var resolvedInventories: [InventoryStore.Inventory] {
@@ -83,6 +85,22 @@ struct MinifigureDetailView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = figure.name
+                    } label: {
+                        Label("Copy Name", systemImage: "doc.on.doc")
+                    }
+                    Button {
+                        let query = "LEGO figurine image of \(figure.name)"
+                            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                        if let url = URL(string: "https://www.google.com/search?tbm=isch&q=\(query)") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Label("Search Images", systemImage: "safari")
+                    }
+                }
 
             HStack(spacing: 12) {
                 tag(figure.theme, icon: "tag.fill")
@@ -341,6 +359,18 @@ struct MinifigureDetailView: View {
                 }
             }
 
+            PhotosPicker(selection: $photoPickerItem, matching: .images) {
+                Label(figure.imageURL == nil ? "Add Photo" : "Change Photo",
+                      systemImage: "photo.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+            }
+            .onChange(of: photoPickerItem) { _, newItem in
+                Task { await loadAndSavePickedPhoto(newItem) }
+            }
+
             Button {
                 collectionStore.toggleOwned(figure.id)
             } label: {
@@ -470,6 +500,37 @@ struct MinifigureDetailView: View {
         wantedListURL = InventoryExporter.brickLinkXMLFileURL(from: inv)
         if wantedListURL != nil {
             showWantedListShare = true
+        }
+    }
+
+    private func loadAndSavePickedPhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data),
+                  let jpegData = image.jpegData(compressionQuality: 0.85) else { return }
+
+            let fm = FileManager.default
+            let dir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("UserMinifigureImages", isDirectory: true)
+            if !fm.fileExists(atPath: dir.path) {
+                try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            }
+            let filename = "\(figure.id.replacingOccurrences(of: "/", with: "_"))_\(UUID().uuidString.prefix(8)).jpg"
+            let fileURL = dir.appendingPathComponent(filename)
+            try jpegData.write(to: fileURL, options: .atomic)
+
+            // Update catalog with the local file URL
+            MinifigureCatalog.shared.updateFigureImage(
+                id: figure.id,
+                imageURL: fileURL.absoluteString
+            )
+            // Clear any cached images so the new one loads
+            if figure.imageURL != nil {
+                MinifigureImageCache.shared.clear()
+            }
+        } catch {
+            // Silently fail — user can try again
         }
     }
 }

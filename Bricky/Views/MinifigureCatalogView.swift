@@ -13,6 +13,7 @@ struct MinifigureCatalogView: View {
     @State private var selectedThemes: Set<String> = []
     @State private var selectedYearRange: ClosedRange<Int>?
     @State private var ownershipFilter: MinifigureCatalog.OwnershipFilter = .all
+    @State private var imageFilter: MinifigureCatalog.ImageFilter = .all
     @State private var sort: MinifigureCatalog.SortOrder = .nameAsc
     @State private var showFilters = false
     @State private var showScan = false
@@ -238,6 +239,7 @@ struct MinifigureCatalogView: View {
         !selectedThemes.isEmpty
             || selectedYearRange != nil
             || ownershipFilter != .all
+            || imageFilter != .all
             || sort != .nameAsc
     }
 
@@ -262,6 +264,14 @@ struct MinifigureCatalogView: View {
                 case .notStarted: return completion == 0 && !owned
                 }
             }
+        }
+
+        switch imageFilter {
+        case .all: break
+        case .withImages:
+            results = results.filter { $0.imageURL != nil }
+        case .missingImages:
+            results = results.filter { $0.imageURL == nil }
         }
 
         if sort == .completionDesc {
@@ -293,6 +303,15 @@ struct MinifigureCatalogView: View {
                 Section("Ownership") {
                     Picker("Show", selection: $ownershipFilter) {
                         ForEach(MinifigureCatalog.OwnershipFilter.allCases, id: \.self) { opt in
+                            Text(opt.rawValue).tag(opt)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                Section("Images") {
+                    Picker("Show", selection: $imageFilter) {
+                        ForEach(MinifigureCatalog.ImageFilter.allCases, id: \.self) { opt in
                             Text(opt.rawValue).tag(opt)
                         }
                     }
@@ -363,6 +382,7 @@ struct MinifigureCatalogView: View {
                         selectedThemes.removeAll()
                         selectedYearRange = nil
                         ownershipFilter = .all
+                        imageFilter = .all
                         sort = .nameAsc
                     }
                 }

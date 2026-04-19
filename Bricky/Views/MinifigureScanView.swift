@@ -5,6 +5,9 @@ import UIKit
 /// The user frames the figure's torso inside a silhouette guide, taps the
 /// shutter, and gets up to 3 ranked candidates from the cloud model.
 struct MinifigureScanView: View {
+    /// Image captured during pre-scan analysis — auto-starts identification.
+    var preCapturedImage: UIImage? = nil
+
     @StateObject private var camera = CameraManager()
     @Environment(\.dismiss) private var dismiss
 
@@ -23,29 +26,60 @@ struct MinifigureScanView: View {
             CameraPreview(session: camera.session)
                 .ignoresSafeArea()
 
-            // Silhouette guide overlay
-            silhouetteOverlay
-                .allowsHitTesting(false)
+            // Silhouette guide overlay (hidden during identification)
+            if !isIdentifying {
+                silhouetteOverlay
+                    .allowsHitTesting(false)
+            }
 
             VStack {
                 topBar
                 Spacer()
-                bottomControls
+                if !isIdentifying {
+                    bottomControls
+                }
             }
 
             if isIdentifying {
+                // Snapshot of the captured image replaces live camera
+                if let snapshot = capturedImage {
+                    Image(uiImage: snapshot)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                }
                 Color.black.opacity(0.55).ignoresSafeArea()
-                MinifigureScanStatusView()
+                VStack(spacing: 24) {
+                    MinifigureScanStatusView()
+                    Text("Photo captured — you can put the camera down")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.horizontal, 32)
+                }
             }
         }
         .statusBarHidden()
         .onAppear {
-            // First entry: configure + permission prompt + start.
-            // Subsequent appearances (after dismissing a sheet): just resume.
-            if camera.isSessionRunning {
-                camera.startSession()
+            // If pre-scan captured an image, auto-start identification
+            // immediately. Set isIdentifying BEFORE camera setup so the
+            // silhouette never flashes on screen.
+            if let preImage = preCapturedImage {
+                capturedImage = preImage
+                isIdentifying = true
+                // Start camera in background for manual re-scan later
+                if camera.isSessionRunning {
+                    camera.startSession()
+                } else {
+                    camera.checkPermissions()
+                }
+                Task { await identify(image: preImage) }
             } else {
-                camera.checkPermissions()
+                // Normal entry: show camera + silhouette guide
+                if camera.isSessionRunning {
+                    camera.startSession()
+                } else {
+                    camera.checkPermissions()
+                }
             }
         }
         .onDisappear {

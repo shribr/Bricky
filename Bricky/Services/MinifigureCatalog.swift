@@ -72,6 +72,7 @@ final class MinifigureCatalog: ObservableObject {
         switch result {
         case .success(let figs):
             self.allFigures = figs + userFigures
+            self.applyImageOverrides()
             self.buildIndexes(self.allFigures)
             self.isLoaded = true
         case .failure(let err):
@@ -123,6 +124,60 @@ final class MinifigureCatalog: ObservableObject {
         byTheme[theme] ?? []
     }
 
+    /// Find figures related to the given figure by name keywords and theme.
+    /// Returns figures that share significant name tokens (e.g., "Island Warrior")
+    /// or belong to the same theme, excluding the source figure itself.
+    func relatedFigures(to figure: Minifigure, limit: Int = 20) -> [Minifigure] {
+        let nameTokens = extractSignificantNameTokens(figure.name)
+        var scored: [(Minifigure, Int)] = []
+
+        for fig in allFigures where fig.id != figure.id {
+            var score = 0
+            let figTokens = extractSignificantNameTokens(fig.name)
+            // Count shared significant name tokens
+            let shared = nameTokens.intersection(figTokens)
+            score += shared.count * 3 // strong signal
+
+            // Same theme bonus
+            if fig.theme == figure.theme { score += 2 }
+
+            // Same sub-theme (theme names often have hierarchy like "Super Heroes")
+            if !figure.theme.isEmpty && fig.name.lowercased().contains(figure.theme.lowercased()) {
+                score += 1
+            }
+
+            if score >= 3 { scored.append((fig, score)) }
+        }
+
+        scored.sort { $0.1 > $1.1 }
+        return scored.prefix(limit).map(\.0)
+    }
+
+    /// Extract significant multi-word name tokens for matching.
+    /// Strips generic LEGO terms and returns meaningful identifier phrases.
+    private func extractSignificantNameTokens(_ name: String) -> Set<String> {
+        let stopWords: Set<String> = [
+            "minifigure", "minifig", "figure", "fig", "with", "and", "the",
+            "in", "on", "of", "for", "set", "from", "series", "version",
+            "new", "old", "small", "large", "mini", "lego", "brick",
+            "printed", "pattern", "torso", "legs", "head", "hair", "helmet",
+            "accessory", "accessories", "piece", "part", "type", "number"
+        ]
+        let words = name.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count > 1 && !stopWords.contains($0) }
+        return Set(words)
+    }
+
+    /// Find figures by name similarity — useful for expanding scan results
+    /// to include all variants of an identified character.
+    func figuresByNamePrefix(_ prefix: String, excludingIds: Set<String> = []) -> [Minifigure] {
+        let q = prefix.lowercased()
+        return allFigures.filter { fig in
+            !excludingIds.contains(fig.id) && fig.name.lowercased().contains(q)
+        }
+    }
+
     // MARK: - Search / Filter
 
     enum OwnershipFilter: String, CaseIterable {
@@ -131,6 +186,12 @@ final class MinifigureCatalog: ObservableObject {
         case inProgress = "In Progress"
         case complete = "Complete"
         case notStarted = "Not Started"
+    }
+
+    enum ImageFilter: String, CaseIterable {
+        case all = "All"
+        case withImages = "With Images"
+        case missingImages = "Missing Images"
     }
 
     enum SortOrder: String, CaseIterable {
@@ -217,6 +278,36 @@ final class MinifigureCatalog: ObservableObject {
         rebuildAfterUserChange()
     }
 
+    /// Update the image URL for any figure (bundled or user-added).
+    /// For bundled figures, creates a user-level override that persists
+    /// across app launches.
+    func updateFigureImage(id: String, imageURL: String) {
+        if Self.isUserFigureId(id) {
+            // User figure — update in place
+            if let idx = userFigures.firstIndex(where: { $0.id == id }) {
+                userFigures[idx] = userFigures[idx].withImageURL(imageURL)
+                saveUserFigures()
+                rebuildAfterUserChange()
+            }
+        } else {
+            // Bundled figure — store override
+            var overrides = loadImageOverrides()
+            overrides[id] = imageURL
+            saveImageOverrides(overrides)
+            // Apply to live data
+            if let idx = allFigures.firstIndex(where: { $0.id == id }) {
+                allFigures[idx] = allFigures[idx].withImageURL(imageURL)
+                buildIndexes(allFigures)
+            }
+        }
+    }
+
+    /// Check if a figure has a user-supplied image override.
+    func hasImageOverride(id: String) -> Bool {
+        let overrides = loadImageOverrides()
+        return overrides[id] != nil
+    }
+
     private func rebuildAfterUserChange() {
         // Strip any prior user figs from the live array, then re-append.
         let bundled = allFigures.filter { !Self.isUserFigureId($0.id) }
@@ -237,6 +328,36 @@ final class MinifigureCatalog: ObservableObject {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(userFigures) else { return }
         try? data.write(to: userStorageURL, options: .atomic)
+    }
+
+    // MARK: - Image overrides (bundled figures)
+
+    private var imageOverridesURL: URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return docs.appendingPathComponent("minifigureImageOverrides.json")
+    }
+
+    private func loadImageOverrides() -> [String: String] {
+        guard let data = try? Data(contentsOf: imageOverridesURL) else { return [:] }
+        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+    }
+
+    private func saveImageOverrides(_ overrides: [String: String]) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(overrides) else { return }
+        try? data.write(to: imageOverridesURL, options: .atomic)
+    }
+
+    /// Apply any saved image overrides to the loaded catalog figures.
+    private func applyImageOverrides() {
+        let overrides = loadImageOverrides()
+        guard !overrides.isEmpty else { return }
+        for i in allFigures.indices {
+            if let newURL = overrides[allFigures[i].id] {
+                allFigures[i] = allFigures[i].withImageURL(newURL)
+            }
+        }
     }
 
     // MARK: - JSON payload

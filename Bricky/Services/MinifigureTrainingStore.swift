@@ -21,6 +21,32 @@ final class MinifigureTrainingStore: ObservableObject {
         let rejectedFigIds: [String]          // figures the user said were wrong
         let aiCandidateName: String           // what the AI originally guessed
         let aiConfidence: Double              // original AI confidence
+        var userTags: [String]                // user-supplied tags for training
+
+        init(id: UUID, date: Date, imageName: String, confirmedFigIds: [String],
+             rejectedFigIds: [String], aiCandidateName: String, aiConfidence: Double,
+             userTags: [String] = []) {
+            self.id = id
+            self.date = date
+            self.imageName = imageName
+            self.confirmedFigIds = confirmedFigIds
+            self.rejectedFigIds = rejectedFigIds
+            self.aiCandidateName = aiCandidateName
+            self.aiConfidence = aiConfidence
+            self.userTags = userTags
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            date = try container.decode(Date.self, forKey: .date)
+            imageName = try container.decode(String.self, forKey: .imageName)
+            confirmedFigIds = try container.decode([String].self, forKey: .confirmedFigIds)
+            rejectedFigIds = try container.decode([String].self, forKey: .rejectedFigIds)
+            aiCandidateName = try container.decode(String.self, forKey: .aiCandidateName)
+            aiConfidence = try container.decode(Double.self, forKey: .aiConfidence)
+            userTags = try container.decodeIfPresent([String].self, forKey: .userTags) ?? []
+        }
     }
 
     @Published private(set) var entries: [TrainingEntry] = []
@@ -48,7 +74,8 @@ final class MinifigureTrainingStore: ObservableObject {
                 confirmedFigIds: [String],
                 rejectedFigIds: [String] = [],
                 aiCandidateName: String,
-                aiConfidence: Double) -> TrainingEntry {
+                aiConfidence: Double,
+                userTags: [String] = []) -> TrainingEntry {
         let id = UUID()
         let imageName = "\(id.uuidString).jpg"
         let imageURL = imagesDir.appendingPathComponent(imageName)
@@ -65,7 +92,8 @@ final class MinifigureTrainingStore: ObservableObject {
             confirmedFigIds: confirmedFigIds,
             rejectedFigIds: rejectedFigIds,
             aiCandidateName: aiCandidateName,
-            aiConfidence: aiConfidence
+            aiConfidence: aiConfidence,
+            userTags: userTags
         )
         entries.append(entry)
         saveEntries()

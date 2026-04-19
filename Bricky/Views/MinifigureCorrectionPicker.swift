@@ -14,6 +14,7 @@ struct MinifigureCorrectionPicker: View {
     @State private var selectedIds = Set<String>()
     @State private var figures: [Minifigure] = []
     @State private var isSaving = false
+    @State private var userTagsText = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -24,6 +25,8 @@ struct MinifigureCorrectionPicker: View {
                 }
 
                 selectionSummary
+
+                tagsInput
 
                 figureList
             }
@@ -88,6 +91,24 @@ struct MinifigureCorrectionPicker: View {
                 .background(Color.green.opacity(0.1))
             }
         }
+    }
+
+    private var tagsInput: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Training Tags (optional)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            TextField("e.g. island, warrior, tribal, yellow, green", text: $userTagsText)
+                .textFieldStyle(.roundedBorder)
+                .font(.subheadline)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            Text("Comma-separated keywords to help improve future scans.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     private var figureList: some View {
@@ -167,12 +188,18 @@ struct MinifigureCorrectionPicker: View {
         guard let image = capturedImage else { return }
         isSaving = true
 
+        let tags = userTagsText
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+
         MinifigureTrainingStore.shared.record(
             capturedImage: image,
             confirmedFigIds: Array(selectedIds),
             rejectedFigIds: rejectedFigIds,
             aiCandidateName: aiCandidateName,
-            aiConfidence: aiConfidence
+            aiConfidence: aiConfidence,
+            userTags: tags
         )
 
         isSaving = false

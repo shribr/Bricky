@@ -199,7 +199,7 @@ struct HomeView: View {
 
     private var quickActions: some View {
         VStack(spacing: 12) {
-            NavigationLink(destination: CameraScanView()) {
+            NavigationLink(destination: PreScanAnalysisView()) {
                 HStack {
                     ZStack {
                         Circle()
@@ -209,9 +209,9 @@ struct HomeView: View {
                             .font(.title2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Scan Pieces")
+                        Text("Scan Bricks")
                             .font(.headline)
-                        Text("Use your camera to identify LEGO bricks")
+                        Text("Auto-detects minifigures or brick piles")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.7))
                     }
@@ -233,8 +233,8 @@ struct HomeView: View {
                 )
                 .foregroundStyle(.white)
             }
-            .accessibilityLabel("Scan Pieces")
-            .accessibilityHint("Opens camera to identify LEGO bricks")
+            .accessibilityLabel("Scan Bricks")
+            .accessibilityHint("Pre-scan analysis to detect bricks or minifigures")
 
             Button {
                 showingPhotoScan = true

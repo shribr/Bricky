@@ -153,4 +153,10 @@ struct Minifigure: Identifiable, Codable, Hashable {
     var torsoPart: MinifigurePartRequirement? {
         parts.first { $0.slot == .torso }
     }
+
+    /// Return a copy of this figure with a different image URL.
+    func withImageURL(_ newURL: String?) -> Minifigure {
+        Minifigure(id: id, name: name, theme: theme, year: year,
+                   partCount: partCount, imgURL: newURL, parts: parts)
+    }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Sprint 2 / B4 — "Find a Brick" hub: searchable list across the full
 /// `LegoPartsCatalog` (~17K parts via merged catalogs). Each row shows
@@ -11,6 +12,9 @@ struct FindABrickHubView: View {
     @State private var selectedPiece: SearchablePiece?
     @State private var showFindLive = false
     @State private var showSavedScanPicker = false
+    @State private var showPhotoFinder = false
+    @State private var photoPickerItem: PhotosPickerItem?
+    @State private var uploadedImage: UIImage?
 
     @ObservedObject private var history = ScanHistoryStore.shared
 
@@ -126,6 +130,9 @@ struct FindABrickHubView: View {
                         showSavedScanPicker = true
                     }
                 }
+                Button("Find in Photo") {
+                    showPhotoFinder = true
+                }
                 Button("Cancel", role: .cancel) {
                     selectedPiece = nil
                 }
@@ -146,6 +153,36 @@ struct FindABrickHubView: View {
             if let piece = selectedPiece {
                 FindInSavedScanPickerView(targetPiece: piece.asLegoPiece())
             }
+        }
+        .photosPicker(
+            isPresented: $showPhotoFinder,
+            selection: $photoPickerItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: photoPickerItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    uploadedImage = image
+                }
+                photoPickerItem = nil
+            }
+        }
+        .fullScreenCover(item: Binding<FindInPhotoContext?>(
+            get: {
+                guard let img = uploadedImage, let piece = selectedPiece else { return nil }
+                return FindInPhotoContext(piece: piece.asLegoPiece(), image: img)
+            },
+            set: { newVal in
+                if newVal == nil {
+                    uploadedImage = nil
+                    selectedPiece = nil
+                }
+            }
+        )) { context in
+            FindInPhotoView(piece: context.piece, image: context.image)
         }
     }
 
@@ -249,5 +286,18 @@ struct FindABrickHubView: View {
                  ? "Type a piece name (\u{201C}plate 2x4\u{201D}) or part number to search across thousands of LEGO elements."
                  : "Try a different keyword or part number.")
         }
+    }
+}
+
+// MARK: - Find in Photo context
+
+/// Used as an Identifiable item for fullScreenCover binding.
+struct FindInPhotoContext: Identifiable, Equatable {
+    let id = UUID()
+    let piece: LegoPiece
+    let image: UIImage
+
+    static func == (lhs: FindInPhotoContext, rhs: FindInPhotoContext) -> Bool {
+        lhs.id == rhs.id
     }
 }

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Animated overlay shown during the cloud minifigure-identification call.
-/// Cycles through plausible analysis stages so the user sees progressive
-/// activity instead of a single static spinner.
+/// Animated overlay shown during minifigure identification.
+/// Cycles through plausible analysis stages in a loop so the user always
+/// sees progressive activity — never a frozen "stuck" state.
 ///
 /// Driven by `TimelineView(.periodic)` — SwiftUI's purpose-built clock for
 /// time-driven UI. More reliable than Combine timers or `Task.sleep` loops,
@@ -14,19 +14,21 @@ struct MinifigureScanStatusView: View {
         "Reading facial features…",
         "Matching colors & printing…",
         "Estimating theme & year…",
-        "Ranking catalog candidates…"
+        "Ranking catalog candidates…",
+        "Refining visual match…",
+        "Comparing reference images…",
+        "Almost there…"
     ]
 
     let stages: [String]
     let interval: TimeInterval
 
     /// Captured at construction so `TimelineView` ticks compute elapsed
-    /// time deterministically. SwiftUI `@State` is not used because we
-    /// derive the active stage purely from wall-clock delta.
+    /// time deterministically.
     private let startedAt: Date
 
     init(stages: [String] = MinifigureScanStatusView.defaultStages,
-         interval: TimeInterval = 5.0) {
+         interval: TimeInterval = 2.0) {
         self.stages = stages
         self.interval = interval
         self.startedAt = Date()
@@ -35,9 +37,10 @@ struct MinifigureScanStatusView: View {
     var body: some View {
         TimelineView(.periodic(from: startedAt, by: 0.25)) { context in
             let elapsed = context.date.timeIntervalSince(startedAt)
+            // Loop continuously through stages instead of stopping at the last one
             let target = stages.isEmpty
                 ? 0
-                : min(Int(elapsed / interval), stages.count - 1)
+                : Int(elapsed / interval) % stages.count
 
             VStack(spacing: 18) {
                 ProgressView()
