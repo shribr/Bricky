@@ -154,12 +154,10 @@ final class UserCorrectionReranker {
         )
 
         // Apply boosts. For candidates already in the list, increase
-        // confidence proportional to the boost weight. ONLY add boosted
-        // figures NOT already in the list when the match is *strong* —
-        // moderate-distance matches are noise on top of a tightly
-        // clustered feature-print distribution.
-        let catalog = MinifigureCatalog.shared.allFigures
-        let existingIds = Set(currentCandidates.compactMap { $0.figure?.id })
+        // confidence proportional to the boost weight. We deliberately
+        // do NOT add net-new figures from history (see long comment
+        // below) — past corrections only boost figures the visual
+        // pipeline has already surfaced.
         var boostedList = currentCandidates.map { candidate -> MinifigureIdentificationService.ResolvedCandidate in
             guard let figId = candidate.figure?.id, let boost = boosts[figId] else {
                 return candidate
@@ -176,62 +174,36 @@ final class UserCorrectionReranker {
             )
         }
 
-        // Add at most ONE strong-match boosted figure that wasn't in
-        // the list — and only the single best one. Cap displayed
-        // confidence well below the visual-pipeline range so the user
-        // can tell the suggestion is speculative (came from history,
-        // not from direct visual match in the current scan).
+        // INJECTION DELIBERATELY DISABLED.
         //
-        // GATING: only inject if the candidate figure shares at least
-        // one part color with figures the visual pipeline ALREADY
-        // surfaced. This kills the "Islander injected on every scan"
-        // failure mode — even if the captured image's feature print
-        // happens to land near a stored Islander correction (lighting,
-        // pose, background similarity), if the captured colors don't
-        // overlap Islander's palette at all, do not inject.
-        let visibleColors: Set<String> = {
-            var set: Set<String> = []
-            for cand in currentCandidates {
-                guard let fig = cand.figure else { continue }
-                for part in fig.parts { set.insert(part.color) }
-            }
-            return set
-        }()
-
-        let injectionCandidates = strongMatches
-            .subtracting(existingIds)
-            .compactMap { id -> (String, Double)? in
-                guard let w = boosts[id] else { return nil }
-                return (id, w)
-            }
-            .sorted { $0.1 > $1.1 }
-
-        if let (figId, weight) = injectionCandidates.first,
-           let fig = catalog.first(where: { $0.id == figId }) {
-            // Color-overlap gate: at least one of this fig's part colors
-            // must also appear on a fig the visual pipeline surfaced.
-            // If the captured scene shares zero colors with the stored
-            // figure, the feature-print "match" is almost certainly
-            // background/lighting noise, not the figure itself.
-            let figColors = Set(fig.parts.map(\.color))
-            let overlap = !figColors.isDisjoint(with: visibleColors)
-            if overlap {
-                // 0.55..0.78 — clearly below the 0.85+ visual-match range
-                let confidence = min(0.78, 0.50 + 0.30 * weight)
-                boostedList.append(
-                    MinifigureIdentificationService.ResolvedCandidate(
-                        figure: fig,
-                        modelName: fig.name,
-                        confidence: confidence,
-                        reasoning: "Possible match based on a figure you previously corrected to this from a very similar scan."
-                    )
-                )
-            } else {
-                Self.logger.info(
-                    "Reranker: suppressing inject of \(fig.id) — no color overlap with visual candidates"
-                )
-            }
-        }
+        // Earlier versions of the reranker injected one "strong match"
+        // figure from history into the result list when the captured
+        // image's feature print landed near a past correction — even
+        // if the visual pipeline (Phase 1 colors + Phase 2 visual
+        // refinement) didn't surface that figure on its own.
+        //
+        // In practice this single behavior caused the worst recurring
+        // identification bug in the app: a single mistaken "this is
+        // figure X" correction by the user would cause X to appear at
+        // the top of EVERY future scan with ~78% confidence, regardless
+        // of whether the scanned figure even remotely resembled X. The
+        // failure mode was deterministic because:
+        //   1. Vision feature prints on minifig-sized photos cluster
+        //      tightly — many unrelated subjects land within the
+        //      "strong match" distance just from shared lighting,
+        //      background, or roughly-portrait silhouette.
+        //   2. The cap (0.78) was higher than typical visual-pipeline
+        //      confidences (~0.50–0.65), so injected figures
+        //      automatically dominated the sort.
+        //   3. Color/palette gating still allowed too many false
+        //      positives because LEGO figures share a small color
+        //      palette (yellow head, black hair, etc. trivially
+        //      overlap with most figures).
+        //
+        // The reranker now ONLY boosts figures the visual pipeline
+        // already returned. Past corrections act as a tiebreaker
+        // among visually-plausible candidates — they cannot override
+        // visual evidence by injecting net-new figures.
 
         // Re-sort by confidence.
         boostedList.sort { $0.confidence > $1.confidence }

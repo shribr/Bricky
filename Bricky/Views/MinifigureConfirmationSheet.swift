@@ -20,16 +20,17 @@ struct MinifigureConfirmationSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 18) {
                     headerRow
-                    comparisonCard
+                    catalogHeroCard
                     detailsCard
+                    yourScanRow
                     actionsRow
                 }
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Confirm Match")
+            .navigationTitle("Is this a match?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -51,46 +52,53 @@ struct MinifigureConfirmationSheet: View {
 
     private var headerRow: some View {
         VStack(spacing: 4) {
-            Text("Is this your minifigure?")
-                .font(.headline)
-            Text("Tap an image to enlarge.")
-                .font(.caption)
+            Text("Compare this catalog figure to your scan")
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Text("Tap either image to enlarge")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity)
     }
 
-    private var comparisonCard: some View {
-        HStack(alignment: .top, spacing: 12) {
-            comparisonTile(
-                title: "Your Scan",
-                content: AnyView(capturedTile),
-                onTap: { showZoomCaptured = true }
-            )
-            comparisonTile(
-                title: "Catalog",
-                content: AnyView(
-                    MinifigureImageView(url: figure.imageURL)
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                ),
-                onTap: { showZoomCatalog = true }
-            )
-        }
-    }
-
-    private func comparisonTile(title: String,
-                                content: AnyView,
-                                onTap: @escaping () -> Void) -> some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Button(action: onTap) {
-                content
-                    .frame(height: 200)
+    /// Hero card: the catalog figurine front-and-center at maximum size,
+    /// because that's the thing the user is being asked to evaluate.
+    private var catalogHeroCard: some View {
+        Button { showZoomCatalog = true } label: {
+            ZStack(alignment: .bottomTrailing) {
+                MinifigureImageView(url: figure.imageURL)
+                    .scaledToFit()
                     .frame(maxWidth: .infinity)
-                    .padding(8)
+                    .frame(height: 240)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Color(.secondarySystemGroupedBackground))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(Color.secondary.opacity(0.25), lineWidth: 1)
+                    )
+
+                Image(systemName: "magnifyingglass.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white, .black.opacity(0.55))
+                    .padding(12)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Smaller "Your Scan" reference row beneath the catalog hero so the
+    /// user can side-check what they captured without it competing
+    /// visually with the figure they're being asked to evaluate.
+    private var yourScanRow: some View {
+        HStack(spacing: 12) {
+            Button { showZoomCaptured = true } label: {
+                capturedTile
+                    .frame(width: 90, height: 110)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color(.secondarySystemGroupedBackground))
@@ -99,16 +107,21 @@ struct MinifigureConfirmationSheet: View {
                         RoundedRectangle(cornerRadius: 12)
                             .strokeBorder(Color.secondary.opacity(0.25), lineWidth: 1)
                     )
-                    .overlay(alignment: .bottomTrailing) {
-                        Image(systemName: "magnifyingglass.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.white, .black.opacity(0.55))
-                            .padding(6)
-                    }
             }
             .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Your Scan")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text("Tap to enlarge")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
     }
 
     @ViewBuilder
@@ -167,7 +180,7 @@ struct MinifigureConfirmationSheet: View {
                 onConfirm()
                 dismiss()
             } label: {
-                Label("Yes, add to my collection", systemImage: "checkmark.circle.fill")
+                Label("Yes — this is a match", systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -185,7 +198,7 @@ struct MinifigureConfirmationSheet: View {
                 onReject()
                 dismiss()
             } label: {
-                Label("Not this one", systemImage: "xmark.circle")
+                Label("No — not a match", systemImage: "xmark.circle")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding()
