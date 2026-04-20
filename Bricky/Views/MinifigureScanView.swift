@@ -408,12 +408,13 @@ struct MinifigureScanView: View {
                 let shouldAnalyzeHybrid = topConfidence >= 0.65
                 if shouldAnalyzeHybrid {
                     let captured = oriented
-                    let analysis = await Task.detached(priority: .userInitiated) {
-                        HybridFigureAnalyzer.analyze(
-                            captured: captured,
-                            candidates: analyzerCandidates
-                        )
-                    }.value
+                    // Prefer the embedding-enhanced async analysis when
+                    // encoders are available; falls back to color-only
+                    // internally when they aren't.
+                    let analysis = await HybridFigureAnalyzer.analyzeWithEmbeddings(
+                        captured: captured,
+                        candidates: analyzerCandidates
+                    )
                     hybridAnalysis = analysis
                 } else {
                     hybridAnalysis = nil

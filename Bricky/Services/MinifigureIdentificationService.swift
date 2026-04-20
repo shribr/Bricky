@@ -633,49 +633,84 @@ final class MinifigureIdentificationService {
         cgImage: CGImage,
         fastResults: [ResolvedCandidate]
     ) async -> [ResolvedCandidate] {
-        let service = TorsoEmbeddingService.shared
-        guard service.isAvailable else { return fastResults }
+        let torsoService = TorsoEmbeddingService.shared
+        let headService = HeadEmbeddingService.shared
+        guard torsoService.isAvailable || headService.isAvailable else {
+            return fastResults
+        }
 
-        // Crop the same torso band Phase 2 uses so the encoder sees
-        // the same input domain it was trained on.
-        let torsoCG: CGImage = await Task.detached(priority: .userInitiated) { [self] in
+        // Crop regions in parallel.
+        let (torsoCG, headCG): (CGImage, CGImage?) = await Task.detached(priority: .userInitiated) { [self] in
             let subject = self.cropToSalientSubject(cgImage) ?? cgImage
-            return self.cropVerticalBand(subject, top: 0.30, bottom: 0.70)
+            let torso = self.cropVerticalBand(subject, top: 0.30, bottom: 0.70)
+            let head: CGImage? = headService.isAvailable
+                ? self.cropVerticalBand(subject, top: 0.05, bottom: 0.35)
+                : nil
+            return (torso, head)
         }.value
-
-        let hits = await service.nearestFigures(for: torsoCG, topK: 16)
-        guard !hits.isEmpty else { return fastResults }
-
-        // Cosine similarity ≥ 0.55 on the trained encoder is roughly
-        // "same torso family" (same uniform line, same faction). ≥
-        // 0.70 is "almost certainly the same printed torso under
-        // different lighting". Injection threshold is intentionally
-        // loose because Phase 2 will throw out anything that doesn't
-        // visually match the captured image anyway.
-        let injectionThreshold: Float = 0.55
-        let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
-        guard !usefulHits.isEmpty else { return fastResults }
 
         let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
         var merged = fastResults
+        let injectionThreshold: Float = 0.55
 
-        for hit in usefulHits where !existingIds.contains(hit.figureId) {
-            guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else {
-                continue
+        // Torso embedding hits.
+        if torsoService.isAvailable {
+            let hits = await torsoService.nearestFigures(for: torsoCG, topK: 16)
+            let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
+            for hit in usefulHits where !existingIds.contains(hit.figureId) {
+                guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }
+                let normalized = Double((hit.cosine - injectionThreshold) / (1.0 - injectionThreshold))
+                let confidence = 0.45 + max(0.0, min(1.0, normalized)) * 0.40
+                merged.append(ResolvedCandidate(
+                    figure: figure,
+                    modelName: figure.name,
+                    confidence: confidence,
+                    reasoning: "Trained torso-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
+                ))
             }
-            // Map cosine [0.55, 1.0] → confidence [0.45, 0.85].
-            let normalized = Double((hit.cosine - injectionThreshold) / (1.0 - injectionThreshold))
-            let confidence = 0.45 + max(0.0, min(1.0, normalized)) * 0.40
-            merged.append(ResolvedCandidate(
-                figure: figure,
-                modelName: figure.name,
-                confidence: confidence,
-                reasoning: "Trained torso-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
-            ))
+        }
+
+        // Head embedding hits — boost candidates with matching heads
+        // or inject new candidates the torso pass missed (e.g. when
+        // scanning a distinctive helmet like Darth Vader's). Head
+        // hits get a lower weight than torso because many heads are
+        // generic; the threshold is slightly higher to reduce noise.
+        let headInjectionThreshold: Float = 0.60
+        if headService.isAvailable, let headCG {
+            let hits = await headService.nearestFigures(for: headCG, topK: 8)
+            let usefulHits = hits.filter { $0.cosine >= headInjectionThreshold }
+            let mergedIds = Set(merged.compactMap { $0.figure?.id })
+            for hit in usefulHits where !mergedIds.contains(hit.figureId) {
+                guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }
+                let normalized = Double((hit.cosine - headInjectionThreshold) / (1.0 - headInjectionThreshold))
+                let confidence = 0.35 + max(0.0, min(1.0, normalized)) * 0.35
+                merged.append(ResolvedCandidate(
+                    figure: figure,
+                    modelName: figure.name,
+                    confidence: confidence,
+                    reasoning: "Trained head-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
+                ))
+            }
+            // Boost existing candidates that also appear in head hits.
+            // A figure matching both torso AND head is much more likely
+            // to be correct.
+            let headHitIds = Set(usefulHits.map(\.figureId))
+            for i in merged.indices {
+                guard let figId = merged[i].figure?.id,
+                      headHitIds.contains(figId),
+                      !merged[i].reasoning.contains("head-embedding") else { continue }
+                let boosted = min(merged[i].confidence + 0.10, 0.98)
+                merged[i] = ResolvedCandidate(
+                    figure: merged[i].figure,
+                    modelName: merged[i].modelName,
+                    confidence: boosted,
+                    reasoning: merged[i].reasoning + " Boosted by head-embedding agreement."
+                )
+            }
         }
 
         Self.logger.info(
-            "Embedding retrieval injected \(merged.count - fastResults.count) candidate(s) above cosine \(injectionThreshold)"
+            "Embedding retrieval injected \(merged.count - fastResults.count) candidate(s)"
         )
         return merged
     }

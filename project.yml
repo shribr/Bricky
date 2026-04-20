@@ -38,6 +38,7 @@ targets:
           - "Resources/LDraw"
           - "Resources/MinifigImages"
           - "Resources/TorsoEmbeddings"
+          - "Resources/HeadEmbeddings"
       - path: Bricky/Resources/LDraw
         buildPhase: resources
         optional: true
@@ -47,6 +48,10 @@ targets:
         optional: true
         type: folder
       - path: Bricky/Resources/TorsoEmbeddings
+        buildPhase: resources
+        optional: true
+        type: folder
+      - path: Bricky/Resources/HeadEmbeddings
         buildPhase: resources
         optional: true
         type: folder

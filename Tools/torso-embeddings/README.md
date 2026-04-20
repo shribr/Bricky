@@ -1,9 +1,9 @@
 # Torso Embedding Training & Index Pipeline
 
 This directory contains the offline training pipeline for the
-**torso-embedding identification model** (Option A from the
-identification-strategy ladder) and the runtime artifacts it produces
-that get bundled into the iOS app.
+**torso-embedding** and **head-embedding** identification models
+(Option A from the identification-strategy ladder) and the runtime
+artifacts they produce that get bundled into the iOS app.
 
 ## Why
 
@@ -61,6 +61,28 @@ embed-torso-catalog.py           # apply trained encoder → bin + index json
 convert-torso-encoder-coreml.py  # PyTorch → CoreML for on-device inference
 ```
 
-After running the pipeline, regenerate the Xcode project (`xcodegen
-generate`) and rebuild — the runtime path in
-`TorsoEmbeddingIndex.swift` will pick up the new artifacts.
+### Head Encoder Pipeline
+
+Identical architecture, trained on the head/helmet region (top 5–35%
+of the figure image). Catches distinctive headgear that the torso
+pass misses (e.g. Darth Vader's helmet, Boba Fett's T-visor).
+
+```
+build-head-dataset.py            # download / cache head-band crops
+        │
+        ▼
+train-head-encoder.py            # SimCLR contrastive training on head crops
+        │
+        ▼
+embed-head-catalog.py            # apply trained encoder → bin + index json
+        │
+        ▼
+convert-head-encoder-coreml.py   # PyTorch → CoreML for on-device inference
+```
+
+Head artifacts land in `Bricky/Resources/HeadEmbeddings/`.
+
+After running either pipeline, regenerate the Xcode project (`xcodegen
+generate`) and rebuild — the runtime paths in
+`TorsoEmbeddingIndex.swift` and `HeadEmbeddingIndex.swift` will pick
+up the new artifacts automatically.

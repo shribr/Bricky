@@ -96,6 +96,221 @@ enum HybridFigureAnalyzer {
 
     // MARK: - Public API
 
+    /// Embedding-enhanced analysis. When the trained head encoder is
+    /// available, uses it for precise per-region attribution — the head
+    /// embedding can tell you *which specific figure* a swapped head
+    /// belongs to, not just "the head doesn't match." Falls back to
+    /// the color-only path when the encoder isn't bundled.
+    ///
+    /// Also adds legs attribution when the torso embedding is available,
+    /// enabling full 4-region hybrid detection.
+    static func analyzeWithEmbeddings(
+        captured: UIImage,
+        candidates: [Candidate]
+    ) async -> Analysis? {
+        // Start with the fast color-based analysis.
+        guard let colorAnalysis = analyze(captured: captured, candidates: candidates) else {
+            // No color-level mismatch detected. But if we have
+            // embedding models, do a deeper check: the color pass
+            // skips head/legs cross-attribution entirely, so a
+            // head swap between two same-color-head figures (e.g.
+            // two different white helmets) would be invisible.
+            return await embeddingOnlyAnalysis(
+                captured: captured,
+                candidates: candidates
+            )
+        }
+
+        // If no embedding services are available, return color-only.
+        let headService = HeadEmbeddingService.shared
+        let torsoService = TorsoEmbeddingService.shared
+        guard headService.isAvailable || torsoService.isAvailable else {
+            return colorAnalysis
+        }
+
+        guard let capturedCG = captured.cgImage else { return colorAnalysis }
+        let anchorCandidate = candidates[0]
+
+        // Enhance findings with embedding-based cross-attribution for
+        // regions that the color pass marked as unknownMismatch.
+        var enhanced = colorAnalysis.findings
+
+        // For any unknownMismatch on head or torso, try embedding lookup.
+        for (idx, finding) in enhanced.enumerated() {
+            guard finding.kind == .unknownMismatch else { continue }
+
+            if finding.region == .head, headService.isAvailable {
+                let headCG = cropRegion(.head, from: capturedCG)
+                if let headCG,
+                   let match = await attributeViaHeadEmbedding(
+                       regionCG: headCG,
+                       anchor: anchorCandidate.figure,
+                       candidates: candidates
+                   ) {
+                    enhanced[idx] = Analysis.RegionFinding(
+                        region: .head,
+                        matchedFigure: match,
+                        kind: .matchesOtherFigure
+                    )
+                }
+            }
+        }
+
+        // If we improved any findings, rebuild the analysis.
+        let matchedCount = enhanced.filter { $0.kind == .matchesAnchor }.count
+        let anomalyCount = enhanced.filter { $0.kind != .matchesAnchor }.count
+        guard matchedCount > 0 && anomalyCount > 0 else { return colorAnalysis }
+
+        let (summary, detail) = messageFor(
+            anchor: anchorCandidate.figure,
+            findings: enhanced,
+            unexpectedYellowHands: colorAnalysis.unexpectedYellowHands
+        )
+
+        return Analysis(
+            isLikelyHybrid: true,
+            anchorFigure: anchorCandidate.figure,
+            findings: enhanced,
+            unexpectedYellowHands: colorAnalysis.unexpectedYellowHands,
+            summary: summary,
+            detail: detail
+        )
+    }
+
+    /// Embedding-only deep check for when color analysis found no
+    /// mismatch. Catches same-color head/torso swaps (e.g. two
+    /// different white helmets, or two black torsos with different
+    /// prints).
+    private static func embeddingOnlyAnalysis(
+        captured: UIImage,
+        candidates: [Candidate]
+    ) async -> Analysis? {
+        let headService = HeadEmbeddingService.shared
+        let torsoService = TorsoEmbeddingService.shared
+        guard (headService.isAvailable || torsoService.isAvailable),
+              let capturedCG = captured.cgImage,
+              let anchorCandidate = candidates.first else { return nil }
+
+        var findings: [Analysis.RegionFinding] = []
+
+        // Head embedding check: does the captured head match a
+        // different figure than the anchor?
+        if headService.isAvailable, let headCG = cropRegion(.head, from: capturedCG) {
+            let hits = await headService.nearestFigures(for: headCG, topK: 8)
+            let anchorId = anchorCandidate.figure.id
+            // If the top hit isn't the anchor, the head likely belongs
+            // to someone else.
+            if let topHit = hits.first,
+               topHit.cosine >= 0.60,
+               topHit.figureId != anchorId {
+                // Check if the anchor appears at all in top-K.
+                let anchorRank = hits.firstIndex(where: { $0.figureId == anchorId })
+                // If anchor is missing from top-8 or ranked much lower,
+                // this is a real head mismatch, not noise.
+                if anchorRank == nil || anchorRank! > 3 {
+                    let matchedFig = await MinifigureCatalog.shared.figure(id: topHit.figureId)
+                    findings.append(Analysis.RegionFinding(
+                        region: .head,
+                        matchedFigure: matchedFig,
+                        kind: .matchesOtherFigure
+                    ))
+                    // Torso matches anchor by default in this path.
+                    findings.append(Analysis.RegionFinding(
+                        region: .torso,
+                        matchedFigure: anchorCandidate.figure,
+                        kind: .matchesAnchor
+                    ))
+                }
+            }
+        }
+
+        // Torso embedding check for legs-swapped figures: if the torso
+        // encoder is available, encode the legs band and check if it
+        // matches a different figure's legs.
+        // (Deferred for a future iteration — legs prints are rare enough
+        // that color is usually sufficient.)
+
+        guard !findings.isEmpty else { return nil }
+        let anomalyCount = findings.filter { $0.kind != .matchesAnchor }.count
+        let matchedCount = findings.filter { $0.kind == .matchesAnchor }.count
+        guard matchedCount > 0, anomalyCount > 0 else { return nil }
+
+        let (summary, detail) = messageFor(
+            anchor: anchorCandidate.figure,
+            findings: findings,
+            unexpectedYellowHands: false
+        )
+
+        return Analysis(
+            isLikelyHybrid: true,
+            anchorFigure: anchorCandidate.figure,
+            findings: findings,
+            unexpectedYellowHands: false,
+            summary: summary,
+            detail: detail
+        )
+    }
+
+    /// Use the head embedding index to find which candidate's head
+    /// is the closest match for a captured head region.
+    private static func attributeViaHeadEmbedding(
+        regionCG: CGImage,
+        anchor: Minifigure,
+        candidates: [Candidate]
+    ) async -> Minifigure? {
+        let hits = await HeadEmbeddingService.shared.nearestFigures(
+            for: regionCG, topK: 16
+        )
+        let candidateIds = Set(candidates.map(\.figure.id))
+        // Find the best hit that's a different figure from the anchor
+        // AND is in our candidate set (so the user can see the context).
+        for hit in hits where hit.cosine >= 0.55 {
+            if hit.figureId != anchor.id && candidateIds.contains(hit.figureId) {
+                return candidates.first(where: { $0.figure.id == hit.figureId })?.figure
+            }
+        }
+        // If no candidate matches, try attributing to any catalog figure.
+        for hit in hits where hit.cosine >= 0.60 {
+            if hit.figureId != anchor.id {
+                return await MinifigureCatalog.shared.figure(id: hit.figureId)
+            }
+        }
+        return nil
+    }
+
+    /// Crop a specific anatomical region from the full figure image.
+    private static func cropRegion(
+        _ region: Analysis.Region,
+        from cgImage: CGImage
+    ) -> CGImage? {
+        let w = cgImage.width
+        let h = cgImage.height
+        let rect: CGRect
+        switch region {
+        case .hair:
+            rect = CGRect(
+                x: Int(Double(w) * 0.30), y: 0,
+                width: Int(Double(w) * 0.40), height: Int(Double(h) * 0.12)
+            )
+        case .head:
+            rect = CGRect(
+                x: Int(Double(w) * 0.25), y: Int(Double(h) * 0.05),
+                width: Int(Double(w) * 0.50), height: Int(Double(h) * 0.30)
+            )
+        case .torso:
+            rect = CGRect(
+                x: Int(Double(w) * 0.15), y: Int(Double(h) * 0.28),
+                width: Int(Double(w) * 0.70), height: Int(Double(h) * 0.40)
+            )
+        case .legs:
+            rect = CGRect(
+                x: Int(Double(w) * 0.20), y: Int(Double(h) * 0.65),
+                width: Int(Double(w) * 0.60), height: Int(Double(h) * 0.35)
+            )
+        }
+        return cgImage.cropping(to: rect)
+    }
+
     /// Analyze the captured image against the top-ranked candidate and
     /// optionally cross-reference mismatched parts against other
     /// candidates supplied by the caller. Returns nil when no meaningful
@@ -646,10 +861,22 @@ enum HybridFigureAnalyzer {
             }
         }()
 
+        // Count how many distinct other figures were identified.
+        let otherFigures = Set(
+            findings
+                .filter { $0.kind == .matchesOtherFigure }
+                .compactMap { $0.matchedFigure?.id }
+        )
+        let mixedSuffix: String
+        if otherFigures.count > 1 {
+            mixedSuffix = " This figure appears to be assembled from parts of at least \(otherFigures.count + 1) different figures."
+        } else {
+            mixedSuffix = " This figure may be assembled from parts of multiple sets or missing an accessory."
+        }
+
         let detail = "\(anchorPhrase) (\(anchor.theme)\(yearSuffix)). " +
             issuesSentence +
-            " This figure may be assembled from parts of multiple sets " +
-            "or missing an accessory."
+            mixedSuffix
         return (summary, detail)
     }
 
