@@ -32,7 +32,7 @@ enum ScanImageEnhancer {
         }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
     }
-    private static let enabledKey = "scanAutoEnhanceEnabled"
+    private static let enabledKey = UserDefaultsKey.scanAutoEnhanceEnabled
 
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
@@ -67,42 +67,52 @@ enum ScanImageEnhancer {
     // MARK: - Step 1: Auto-crop
 
     /// Crop around the most salient subject with a 12% padding margin so
-    /// the subject isn't hugging the frame. Falls back to a centered
-    /// 70% crop if saliency doesn't resolve a confident region.
+    /// the subject isn't hugging the frame. Falls back through:
+    ///   1. Attention-based saliency (where the eye looks)
+    ///   2. Objectness-based saliency (where distinct objects are) —
+    ///      better for small subjects on busy backgrounds.
+    ///   3. No crop at all — better than blind-centering an off-center
+    ///      subject (which would clip the figure entirely).
     private static func autoCrop(cgImage: CGImage) -> CGImage? {
         let w = CGFloat(cgImage.width)
         let h = CGFloat(cgImage.height)
 
-        if let salient = salientRect(for: cgImage) {
-            // Pad the salient rect by 12% on each side, clamped to
-            // image bounds. Keeps minifigure's full body in frame
-            // even if saliency locked onto only the torso.
-            let padX = salient.width * 0.12
-            let padY = salient.height * 0.12
-            let padded = CGRect(
-                x: max(0, salient.minX - padX),
-                y: max(0, salient.minY - padY),
-                width: min(w - max(0, salient.minX - padX), salient.width + padX * 2),
-                height: min(h - max(0, salient.minY - padY), salient.height + padY * 2)
-            )
-            // Only use saliency if it's actually narrower than a plain
-            // 90% centered crop — otherwise it's not saving us anything.
-            if padded.width < w * 0.90 && padded.height < h * 0.90 {
-                return cgImage.cropping(to: padded)
-            }
+        // Try attention-based saliency first.
+        if let salient = salientRect(for: cgImage),
+           let cropped = paddedCrop(of: salient, in: cgImage, imageW: w, imageH: h) {
+            return cropped
         }
 
-        // Fallback: centered 70% × 85% crop (roughly matches the
-        // viewfinder silhouette rectangle used in the scan UI).
-        let cropW = w * 0.70
-        let cropH = h * 0.85
-        let rect = CGRect(
-            x: (w - cropW) / 2,
-            y: (h - cropH) / 2,
-            width: cropW,
-            height: cropH
+        // Fall back to objectness-based saliency (better for small subjects
+        // on busy backgrounds — e.g. a minifigure on a paper-covered desk).
+        if let salient = objectnessRect(for: cgImage),
+           let cropped = paddedCrop(of: salient, in: cgImage, imageW: w, imageH: h) {
+            return cropped
+        }
+
+        // No reliable salient region found. Return the original image
+        // rather than a blind centered crop — the figure may be off-center,
+        // and clipping it out is worse than skipping the crop step.
+        return cgImage
+    }
+
+    /// Apply 12% padding around a salient rect and return the cropped
+    /// CGImage, but only if the result is meaningfully tighter than the
+    /// source (otherwise the crop saves nothing).
+    private static func paddedCrop(of rect: CGRect, in cgImage: CGImage, imageW w: CGFloat, imageH h: CGFloat) -> CGImage? {
+        let padX = rect.width * 0.12
+        let padY = rect.height * 0.12
+        let padded = CGRect(
+            x: max(0, rect.minX - padX),
+            y: max(0, rect.minY - padY),
+            width: min(w - max(0, rect.minX - padX), rect.width + padX * 2),
+            height: min(h - max(0, rect.minY - padY), rect.height + padY * 2)
         )
-        return cgImage.cropping(to: rect)
+        guard padded.width < w * 0.92 && padded.height < h * 0.92 else { return nil }
+        // Sanity: salient region should be at least 5% of the image — if
+        // smaller, it's noise (camera glare, sticker, etc), not a figure.
+        guard (padded.width * padded.height) / (w * h) > 0.05 else { return nil }
+        return cgImage.cropping(to: padded)
     }
 
     /// Run Vision attention-based saliency and return the tightest
@@ -134,6 +144,48 @@ enum ScanImageEnhancer {
             y: (1 - union.minY - union.height) * h,
             width: union.width * w,
             height: union.height * h
+        )
+        return rect.integral
+    }
+
+    /// Run Vision objectness-based saliency and return the LARGEST single
+    /// salient object (not the union — multiple objects on a busy desk
+    /// would union into the entire frame). Better than attention saliency
+    /// for small minifigures on cluttered surfaces.
+    private static func objectnessRect(for cgImage: CGImage) -> CGRect? {
+        let request = VNGenerateObjectnessBasedSaliencyImageRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        guard
+            let observation = request.results?.first,
+            let salientObjects = observation.salientObjects,
+            !salientObjects.isEmpty
+        else { return nil }
+
+        // Pick the object with the most figure-like aspect ratio (tall &
+        // narrow), tie-broken by area. Minifigures are ~2:1 portrait.
+        let scored = salientObjects.map { obj -> (VNRectangleObservation, Double) in
+            let box = obj.boundingBox
+            let aspect = Double(box.height / max(box.width, 0.01))
+            // Score peaks at aspect 2.0 (typical minifigure)
+            let aspectScore = 1.0 - min(1.0, abs(aspect - 2.0) / 2.0)
+            let areaScore = Double(box.width * box.height)
+            return (obj, aspectScore * 0.6 + areaScore * 0.4)
+        }
+        guard let best = scored.max(by: { $0.1 < $1.1 })?.0 else { return nil }
+
+        let w = CGFloat(cgImage.width)
+        let h = CGFloat(cgImage.height)
+        let box = best.boundingBox
+        let rect = CGRect(
+            x: box.minX * w,
+            y: (1 - box.minY - box.height) * h,
+            width: box.width * w,
+            height: box.height * h
         )
         return rect.integral
     }

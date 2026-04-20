@@ -9,7 +9,7 @@ final class CloudSyncManager: ObservableObject {
     static let shared = CloudSyncManager()
 
     @Published var isSyncEnabled: Bool {
-        didSet { UserDefaults.standard.set(isSyncEnabled, forKey: "iCloudSyncEnabled") }
+        didSet { UserDefaults.standard.set(isSyncEnabled, forKey: UserDefaultsKey.iCloudSyncEnabled) }
     }
     @Published var lastSyncDate: Date?
     @Published var syncStatus: SyncStatus = .idle
@@ -36,7 +36,7 @@ final class CloudSyncManager: ObservableObject {
     }
 
     private init() {
-        isSyncEnabled = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
+        isSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKey.iCloudSyncEnabled)
         setupKVStoreObserver()
         syncSettingsFromCloud()
     }
@@ -48,14 +48,14 @@ final class CloudSyncManager: ObservableObject {
         guard isSyncEnabled, isCloudAvailable else { return }
 
         // Sync user preferences
-        if let scanMode = UserDefaults.standard.string(forKey: "scanMode") {
-            kvStore.set(scanMode, forKey: "scanMode")
+        if let scanMode = UserDefaults.standard.string(forKey: UserDefaultsKey.scanMode) {
+            kvStore.set(scanMode, forKey: UserDefaultsKey.scanMode)
         }
-        if let trackingMode = UserDefaults.standard.string(forKey: "trackingMode") {
-            kvStore.set(trackingMode, forKey: "trackingMode")
+        if let trackingMode = UserDefaults.standard.string(forKey: UserDefaultsKey.trackingMode) {
+            kvStore.set(trackingMode, forKey: UserDefaultsKey.trackingMode)
         }
-        kvStore.set(UserDefaults.standard.bool(forKey: "hapticFeedback"), forKey: "hapticFeedback")
-        kvStore.set(UserDefaults.standard.bool(forKey: "soundEffects"), forKey: "soundEffects")
+        kvStore.set(UserDefaults.standard.bool(forKey: UserDefaultsKey.hapticFeedback), forKey: UserDefaultsKey.hapticFeedback)
+        kvStore.set(UserDefaults.standard.bool(forKey: UserDefaultsKey.soundEffects), forKey: UserDefaultsKey.soundEffects)
         kvStore.synchronize()
     }
 
@@ -63,16 +63,16 @@ final class CloudSyncManager: ObservableObject {
     func syncSettingsFromCloud() {
         guard isSyncEnabled, isCloudAvailable else { return }
 
-        if let scanMode = kvStore.string(forKey: "scanMode") {
-            UserDefaults.standard.set(scanMode, forKey: "scanMode")
+        if let scanMode = kvStore.string(forKey: UserDefaultsKey.scanMode) {
+            UserDefaults.standard.set(scanMode, forKey: UserDefaultsKey.scanMode)
         }
-        if let trackingMode = kvStore.string(forKey: "trackingMode") {
-            UserDefaults.standard.set(trackingMode, forKey: "trackingMode")
+        if let trackingMode = kvStore.string(forKey: UserDefaultsKey.trackingMode) {
+            UserDefaults.standard.set(trackingMode, forKey: UserDefaultsKey.trackingMode)
         }
-        let haptic = kvStore.bool(forKey: "hapticFeedback")
-        let sound = kvStore.bool(forKey: "soundEffects")
-        UserDefaults.standard.set(haptic, forKey: "hapticFeedback")
-        UserDefaults.standard.set(sound, forKey: "soundEffects")
+        let haptic = kvStore.bool(forKey: UserDefaultsKey.hapticFeedback)
+        let sound = kvStore.bool(forKey: UserDefaultsKey.soundEffects)
+        UserDefaults.standard.set(haptic, forKey: UserDefaultsKey.hapticFeedback)
+        UserDefaults.standard.set(sound, forKey: UserDefaultsKey.soundEffects)
     }
 
     private func setupKVStoreObserver() {
@@ -121,7 +121,7 @@ final class CloudSyncManager: ObservableObject {
                     self.syncStatus = .synced
                     self.lastSyncDate = Date()
                     self.syncError = nil
-                    UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastCloudSync")
+                    UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: UserDefaultsKey.lastCloudSync)
                 }
             } catch {
                 await MainActor.run {

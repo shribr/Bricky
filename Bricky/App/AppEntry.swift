@@ -10,10 +10,10 @@ struct AppEntry: App {
     init() {
         // UI Testing support: skip onboarding if launch argument is set
         if CommandLine.arguments.contains("--skip-onboarding") {
-            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.set(true, forKey: UserDefaultsKey.hasCompletedOnboarding)
         }
         if CommandLine.arguments.contains("--reset-onboarding") {
-            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.set(false, forKey: UserDefaultsKey.hasCompletedOnboarding)
         }
 
         // Boost URLCache so minifig thumbnails (and other CDN images) survive

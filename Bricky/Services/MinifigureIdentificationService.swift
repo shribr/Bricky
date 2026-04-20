@@ -130,43 +130,162 @@ final class MinifigureIdentificationService {
         // a region covering most of the image (i.e. nothing was isolated),
         // fall back to a tighter center crop to remove background.
         let subjectCG = bestSubjectCrop(cgImage: cgImage)
-        let dominantRGB = extractDominantColors(from: subjectCG, excludeBackground: true)
-        let matched = dominantRGB.prefix(4).compactMap {
+
+        // Region-aware color extraction:
+        //   - HEAD band (top 0–30%): used to detect generic yellow LEGO
+        //     head so we can deweight yellow when it's not informative.
+        //   - TORSO band (30–70%): the most distinctive region. Drives
+        //     the primary color signal for matching.
+        //   - FULL crop: secondary signal for legs/accessories.
+        let headBand = cropVerticalBand(subjectCG, top: 0.0, bottom: 0.30)
+        let torsoBand = cropVerticalBand(subjectCG, top: 0.30, bottom: 0.70)
+
+        let headDominant = extractDominantColors(from: headBand, excludeBackground: true)
+        let torsoDominant = extractDominantColors(from: torsoBand, excludeBackground: true)
+        let fullDominant = extractDominantColors(from: subjectCG, excludeBackground: true)
+
+        // Generic head detection: if the head region is dominated by a
+        // pixel cluster very close to LEGO yellow (#F2CD37), the head is
+        // generic and yellow should NOT be used as a primary torso
+        // signal. Otherwise every chef/doctor/scientist (white torso,
+        // yellow head) gets matched against yellow-torso figures.
+        let hasGenericHead: Bool = {
+            guard let headTop = headDominant.first else { return false }
+            // LEGO yellow F2CD37 = (242, 205, 55). Use a generous distance
+            // (~50 in weighted-RGB) so off-tone lighting still classifies.
+            let dr = Double(headTop.r) - 242
+            let dg = Double(headTop.g) - 205
+            let db = Double(headTop.b) - 55
+            let dist = sqrt(2.0 * dr * dr + 4.0 * dg * dg + 3.0 * db * db)
+            return dist < 90
+        }()
+
+        // Build the primary palette from the TORSO band first (most
+        // distinctive region), then fill from full-crop colors. Keeps
+        // the torso color signal from being drowned out by a yellow
+        // generic head, which is otherwise ~30% of the visible figure.
+        let primaryRGB = torsoDominant.prefix(2) + fullDominant.prefix(3)
+        var matchedPairs = primaryRGB.compactMap {
             closestLegoColor(r: $0.r, g: $0.g, b: $0.b)
         }
+
+        // If generic head detected, strip yellow out of the matched
+        // colors so it doesn't drive scoring (or compete to be primary).
+        if hasGenericHead {
+            matchedPairs.removeAll { $0.color == .yellow }
+            Self.logger.debug("Generic LEGO head detected — deweighting yellow")
+        }
+
+        // Deduplicate while preserving order (first occurrence = highest
+        // priority signal). The first surviving entry is our primary.
+        var seen: Set<LegoColor> = []
+        let matched = matchedPairs.filter { seen.insert($0.color).inserted }
         let colorSet = Set(matched.map(\.color))
-        // Treat the strongest extracted color (the largest cluster) as the
-        // torso color signal — it gets a heavier weight in scoring below.
         let primaryColor = matched.first?.color
 
+        // Build a torso-band-only color set (independent of full-image
+        // colors). Used both to detect patterned/multicolored torsos and
+        // to give every torso-band color a fair shot at being treated as
+        // "primary" — important because the catalog records ONE base
+        // color per torso part even though many torsos are heavily
+        // printed (e.g. Imperial Guard's torso is catalogued as White
+        // even though the visible coat is mostly red).
+        let torsoBandColors: Set<LegoColor> = {
+            var set: Set<LegoColor> = []
+            for c in torsoDominant.prefix(4) {
+                guard let lc = closestLegoColor(r: c.r, g: c.g, b: c.b)?.color else { continue }
+                if hasGenericHead && lc == .yellow { continue }
+                set.insert(lc)
+            }
+            return set
+        }()
+        // A "patterned" / multicolored torso is any torso band with 2+
+        // distinct LEGO colors after filtering. The user's heuristic:
+        // multicolored clothing is more distinctive than solid pants, so
+        // the torso should drive matching even when its catalog color
+        // isn't the visually-dominant one.
+        let torsoIsPatterned = torsoBandColors.count >= 2
+
         Self.logger.debug(
-            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", "))"
+            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned)"
         )
 
-        // Score each figure: torso match dominates; other parts are tiebreakers.
-        // Figures whose torso color is in the captured palette get a big bonus;
-        // figures matching only on accessory/leg colors are kept but scored low.
-        let majorSlots: Set<MinifigurePartSlot> = [.legLeft, .legRight, .hips]
+        // Score each figure. Heavy weight on combined torso+legs match
+        // because that's the most distinctive signal once head color is
+        // discounted (generic yellow heads dominate the catalog).
+        let legSlots: Set<MinifigurePartSlot> = [.legLeft, .legRight, .hips]
+        // Build the legs color band sample once — used to detect when
+        // the captured legs color is distinctively present (boosts figs
+        // whose leg parts also match that exact color).
+        let legsBand = cropVerticalBand(subjectCG, top: 0.65, bottom: 1.0)
+        let legsDominant = extractDominantColors(from: legsBand, excludeBackground: true)
+        let legsPrimary: LegoColor? = {
+            guard let firstLeg = legsDominant.first,
+                  let mapped = closestLegoColor(r: firstLeg.r, g: firstLeg.g, b: firstLeg.b)?.color
+            else { return nil }
+            return (mapped == .yellow && hasGenericHead) ? nil : mapped
+        }()
+
         var matches: [(figure: Minifigure, score: Int, torsoMatch: Bool)] = []
         for fig in allFigures {
             guard fig.imageURL != nil else { continue }
             var score = 0
             var torsoMatched = false
+            var legsMatched = false
 
             if let torso = fig.torsoPart, let tc = LegoColor(rawValue: torso.color) {
                 if colorSet.contains(tc) {
                     score += 5
                     torsoMatched = true
                     if let primary = primaryColor, primary == tc {
-                        score += 5  // Torso matches the LARGEST captured color cluster
+                        // Torso matches the LARGEST captured color cluster
+                        score += 5
+                    } else if torsoIsPatterned && torsoBandColors.contains(tc) {
+                        // Patterned torso: the catalog records ONE base
+                        // color but the visible torso has multiple. Any
+                        // torso-band color that matches the figure's
+                        // catalogued torso color is just as discriminating
+                        // as a primary-color hit, so award the same bonus.
+                        score += 5
+                    } else if torsoBandColors.contains(tc) {
+                        // Match falls inside the torso band specifically
+                        // (not just somewhere on the figure) — still a
+                        // strong signal even if not THE dominant color.
+                        score += 3
+                    }
+                    // Patterned-torso recognition bonus: this figure's
+                    // catalog torso color is one of several distinct
+                    // colors we observed in the torso band. Heavily
+                    // boosts multi-color torsos over solid-color ones
+                    // when the user scans something distinctive.
+                    if torsoIsPatterned && torsoBandColors.contains(tc) {
+                        score += 2
                     }
                 }
             }
-            // Major non-torso parts (legs, hips) — modest weight
-            for part in fig.parts where majorSlots.contains(part.slot) {
-                if let pc = LegoColor(rawValue: part.color), colorSet.contains(pc) {
-                    score += 1
+            // Legs / hips: modest weight individually, but combined with
+            // a torso match it's a *very* strong signal (red+blue Pirates
+            // Imperial Guard, white+blue chef, blue+grey Star Wars, etc.)
+            for part in fig.parts where legSlots.contains(part.slot) {
+                if let pc = LegoColor(rawValue: part.color) {
+                    if colorSet.contains(pc) {
+                        score += 1
+                        legsMatched = true
+                    }
+                    if let lp = legsPrimary, pc == lp {
+                        // Legs region's dominant color matches this fig's
+                        // leg color exactly — very specific signal.
+                        score += 3
+                        legsMatched = true
+                    }
                 }
+            }
+            // Combo bonus: torso AND legs both match — this is the most
+            // discriminating thing color matching can tell us. Without
+            // it, every red-torso figure scores the same regardless of
+            // whether their legs are blue, black, white, or tan.
+            if torsoMatched && legsMatched {
+                score += 6
             }
             if score > 0 {
                 matches.append((fig, score, torsoMatched))
@@ -254,6 +373,19 @@ final class MinifigureIdentificationService {
         return cgImage.cropping(to: cropRect) ?? cgImage
     }
 
+    /// Crop a vertical band from an image using normalized coordinates
+    /// (0.0 = top, 1.0 = bottom). Used for region-aware color sampling
+    /// — head band 0.0–0.30, torso band 0.30–0.70, legs band 0.70–1.0.
+    /// Falls back to the input image if the band is degenerate.
+    nonisolated private func cropVerticalBand(_ cgImage: CGImage, top: CGFloat, bottom: CGFloat) -> CGImage {
+        let h = CGFloat(cgImage.height)
+        let w = CGFloat(cgImage.width)
+        let y = max(0, top * h)
+        let height = max(1, (bottom - top) * h)
+        let rect = CGRect(x: 0, y: y, width: w, height: height)
+        return cgImage.cropping(to: rect) ?? cgImage
+    }
+
     // MARK: - Phase 2: Local Reference Image Refinement
 
     /// Re-rank fast-phase candidates by visual similarity using ONLY
@@ -282,22 +414,29 @@ final class MinifigureIdentificationService {
         let cache = MinifigureImageCache.shared
         let bundled = MinifigureReferenceImageStore.shared
         let userImages = UserFigureImageStorage.shared
-        var localPairs: [(figure: Minifigure, image: UIImage)] = []
+        var localPairs: [(figure: Minifigure, image: UIImage, colorConfidence: Double)] = []
+        var colorOnly: [ResolvedCandidate] = []
         for candidate in fastCandidates {
             guard let fig = candidate.figure else { continue }
             // User-added figures always have their photo on disk.
             if MinifigureCatalog.isUserFigureId(fig.id),
                let img = userImages.image(for: fig.id) {
-                localPairs.append((fig, img))
+                localPairs.append((fig, img, candidate.confidence))
                 continue
             }
             if let img = bundled.image(for: fig.id) {
-                localPairs.append((fig, img))
+                localPairs.append((fig, img, candidate.confidence))
                 continue
             }
             if let url = fig.imageURL, let img = cache.image(for: url) {
-                localPairs.append((fig, img))
+                localPairs.append((fig, img, candidate.confidence))
+                continue
             }
+            // No local reference image — keep as a color-only candidate.
+            // Phase 2 will inject the top few alongside the visually-
+            // refined ones so the user can still see strong color matches
+            // even when the bundled set lacks that figure.
+            colorOnly.append(candidate)
         }
 
         guard !localPairs.isEmpty else {
@@ -309,9 +448,9 @@ final class MinifigureIdentificationService {
 
         // Score off the main actor.
         let pairsCopy = localPairs
-        let scored: [(Minifigure, Float)] = await Task.detached(priority: .userInitiated) { [self] in
-            var results: [(Minifigure, Float)] = []
-            for (fig, img) in pairsCopy {
+        let scored: [(Minifigure, Float, Double)] = await Task.detached(priority: .userInitiated) { [self] in
+            var results: [(Minifigure, Float, Double)] = []
+            for (fig, img, colorConf) in pairsCopy {
                 if Task.isCancelled { break }
                 guard let refCG = img.cgImage,
                       let refPrint = self.generateFeaturePrint(from: refCG) else { continue }
@@ -321,46 +460,83 @@ final class MinifigureIdentificationService {
                 } catch {
                     continue
                 }
-                results.append((fig, distance))
+                results.append((fig, distance, colorConf))
             }
             return results
         }.value
 
         guard !scored.isEmpty else { return [] }
 
-        // Normalize distances within the candidate set so confidence
-        // reflects relative ranking, not an arbitrary absolute scale.
-        // Vision feature-print distances for minifigure-style photos
-        // cluster tightly (5–25), so a fixed denominator collapses
-        // everything to "98% match" — useless for the user. Stretch
-        // the observed range to a 0.40–0.92 confidence band, with the
-        // best match getting the highest confidence and the worst
-        // getting the lowest.
+        // Confidence calibration based on EMPIRICAL Vision feature-print
+        // distances on minifigure photos:
+        //   < 0.4 : extremely similar (near-identical pose & lighting)
+        //   0.4–0.7 : strong visual match
+        //   0.7–1.0 : weak / generic match
+        //   > 1.0 : essentially unrelated
+        //
+        // Old formula stretched relative ranks to 0.40–0.92 even when
+        // every candidate scored 0.9 distance — producing "92% match"
+        // for figures that look nothing like the subject. Use absolute
+        // distance to set a confidence ceiling, then add a small relative
+        // bonus for the better-ranked entries.
         let ranked = scored.sorted { $0.1 < $1.1 }  // smaller distance = better
-        let bestDistance = ranked.first?.1 ?? 0
-        let worstDistance = ranked.last?.1 ?? 1
-        let range = max(0.001, worstDistance - bestDistance)
+        let bestDistance = ranked.first?.1 ?? 1.0
 
-        return ranked.prefix(8).enumerated().map { (idx, item) in
-            let (fig, distance) = item
-            // 0.0 (best) -> 0.92, 1.0 (worst) -> 0.40
-            let normalized = Double((distance - bestDistance) / range)
-            let confidence = 0.92 - (normalized * 0.52)
+        // Absolute-distance ceiling for the BEST candidate.
+        // 0.0 → 0.95, 0.4 → 0.85, 0.7 → 0.65, 1.0 → 0.45, 1.5+ → 0.30
+        let bestCeiling: Double = {
+            let d = Double(bestDistance)
+            if d <= 0.4 { return 0.95 - d * 0.25 }      // 0.95 .. 0.85
+            if d <= 0.7 { return 0.85 - (d - 0.4) * 0.66 } // 0.85 .. 0.65
+            if d <= 1.0 { return 0.65 - (d - 0.7) * 0.66 } // 0.65 .. 0.45
+            return max(0.30, 0.45 - (d - 1.0) * 0.30)
+        }()
 
-            // Penalize low absolute similarity even for the "best" match
-            // when the captured image looks nothing like ANY reference.
-            let absoluteFloor = max(0.30, 1.0 - Double(bestDistance) / 40.0)
-            let finalConfidence = max(0.30, min(confidence, absoluteFloor + 0.10))
-
+        var visualResults = ranked.prefix(6).enumerated().map { (idx, item) -> ResolvedCandidate in
+            let (fig, distance, _) = item
+            // Each successive rank loses a small amount of confidence.
+            let confidence = max(0.25, bestCeiling - Double(idx) * 0.06)
+            let qualityNote: String
+            switch distance {
+            case ..<0.4: qualityNote = "strong visual match"
+            case ..<0.7: qualityNote = "good visual match"
+            case ..<1.0: qualityNote = "weak visual match"
+            default: qualityNote = "low-confidence visual match"
+            }
             return ResolvedCandidate(
                 figure: fig,
                 modelName: fig.name,
-                confidence: finalConfidence,
+                confidence: confidence,
                 reasoning: idx == 0
-                    ? "Best visual match (distance \(String(format: "%.1f", distance)))."
-                    : "Visual match (distance \(String(format: "%.1f", distance)))."
+                    ? "Best \(qualityNote) (distance \(String(format: "%.2f", distance)))."
+                    : "\(qualityNote.capitalized) (distance \(String(format: "%.2f", distance)))."
             )
         }
+
+        // If the best visual distance is poor (>0.7), the bundled
+        // reference set probably doesn't contain the actual figure.
+        // Inject the top color-only candidates so the user has a chance
+        // of seeing the right one. Cap their confidence so they don't
+        // displace strong visual matches.
+        if bestDistance > 0.7 && !colorOnly.isEmpty {
+            let topColorOnly = colorOnly
+                .sorted { $0.confidence > $1.confidence }
+                .prefix(4)
+                .map { c in
+                    ResolvedCandidate(
+                        figure: c.figure,
+                        modelName: c.modelName,
+                        confidence: min(c.confidence, bestCeiling - 0.05),
+                        reasoning: "Color match (no reference image to verify visually)."
+                    )
+                }
+            visualResults.append(contentsOf: topColorOnly)
+        }
+
+        return visualResults
+            .sorted { $0.confidence > $1.confidence }
+            .prefix(8)
+            .map { $0 }
     }
 
     // MARK: - Pre-scan Probe
@@ -387,6 +563,15 @@ final class MinifigureIdentificationService {
     /// Fast, on-device classification using saliency and shape analysis.
     /// Returns true if the image likely contains a single minifigure-like
     /// object (portrait aspect, focused attention, few distinct objects).
+    ///
+    /// Important bias note: a pile shot from typical phone distance often
+    /// has 1–3 attention regions and a near-square primary object — which
+    /// would trivially out-score "pile" if minifigure signals were not
+    /// gated. So the rules here REQUIRE positive minifigure evidence
+    /// (portrait aspect AND tight attention) before classifying as a
+    /// minifigure. Ties default to PILE (the safer scan path), reversing
+    /// the previous behavior where any focused-but-square subject got
+    /// flagged as a minifigure.
     nonisolated private func classifyImageContent(_ cgImage: CGImage) -> Bool {
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
@@ -401,48 +586,86 @@ final class MinifigureIdentificationService {
         var minifigureScore = 0
         var pileScore = 0
 
-        // Signal 1: Object count — fewer objects → more likely single figure
-        if objectRegions.count <= 2 {
-            minifigureScore += 3
-        } else if objectRegions.count <= 4 {
+        // Signal 1: Object count — fewer objects → more likely single figure.
+        // Bias toward pile because a single tightly-cropped pile sometimes
+        // registers as 1–2 attention objects (the whole pile silhouette).
+        if objectRegions.count == 1 {
+            minifigureScore += 2
+        } else if objectRegions.count == 2 {
             minifigureScore += 1
+        } else if objectRegions.count >= 4 {
+            pileScore += 4
+        } else {
+            pileScore += 1
+        }
+
+        // Signal 2: Attention focus — tight attention → single subject.
+        // A pile fills the frame; a minifigure occupies a small portrait
+        // slice. Raised the pile threshold so a wide subject scores pile.
+        let attentionArea = attentionRegions.reduce(0.0) { sum, obj in
+            sum + Double(obj.boundingBox.width * obj.boundingBox.height)
+        }
+        if attentionArea < 0.12 {
+            minifigureScore += 3
+        } else if attentionArea < 0.25 {
+            minifigureScore += 1
+        } else if attentionArea < 0.45 {
+            pileScore += 1
         } else {
             pileScore += 3
         }
 
-        // Signal 2: Attention focus — tight attention → single subject
-        let attentionArea = attentionRegions.reduce(0.0) { sum, obj in
-            sum + Double(obj.boundingBox.width * obj.boundingBox.height)
-        }
-        if attentionArea < 0.15 {
-            minifigureScore += 2
-        } else if attentionArea < 0.35 {
-            minifigureScore += 1
-        } else {
-            pileScore += 2
-        }
-
-        // Signal 3: Primary object aspect ratio — minifigures are portrait
+        // Signal 3: Primary object aspect ratio — minifigures are tall
+        // (~2:1 portrait). A near-square primary or landscape primary is
+        // almost certainly NOT a single figure. Aspect is the strongest
+        // structural signal for minifigure-vs-pile.
+        var aspectIsPortrait = false
+        var aspectIsLandscape = false
         if let primaryBox = objectRegions
             .max(by: { ($0.boundingBox.width * $0.boundingBox.height) <
                        ($1.boundingBox.width * $1.boundingBox.height) })?
             .boundingBox {
             let aspect = primaryBox.height / max(primaryBox.width, 0.001)
-            if aspect > 1.2 {
+            if aspect > 1.5 {
+                minifigureScore += 4   // Strongly portrait
+                aspectIsPortrait = true
+            } else if aspect > 1.05 {
                 minifigureScore += 2
+                aspectIsPortrait = true
             } else if aspect < 0.7 {
-                pileScore += 1
+                pileScore += 3         // Distinctly landscape → pile
+                aspectIsLandscape = true
             }
+            // 0.7..1.05 = roughly square → no aspect signal either way
+            // (saliency commonly snaps to a square box around a small
+            // portrait subject + its hand/shadow on a flat surface)
         }
 
-        // Signal 4: Scene simplicity
+        // Signal 4: Scene simplicity (attention region count).
         if attentionRegions.count <= 1 {
             minifigureScore += 1
-        } else if attentionRegions.count >= 4 {
-            pileScore += 1
+        } else if attentionRegions.count >= 3 {
+            pileScore += 2
         }
 
-        return minifigureScore >= pileScore
+        // Hard guardrail: a *landscape* primary subject is essentially
+        // never a single standing figure — that's a horizontal pile or
+        // an overhead bin shot. Square primaries are still allowed as
+        // minifigures because saliency often boxes a small portrait
+        // figure together with hand/shadow into a near-square region.
+        if aspectIsLandscape {
+            return false
+        }
+        // Bonus: portrait + tight attention (<25%) is the canonical
+        // minifigure signature (single figure, lots of background).
+        if aspectIsPortrait && attentionArea < 0.25 {
+            minifigureScore += 2
+        }
+
+        // Strict win required. Ties go to pile, the safer default —
+        // pile scans degrade gracefully, but a misclassified minifigure
+        // scan launches the wrong UI flow entirely.
+        return minifigureScore > pileScore
     }
 
     // MARK: - Saliency Detection
@@ -481,10 +704,7 @@ final class MinifigureIdentificationService {
 
     /// Generate a `VNFeaturePrintObservation` for image similarity comparison.
     nonisolated private func generateFeaturePrint(from cgImage: CGImage) -> VNFeaturePrintObservation? {
-        let request = VNGenerateImageFeaturePrintRequest()
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try? handler.perform([request])
-        return request.results?.first
+        VisionUtilities.featurePrint(for: cgImage)
     }
 
     // MARK: - Color Extraction
@@ -527,13 +747,24 @@ final class MinifigureIdentificationService {
                 let b = pixelData[offset + 2]
 
                 if excludeBackground {
-                    // Skip near-white (background) and very dark pixels (shadows)
+                    // Skip very dark pixels (deep shadows). Don't skip
+                    // bright pixels — LEGO white (#F4F4F4) IS a valid
+                    // figure color (chefs, doctors, scientists, helmets,
+                    // suits). Saliency cropping already removed most
+                    // background, so the remaining bright pixels are
+                    // overwhelmingly the figure itself.
                     let brightness = (Int(r) + Int(g) + Int(b)) / 3
-                    if brightness > 220 || brightness < 25 { continue }
-                    // Skip low-saturation grays (background)
+                    if brightness < 25 { continue }
+                    // Skip very low-saturation greys ONLY when they're
+                    // mid-brightness — those are usually surfaces (table,
+                    // paper, wall). Pure white (high brightness, low sat)
+                    // is kept because it's a real LEGO color.
                     let maxC = max(r, g, b)
                     let minC = min(r, g, b)
-                    if maxC > 0 && (Int(maxC) - Int(minC)) < 20 { continue }
+                    let saturation = Int(maxC) - Int(minC)
+                    if saturation < 15 && brightness >= 60 && brightness <= 235 {
+                        continue
+                    }
                 }
 
                 pixels.append(RGB(r: r, g: g, b: b))
@@ -571,29 +802,10 @@ final class MinifigureIdentificationService {
     }
 
     /// Map an RGB value to the closest non-transparent LegoColor.
+    /// Thin wrapper around `LegoColor.closest(r:g:b:)` so existing call
+    /// sites in this file don't have to change.
     nonisolated private func closestLegoColor(r: UInt8, g: UInt8, b: UInt8) -> (color: LegoColor, distance: Double)? {
-        let skip: Set<LegoColor> = [.transparent, .transparentBlue, .transparentRed]
-        var best: LegoColor?
-        var bestDist = Double.greatestFiniteMagnitude
-
-        for color in LegoColor.allCases where !skip.contains(color) {
-            let hex = color.hex
-            let cr = Double((hex >> 16) & 0xFF)
-            let cg = Double((hex >> 8) & 0xFF)
-            let cb = Double(hex & 0xFF)
-
-            let dr = Double(r) - cr
-            let dg = Double(g) - cg
-            let db = Double(b) - cb
-            let dist = sqrt(2.0 * dr * dr + 4.0 * dg * dg + 3.0 * db * db)
-
-            if dist < bestDist {
-                bestDist = dist
-                best = color
-            }
-        }
-
-        return best.map { ($0, bestDist) }
+        LegoColor.closest(r: r, g: g, b: b)
     }
 
     // MARK: - Utilities

@@ -119,20 +119,11 @@ final class PieceLocationService {
     }
 
     private func closestLegoColor(r: CGFloat, g: CGFloat, b: CGFloat) -> LegoColor {
-        var bestColor = LegoColor.gray
-        var bestDistance: CGFloat = .greatestFiniteMagnitude
-
-        for color in LegoColor.allCases {
-            let h = color.hex
-            let cr = CGFloat((h >> 16) & 0xFF) / 255.0
-            let cg = CGFloat((h >> 8) & 0xFF) / 255.0
-            let cb = CGFloat(h & 0xFF) / 255.0
-            let dist = (r - cr) * (r - cr) + (g - cg) * (g - cg) + (b - cb) * (b - cb)
-            if dist < bestDistance {
-                bestDistance = dist
-                bestColor = color
-            }
-        }
-        return bestColor
+        // Convert 0..1 floats to 0..255 bytes and delegate to the
+        // shared `LegoColor.closest` so all callers use one impl.
+        let r8 = UInt8(min(255, max(0, r * 255)))
+        let g8 = UInt8(min(255, max(0, g * 255)))
+        let b8 = UInt8(min(255, max(0, b * 255)))
+        return LegoColor.closest(r: r8, g: g8, b: b8)?.color ?? .gray
     }
 }

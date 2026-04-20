@@ -22,6 +22,13 @@ struct MinifigureScanView: View {
     @State private var showCorrectionPicker = false
     @State private var autoEnhance: Bool = ScanImageEnhancer.isEnabled
     @State private var enhancingInProgress = false
+    /// Briefly true after enhance completes — drives the
+    /// "✓ Enhanced!" confirmation message before identification stages.
+    @State private var enhanceJustCompleted = false
+    /// True for the duration of identification once enhance succeeded —
+    /// drives the persistent "✓ Auto-enhanced" badge so the user always
+    /// has visual proof the step ran.
+    @State private var enhanceWasApplied = false
     @State private var hybridAnalysis: HybridFigureAnalyzer.Analysis?
 
     var body: some View {
@@ -54,10 +61,22 @@ struct MinifigureScanView: View {
                 Color.black.opacity(0.55).ignoresSafeArea()
                 VStack(spacing: 24) {
                     MinifigureScanStatusView(
-                        overrideMessage: enhancingInProgress
-                            ? "Enhancing image — auto-cropping & adjusting lighting…"
-                            : nil
+                        overrideMessage: enhanceOverrideMessage
                     )
+                }
+                // Persistent badge in top-left so the user always has
+                // visual confirmation the auto-enhance pipeline ran.
+                if enhanceWasApplied {
+                    VStack {
+                        HStack {
+                            enhancedBadge
+                                .padding(.leading, 16)
+                                .padding(.top, 60)
+                            Spacer()
+                        }
+                        Spacer()
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
@@ -128,6 +147,35 @@ struct MinifigureScanView: View {
     }
 
     // MARK: - Overlay
+
+    /// Status overlay's main message, derived from current pipeline phase.
+    /// Returns nil to fall through to the cycling stage messages.
+    private var enhanceOverrideMessage: String? {
+        if enhancingInProgress {
+            return "Enhancing image — auto-cropping & adjusting lighting…"
+        }
+        if enhanceJustCompleted {
+            return "✓ Enhanced! Now identifying…"
+        }
+        return nil
+    }
+
+    /// Persistent confirmation badge shown in the top-left during the
+    /// entire identification overlay once enhance has been applied.
+    private var enhancedBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.green)
+            Text("Auto-enhanced")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(.black.opacity(0.65)))
+        .overlay(Capsule().strokeBorder(.green.opacity(0.5), lineWidth: 1))
+    }
 
     private var silhouetteOverlay: some View {
         GeometryReader { geo in
@@ -260,18 +308,25 @@ struct MinifigureScanView: View {
         if ScanImageEnhancer.isEnabled {
             enhancingInProgress = true
             // Run enhancement in parallel with a minimum-display timer so
-            // the user can clearly see "Enhancing image…" even when the
-            // pipeline completes in <100 ms. Without this, the message
-            // flashes too fast for users to register.
+            // the user can clearly see "Enhancing image…" — without this
+            // the message flashes too fast to register on a fast pipeline.
+            // 2.0s is comfortably long enough to read and process.
             async let enhanced = ScanImageEnhancer.enhanceAsync(oriented)
-            async let minDelay: Void = Task.sleep(nanoseconds: 1_400_000_000)
+            async let minDelay: Void = Task.sleep(nanoseconds: 2_000_000_000)
             oriented = await enhanced
             _ = try? await minDelay
             // Update the snapshot the overlay shows BEFORE clearing the
             // status — that way the user sees the enhanced (cropped,
-            // tone-corrected) image as confirmation it actually ran.
+            // tone-corrected) image as the backdrop for the next phase.
             capturedImage = oriented
             enhancingInProgress = false
+            // Show "✓ Enhanced!" confirmation for ~1.2s before
+            // identification stages start cycling. This gives the user
+            // an unmissable confirmation that the enhance step ran.
+            enhanceJustCompleted = true
+            enhanceWasApplied = true
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            enhanceJustCompleted = false
         } else if oriented !== image {
             capturedImage = oriented
         }
@@ -332,11 +387,32 @@ struct MinifigureScanView: View {
                 hybridAnalysis = nil
             }
 
+            // Auto-save EVERY scan to history with the enhanced/cropped
+            // subject image. Records the top candidate (or a placeholder
+            // if no candidates returned). Confirm/reject flows below
+            // will UPDATE this entry rather than create a new one.
+            // Without this, scans the user closes without confirming or
+            // rejecting are lost — and the user explicitly asked that
+            // ALL scans be saved with delete-one and clear-all controls.
+            let topCandidate = result.first
+            MinifigureScanHistoryStore.shared.record(
+                figure: topCandidate?.figure,
+                candidateName: topCandidate?.modelName ?? "No match",
+                confidence: topCandidate?.confidence ?? 0,
+                reasoning: topCandidate?.reasoning ?? "",
+                capturedImage: oriented,
+                confirmed: false
+            )
+
             showResults = true
         } catch {
             errorMessage = error.localizedDescription
         }
         camera.capturedImage = nil
+        // Clear badge so it doesn't linger on a subsequent re-scan that
+        // takes the manual (non-enhance) path.
+        enhanceWasApplied = false
+        enhanceJustCompleted = false
     }
 
     // MARK: - Results sheet

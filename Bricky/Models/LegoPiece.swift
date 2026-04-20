@@ -296,4 +296,46 @@ enum LegoColor: String, Codable, CaseIterable, Hashable {
         case .transparentRed: return 0xC91A09
         }
     }
+
+    // MARK: - Nearest-color matching
+
+    /// Map an RGB triplet to the closest `LegoColor` using a perceptual
+    /// weighted-RGB distance (heavier on green, modest on red/blue).
+    /// Optionally exclude the transparent variants — useful when the
+    /// caller is matching solid pieces and shouldn't return e.g.
+    /// "Trans Red" for a red brick.
+    ///
+    /// Returns `(color, distance)` so callers can apply their own
+    /// confidence thresholds. Distance is in the same arbitrary unit as
+    /// the weighted-RGB metric (smaller = closer).
+    static func closest(
+        r: UInt8, g: UInt8, b: UInt8,
+        excludeTransparent: Bool = true
+    ) -> (color: LegoColor, distance: Double)? {
+        let skip: Set<LegoColor> = excludeTransparent
+            ? [.transparent, .transparentBlue, .transparentRed]
+            : []
+        var best: LegoColor?
+        var bestDist = Double.greatestFiniteMagnitude
+
+        for color in LegoColor.allCases where !skip.contains(color) {
+            let hex = color.hex
+            let cr = Double((hex >> 16) & 0xFF)
+            let cg = Double((hex >> 8) & 0xFF)
+            let cb = Double(hex & 0xFF)
+
+            let dr = Double(r) - cr
+            let dg = Double(g) - cg
+            let db = Double(b) - cb
+            // Perceptual weights: human eye is most sensitive to green.
+            let dist = sqrt(2.0 * dr * dr + 4.0 * dg * dg + 3.0 * db * db)
+
+            if dist < bestDist {
+                bestDist = dist
+                best = color
+            }
+        }
+
+        return best.map { ($0, bestDist) }
+    }
 }

@@ -144,32 +144,32 @@ final class ThemeManager: ObservableObject {
     }
 
     @Published var appearanceMode: AppearanceMode {
-        didSet { UserDefaults.standard.set(appearanceMode.rawValue, forKey: "appearanceMode") }
+        didSet { UserDefaults.standard.set(appearanceMode.rawValue, forKey: UserDefaultsKey.appearanceMode) }
     }
 
     @Published var colorTheme: ColorTheme {
-        didSet { UserDefaults.standard.set(colorTheme.rawValue, forKey: "colorTheme") }
+        didSet { UserDefaults.standard.set(colorTheme.rawValue, forKey: UserDefaultsKey.colorTheme) }
     }
 
     @Published var scanOverlayStyle: ScanOverlayStyle {
-        didSet { UserDefaults.standard.set(scanOverlayStyle.rawValue, forKey: "scanOverlayStyle") }
+        didSet { UserDefaults.standard.set(scanOverlayStyle.rawValue, forKey: UserDefaultsKey.scanOverlayStyle) }
     }
 
     @Published var scanCoverageDetail: ScanCoverageDetail {
-        didSet { UserDefaults.standard.set(scanCoverageDetail.rawValue, forKey: "scanCoverageDetail") }
+        didSet { UserDefaults.standard.set(scanCoverageDetail.rawValue, forKey: UserDefaultsKey.scanCoverageDetail) }
     }
 
     private init() {
-        let modeStr = UserDefaults.standard.string(forKey: "appearanceMode") ?? "System"
+        let modeStr = UserDefaults.standard.string(forKey: UserDefaultsKey.appearanceMode) ?? "System"
         appearanceMode = AppearanceMode(rawValue: modeStr) ?? .system
 
-        let themeStr = UserDefaults.standard.string(forKey: "colorTheme") ?? "Classic"
+        let themeStr = UserDefaults.standard.string(forKey: UserDefaultsKey.colorTheme) ?? "Classic"
         colorTheme = ColorTheme(rawValue: themeStr) ?? .classic
 
-        let overlayStr = UserDefaults.standard.string(forKey: "scanOverlayStyle") ?? "Brickit"
+        let overlayStr = UserDefaults.standard.string(forKey: UserDefaultsKey.scanOverlayStyle) ?? "Brickit"
         scanOverlayStyle = ScanOverlayStyle(rawValue: overlayStr) ?? .brickit
 
-        let detailStr = UserDefaults.standard.string(forKey: "scanCoverageDetail") ?? "Medium"
+        let detailStr = UserDefaults.standard.string(forKey: UserDefaultsKey.scanCoverageDetail) ?? "Medium"
         scanCoverageDetail = ScanCoverageDetail(rawValue: detailStr) ?? .medium
     }
 }

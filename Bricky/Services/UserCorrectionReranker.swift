@@ -17,11 +17,15 @@ import os.log
 ///     cached in memory (keyed by image filename). Disk reads happen
 ///     once per entry per app launch.
 ///
-/// Thresholds:
-///   - A training entry is considered a "match" if its feature-print
-///     distance to the current capture is ≤ `strongMatchDistance` (18).
-///     Loose matches (≤ `looseMatchDistance` = 25) also boost the
-///     associated figures, but with lower weight.
+/// Thresholds (very conservative — Vision feature prints on minifigure
+/// photos cluster tightly, so generous thresholds cause false positives
+/// where one corrected figure dominates every later scan):
+///   - ≤ 5 distance: strong match. Boosts existing candidates AND is
+///     eligible to inject ONE new figure into the result list (capped
+///     at confidence 0.78 so it's visibly speculative).
+///   - ≤ 8 distance: moderate match. Only boosts figures already
+///     surfaced by the visual pipeline; never injects a new figure.
+///   - > 8: ignored.
 @MainActor
 final class UserCorrectionReranker {
 
@@ -99,23 +103,26 @@ final class UserCorrectionReranker {
                 }
 
                 // Vision feature-print distances on cropped minifigure
-                // photos cluster tightly — even unrelated figures often
-                // sit at 15–22. Generous thresholds here cause every
-                // scan after one correction to think it's that figure.
+                // photos cluster very tightly — unrelated figures still
+                // commonly sit at 8–14. Generous thresholds here cause
+                // every scan after one correction to think it's that
+                // figure. Be strict.
                 //
-                // Tightened thresholds:
-                //   ≤ 10 : strong match — boost AND add to result if missing
-                //   ≤ 14 : moderate match — boost only if already in results
-                //   > 14 : ignore
+                // Thresholds (very strict — feature-print clustering on
+                // minifigure photos means even unrelated figs land at
+                // ~6-10 distance, so anything above ~3.5 is unreliable):
+                //   ≤ 3.5 : strong match — eligible to inject
+                //   ≤ 6   : moderate match — boost only if already in results
+                //   > 6   : ignore
                 let weight: Double
                 let isStrong: Bool
-                if distance <= 10 {
-                    // 0.55 at distance 10, ~0.95 at distance 2
-                    weight = max(0.5, 1.0 - Double(distance) / 22.0)
+                if distance <= 3.5 {
+                    // 0.80 at distance 3.5, ~0.95 at distance 0.5
+                    weight = max(0.70, 1.0 - Double(distance) / 18.0)
                     isStrong = true
-                } else if distance <= 14 {
-                    // 0.20 at 14, 0.40 at 10
-                    weight = 0.45 - Double(distance - 10) / 20.0
+                } else if distance <= 6 {
+                    // 0.10 at 6, 0.35 at 3.5
+                    weight = 0.40 - Double(distance - 3.5) / 10.0
                     isStrong = false
                 } else {
                     continue
@@ -169,19 +176,61 @@ final class UserCorrectionReranker {
             )
         }
 
-        // Add ONLY strong-match boosted figures that weren't in the list.
-        for figId in strongMatches where !existingIds.contains(figId) {
-            guard let fig = catalog.first(where: { $0.id == figId }),
-                  let weight = boosts[figId] else { continue }
-            let confidence = min(0.96, 0.55 + 0.40 * weight)
-            boostedList.append(
-                MinifigureIdentificationService.ResolvedCandidate(
-                    figure: fig,
-                    modelName: fig.name,
-                    confidence: confidence,
-                    reasoning: "Matches a figure you previously corrected to this from a similar scan."
+        // Add at most ONE strong-match boosted figure that wasn't in
+        // the list — and only the single best one. Cap displayed
+        // confidence well below the visual-pipeline range so the user
+        // can tell the suggestion is speculative (came from history,
+        // not from direct visual match in the current scan).
+        //
+        // GATING: only inject if the candidate figure shares at least
+        // one part color with figures the visual pipeline ALREADY
+        // surfaced. This kills the "Islander injected on every scan"
+        // failure mode — even if the captured image's feature print
+        // happens to land near a stored Islander correction (lighting,
+        // pose, background similarity), if the captured colors don't
+        // overlap Islander's palette at all, do not inject.
+        let visibleColors: Set<String> = {
+            var set: Set<String> = []
+            for cand in currentCandidates {
+                guard let fig = cand.figure else { continue }
+                for part in fig.parts { set.insert(part.color) }
+            }
+            return set
+        }()
+
+        let injectionCandidates = strongMatches
+            .subtracting(existingIds)
+            .compactMap { id -> (String, Double)? in
+                guard let w = boosts[id] else { return nil }
+                return (id, w)
+            }
+            .sorted { $0.1 > $1.1 }
+
+        if let (figId, weight) = injectionCandidates.first,
+           let fig = catalog.first(where: { $0.id == figId }) {
+            // Color-overlap gate: at least one of this fig's part colors
+            // must also appear on a fig the visual pipeline surfaced.
+            // If the captured scene shares zero colors with the stored
+            // figure, the feature-print "match" is almost certainly
+            // background/lighting noise, not the figure itself.
+            let figColors = Set(fig.parts.map(\.color))
+            let overlap = !figColors.isDisjoint(with: visibleColors)
+            if overlap {
+                // 0.55..0.78 — clearly below the 0.85+ visual-match range
+                let confidence = min(0.78, 0.50 + 0.30 * weight)
+                boostedList.append(
+                    MinifigureIdentificationService.ResolvedCandidate(
+                        figure: fig,
+                        modelName: fig.name,
+                        confidence: confidence,
+                        reasoning: "Possible match based on a figure you previously corrected to this from a very similar scan."
+                    )
                 )
-            )
+            } else {
+                Self.logger.info(
+                    "Reranker: suppressing inject of \(fig.id) — no color overlap with visual candidates"
+                )
+            }
         }
 
         // Re-sort by confidence.
@@ -198,9 +247,6 @@ final class UserCorrectionReranker {
     // MARK: - Helpers
 
     nonisolated private static func featurePrint(for cgImage: CGImage) -> VNFeaturePrintObservation? {
-        let request = VNGenerateImageFeaturePrintRequest()
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try? handler.perform([request])
-        return request.results?.first
+        VisionUtilities.featurePrint(for: cgImage)
     }
 }

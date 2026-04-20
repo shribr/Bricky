@@ -17,6 +17,8 @@ struct MinifigureCorrectionPicker: View {
     @State private var userTagsText = ""
     @State private var selectedTheme: String?
     @State private var showAddCustomFigure = false
+    @State private var showTagsSheet = false
+    @FocusState private var searchFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -28,7 +30,7 @@ struct MinifigureCorrectionPicker: View {
 
                 selectionSummary
 
-                tagsInput
+                inlineSearchBar
 
                 aiSuggestionChip
 
@@ -44,13 +46,26 @@ struct MinifigureCorrectionPicker: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        Text("Correct Results")
+                            .font(.headline)
+                        Button {
+                            showTagsSheet = true
+                        } label: {
+                            Image(systemName: userTagsText.isEmpty ? "tag" : "tag.fill")
+                                .font(.body)
+                                .foregroundStyle(userTagsText.isEmpty ? Color.accentColor : Color.green)
+                        }
+                        .accessibilityLabel("Add training tags")
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveCorrections() }
                         .font(.body.weight(.semibold))
                         .disabled(selectedIds.isEmpty || isSaving)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search 16,000+ figures by name, theme, or ID")
             .onChange(of: searchText) { _, _ in updateResults() }
             .onChange(of: selectedTheme) { _, _ in updateResults() }
             .onAppear {
@@ -68,6 +83,9 @@ struct MinifigureCorrectionPicker: View {
                     selectedIds.insert(newFig.id)
                     updateResults()
                 }
+            }
+            .sheet(isPresented: $showTagsSheet) {
+                trainingTagsSheet
             }
         }
     }
@@ -221,22 +239,85 @@ struct MinifigureCorrectionPicker: View {
         }
     }
 
-    private var tagsInput: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Training Tags (optional)")
-                .font(.caption.weight(.semibold))
+    /// Inline search bar that lives in the same spot the (now-removed)
+    /// training tags row used to occupy. Sits ABOVE the keyboard's reach
+    /// because nothing below it gets auto-hidden when other inputs focus.
+    private var inlineSearchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("e.g. island, warrior, tribal, yellow, green", text: $userTagsText)
-                .textFieldStyle(.roundedBorder)
-                .font(.subheadline)
+            TextField("Search 16,000+ figures by name, theme, or ID", text: $searchText)
+                .textFieldStyle(.plain)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            Text("Comma-separated keywords to help improve future scans.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .focused($searchFocused)
+                .submitLabel(.search)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.secondarySystemBackground))
+        )
         .padding(.horizontal)
         .padding(.vertical, 8)
+    }
+
+    /// Modal sheet for entering optional training tags. Triggered by the
+    /// tag button in the toolbar; appears centered so the keyboard pops
+    /// over a focused, full-screen input rather than competing with the
+    /// figure list and search bar for vertical space.
+    private var trainingTagsSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Add keywords that describe this figure to help improve future scans. They're saved alongside your selection.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                TextField("e.g. island, warrior, tribal, yellow, green", text: $userTagsText, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(3...6)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                Text("Comma-separated. Examples: \"red\", \"chef\", \"pirates 1994\".")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Training Tags")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Clear") {
+                        userTagsText = ""
+                    }
+                    .disabled(userTagsText.isEmpty)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showTagsSheet = false }
+                        .font(.body.weight(.semibold))
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
     private var figureList: some View {

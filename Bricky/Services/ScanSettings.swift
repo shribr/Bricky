@@ -53,40 +53,40 @@ final class ScanSettings: ObservableObject {
 
     /// Scan workflow mode: regular (auto-capture) or detailed (guided segments)
     @Published var scanMode: ScanMode {
-        didSet { UserDefaults.standard.set(scanMode.rawValue, forKey: "ScanSettings.scanMode") }
+        didSet { UserDefaults.standard.set(scanMode.rawValue, forKey: UserDefaultsKey.ScanSettings.scanMode) }
     }
 
     /// Spatial tracking approach: 2D screen-space (current) or AR world tracking (future)
     @Published var trackingMode: TrackingMode {
-        didSet { UserDefaults.standard.set(trackingMode.rawValue, forKey: "ScanSettings.trackingMode") }
+        didSet { UserDefaults.standard.set(trackingMode.rawValue, forKey: UserDefaultsKey.ScanSettings.trackingMode) }
     }
 
     // MARK: - Published Settings
 
     /// Whether to generate per-piece location snapshots during scanning
     @Published var locationSnapshotsEnabled: Bool {
-        didSet { UserDefaults.standard.set(locationSnapshotsEnabled, forKey: "ScanSettings.locationSnapshotsEnabled") }
+        didSet { UserDefaults.standard.set(locationSnapshotsEnabled, forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled) }
     }
 
     /// Whether to use the composite approach (one source image, on-demand highlights)
     /// vs the legacy approach (pre-rendered per-piece snapshots)
     @Published var useCompositeMode: Bool {
-        didSet { UserDefaults.standard.set(useCompositeMode, forKey: "ScanSettings.useCompositeMode") }
+        didSet { UserDefaults.standard.set(useCompositeMode, forKey: UserDefaultsKey.ScanSettings.useCompositeMode) }
     }
 
     /// Whether to pre-render all highlights when scanning stops (composite mode only)
     @Published var preRenderOnComplete: Bool {
-        didSet { UserDefaults.standard.set(preRenderOnComplete, forKey: "ScanSettings.preRenderOnComplete") }
+        didSet { UserDefaults.standard.set(preRenderOnComplete, forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete) }
     }
 
     /// Segment grid size for detailed scan (3–10, NxN grid)
     @Published var segmentGridSize: Int {
-        didSet { UserDefaults.standard.set(segmentGridSize, forKey: "ScanSettings.segmentGridSize") }
+        didSet { UserDefaults.standard.set(segmentGridSize, forKey: UserDefaultsKey.ScanSettings.segmentGridSize) }
     }
 
     /// Whether to auto-detect grid size based on scanned area
     @Published var autoDetectGridSize: Bool {
-        didSet { UserDefaults.standard.set(autoDetectGridSize, forKey: "ScanSettings.autoDetectGridSize") }
+        didSet { UserDefaults.standard.set(autoDetectGridSize, forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize) }
     }
 
     // MARK: - Geolocation (Sprint C)
@@ -95,19 +95,19 @@ final class ScanSettings: ObservableObject {
     /// Strict opt-in: even when this is `true`, no location is requested
     /// until OS-level `WhenInUse` permission has also been granted.
     @Published var locationCaptureEnabled: Bool {
-        didSet { UserDefaults.standard.set(locationCaptureEnabled, forKey: "ScanSettings.locationCaptureEnabled") }
+        didSet { UserDefaults.standard.set(locationCaptureEnabled, forKey: UserDefaultsKey.ScanSettings.locationCaptureEnabled) }
     }
 
     /// Whether the user has already seen the one-time consent modal at scan
     /// start. Once true, we never auto-prompt again — the user manages the
     /// setting from Settings.
     @Published var locationConsentPrompted: Bool {
-        didSet { UserDefaults.standard.set(locationConsentPrompted, forKey: "ScanSettings.locationConsentPrompted") }
+        didSet { UserDefaults.standard.set(locationConsentPrompted, forKey: UserDefaultsKey.ScanSettings.locationConsentPrompted) }
     }
 
     /// Radius (km) used by the "near me" inventory filter. 0.5 km default.
     @Published var locationFilterRadiusKm: Double {
-        didSet { UserDefaults.standard.set(locationFilterRadiusKm, forKey: "ScanSettings.locationFilterRadiusKm") }
+        didSet { UserDefaults.standard.set(locationFilterRadiusKm, forKey: UserDefaultsKey.ScanSettings.locationFilterRadiusKm) }
     }
 
     // MARK: - Pile Mesh Overlay
@@ -128,13 +128,13 @@ final class ScanSettings: ObservableObject {
 
     /// Color ramp used by `PileMeshOverlayView` for the topographic wireframe.
     @Published var meshColorRamp: MeshColorRamp {
-        didSet { UserDefaults.standard.set(meshColorRamp.rawValue, forKey: "ScanSettings.meshColorRamp") }
+        didSet { UserDefaults.standard.set(meshColorRamp.rawValue, forKey: UserDefaultsKey.ScanSettings.meshColorRamp) }
     }
 
     /// Lattice resolution (cells per side) for the LiDAR topographic wireframe.
     /// Higher = denser mesh, more depth samples per frame. Range 16…64; default 36.
     @Published var meshResolution: Int {
-        didSet { UserDefaults.standard.set(meshResolution, forKey: "ScanSettings.meshResolution") }
+        didSet { UserDefaults.standard.set(meshResolution, forKey: UserDefaultsKey.ScanSettings.meshResolution) }
     }
 
     /// Last benchmark result in milliseconds per composite render
@@ -149,24 +149,24 @@ final class ScanSettings: ObservableObject {
         let defaults = UserDefaults.standard
 
         // Default: enabled with composite mode
-        if defaults.object(forKey: "ScanSettings.locationSnapshotsEnabled") == nil {
-            defaults.set(true, forKey: "ScanSettings.locationSnapshotsEnabled")
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled) == nil {
+            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled)
         }
-        if defaults.object(forKey: "ScanSettings.useCompositeMode") == nil {
-            defaults.set(true, forKey: "ScanSettings.useCompositeMode")
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.useCompositeMode) == nil {
+            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.useCompositeMode)
         }
-        if defaults.object(forKey: "ScanSettings.preRenderOnComplete") == nil {
-            defaults.set(true, forKey: "ScanSettings.preRenderOnComplete")
-        }
-
-        if defaults.object(forKey: "ScanSettings.segmentGridSize") == nil {
-            defaults.set(3, forKey: "ScanSettings.segmentGridSize")
-        }
-        if defaults.object(forKey: "ScanSettings.autoDetectGridSize") == nil {
-            defaults.set(true, forKey: "ScanSettings.autoDetectGridSize")
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete) == nil {
+            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete)
         }
 
-        let modeStr = defaults.string(forKey: "ScanSettings.scanMode") ?? "Regular"
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.segmentGridSize) == nil {
+            defaults.set(3, forKey: UserDefaultsKey.ScanSettings.segmentGridSize)
+        }
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize) == nil {
+            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize)
+        }
+
+        let modeStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.scanMode) ?? "Regular"
         self.scanMode = ScanMode(rawValue: modeStr) ?? .regular
 
         // Default tracking mode is 2D Screen-Space everywhere — it's
@@ -179,29 +179,29 @@ final class ScanSettings: ObservableObject {
         // (they can re-enable via the pill).
         let revertKey = "ScanSettings.trackingModeRevertedV2"
         if !defaults.bool(forKey: revertKey) {
-            if defaults.bool(forKey: "ScanSettings.trackingModeLiDARMigratedV1") {
-                defaults.set(TrackingMode.screenSpace.rawValue, forKey: "ScanSettings.trackingMode")
+            if defaults.bool(forKey: UserDefaultsKey.ScanSettings.trackingModeLiDARMigratedV1) {
+                defaults.set(TrackingMode.screenSpace.rawValue, forKey: UserDefaultsKey.ScanSettings.trackingMode)
             }
             defaults.set(true, forKey: revertKey)
         }
-        let trackStr = defaults.string(forKey: "ScanSettings.trackingMode") ?? TrackingMode.screenSpace.rawValue
+        let trackStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.trackingMode) ?? TrackingMode.screenSpace.rawValue
         self.trackingMode = TrackingMode(rawValue: trackStr) ?? .screenSpace
-        self.locationSnapshotsEnabled = defaults.bool(forKey: "ScanSettings.locationSnapshotsEnabled")
-        self.useCompositeMode = defaults.bool(forKey: "ScanSettings.useCompositeMode")
-        self.preRenderOnComplete = defaults.bool(forKey: "ScanSettings.preRenderOnComplete")
-        self.segmentGridSize = max(3, min(10, defaults.integer(forKey: "ScanSettings.segmentGridSize")))
-        self.autoDetectGridSize = defaults.bool(forKey: "ScanSettings.autoDetectGridSize")
+        self.locationSnapshotsEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled)
+        self.useCompositeMode = defaults.bool(forKey: UserDefaultsKey.ScanSettings.useCompositeMode)
+        self.preRenderOnComplete = defaults.bool(forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete)
+        self.segmentGridSize = max(3, min(10, defaults.integer(forKey: UserDefaultsKey.ScanSettings.segmentGridSize)))
+        self.autoDetectGridSize = defaults.bool(forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize)
 
         // Geolocation (Sprint C) — defaults: capture off, never prompted, 0.5 km radius.
-        self.locationCaptureEnabled = defaults.bool(forKey: "ScanSettings.locationCaptureEnabled")
-        self.locationConsentPrompted = defaults.bool(forKey: "ScanSettings.locationConsentPrompted")
-        let storedRadius = defaults.double(forKey: "ScanSettings.locationFilterRadiusKm")
+        self.locationCaptureEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationCaptureEnabled)
+        self.locationConsentPrompted = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationConsentPrompted)
+        let storedRadius = defaults.double(forKey: UserDefaultsKey.ScanSettings.locationFilterRadiusKm)
         self.locationFilterRadiusKm = storedRadius > 0 ? storedRadius : 0.5
 
-        let rampStr = defaults.string(forKey: "ScanSettings.meshColorRamp") ?? MeshColorRamp.viridis.rawValue
+        let rampStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.meshColorRamp) ?? MeshColorRamp.viridis.rawValue
         self.meshColorRamp = MeshColorRamp(rawValue: rampStr) ?? .viridis
 
-        let storedRes = defaults.integer(forKey: "ScanSettings.meshResolution")
+        let storedRes = defaults.integer(forKey: UserDefaultsKey.ScanSettings.meshResolution)
         self.meshResolution = storedRes > 0 ? max(16, min(64, storedRes)) : 24
     }
 

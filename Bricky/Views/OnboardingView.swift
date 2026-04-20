@@ -114,7 +114,7 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         hasCompletedOnboarding = true
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(true, forKey: UserDefaultsKey.hasCompletedOnboarding)
     }
 }
 

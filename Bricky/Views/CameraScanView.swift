@@ -614,11 +614,11 @@ struct CameraScanView: View {
                             }
                             viewModel.startScanning()
                             // Show scan guide on first use
-                            if !UserDefaults.standard.bool(forKey: "hasSeenScanGuide") {
+                            if !UserDefaults.standard.bool(forKey: UserDefaultsKey.hasSeenScanGuide) {
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     showScanGuide = true
                                 }
-                                UserDefaults.standard.set(true, forKey: "hasSeenScanGuide")
+                                UserDefaults.standard.set(true, forKey: UserDefaultsKey.hasSeenScanGuide)
                             }
                         } else {
                             showPaywall = true

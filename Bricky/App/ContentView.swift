@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: UserDefaultsKey.hasCompletedOnboarding)
 
     /// Use device idiom instead of horizontalSizeClass — on Plus/Pro Max iPhones,
     /// landscape flips horizontalSizeClass to .regular which would otherwise tear
