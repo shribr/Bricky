@@ -259,10 +259,20 @@ struct MinifigureScanView: View {
         var oriented = image.normalizedOrientation()
         if ScanImageEnhancer.isEnabled {
             enhancingInProgress = true
-            oriented = await ScanImageEnhancer.enhanceAsync(oriented)
+            // Run enhancement in parallel with a minimum-display timer so
+            // the user can clearly see "Enhancing image…" even when the
+            // pipeline completes in <100 ms. Without this, the message
+            // flashes too fast for users to register.
+            async let enhanced = ScanImageEnhancer.enhanceAsync(oriented)
+            async let minDelay: Void = Task.sleep(nanoseconds: 1_400_000_000)
+            oriented = await enhanced
+            _ = try? await minDelay
+            // Update the snapshot the overlay shows BEFORE clearing the
+            // status — that way the user sees the enhanced (cropped,
+            // tone-corrected) image as confirmation it actually ran.
+            capturedImage = oriented
             enhancingInProgress = false
-        }
-        if oriented !== image {
+        } else if oriented !== image {
             capturedImage = oriented
         }
 
@@ -284,34 +294,40 @@ struct MinifigureScanView: View {
             }
             resolvedCandidates = result
 
-            // Run hybrid analysis on the top candidate (best effort,
-            // non-blocking failure) using its local reference image.
-            if let top = result.first, let fig = top.figure {
-                let refImage: UIImage? = {
-                    if MinifigureCatalog.isUserFigureId(fig.id) {
-                        return UserFigureImageStorage.shared.image(for: fig.id)
-                    }
-                    if let bundled = MinifigureReferenceImageStore.shared.image(for: fig.id) {
-                        return bundled
-                    }
-                    if let url = fig.imageURL {
-                        return MinifigureImageCache.shared.image(for: url)
-                    }
-                    return nil
-                }()
-                if let refImage {
-                    let captured = oriented
-                    let analysis = await Task.detached(priority: .userInitiated) {
-                        HybridFigureAnalyzer.analyze(
-                            captured: captured,
-                            candidate: fig,
-                            referenceImage: refImage
-                        )
-                    }.value
-                    hybridAnalysis = analysis
-                } else {
-                    hybridAnalysis = nil
+            // Run hybrid analysis using the top candidate as the anchor
+            // and up to ~7 additional candidates as cross-attribution
+            // sources (so we can say "torso looks like X but face looks
+            // like Y" when parts come from different figures).
+            let analyzerCandidates: [HybridFigureAnalyzer.Candidate] =
+                result.prefix(8).compactMap { resolved in
+                    guard let fig = resolved.figure else { return nil }
+                    let refImage: UIImage? = {
+                        if MinifigureCatalog.isUserFigureId(fig.id) {
+                            return UserFigureImageStorage.shared.image(for: fig.id)
+                        }
+                        if let bundled = MinifigureReferenceImageStore.shared.image(for: fig.id) {
+                            return bundled
+                        }
+                        if let url = fig.imageURL {
+                            return MinifigureImageCache.shared.image(for: url)
+                        }
+                        return nil
+                    }()
+                    guard let refImage else { return nil }
+                    return HybridFigureAnalyzer.Candidate(
+                        figure: fig,
+                        referenceImage: refImage
+                    )
                 }
+            if !analyzerCandidates.isEmpty {
+                let captured = oriented
+                let analysis = await Task.detached(priority: .userInitiated) {
+                    HybridFigureAnalyzer.analyze(
+                        captured: captured,
+                        candidates: analyzerCandidates
+                    )
+                }.value
+                hybridAnalysis = analysis
             } else {
                 hybridAnalysis = nil
             }

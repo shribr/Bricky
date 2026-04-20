@@ -65,10 +65,13 @@ final class UserCorrectionReranker {
         // Build per-figure boost score based on similarity to past corrections.
         // Snapshot cache for the detached task — it only reads, never writes.
         let cacheSnapshot = printCache
-        let (boosts, newCachedPrints) = await Task.detached(priority: .userInitiated) {
-            [entries] () -> (boosts: [String: Double], newPrints: [String: VNFeaturePrintObservation]) in
+        let (boosts, newCachedPrints, strongMatches) = await Task.detached(priority: .userInitiated) {
+            [entries] () -> (boosts: [String: Double],
+                             newPrints: [String: VNFeaturePrintObservation],
+                             strongMatches: Set<String>) in
             var boosts: [String: Double] = [:]
             var newPrints: [String: VNFeaturePrintObservation] = [:]
+            var strongMatches: Set<String> = []
             let store = MinifigureTrainingStore.shared
 
             for entry in entries where !entry.confirmedFigIds.isEmpty {
@@ -95,29 +98,39 @@ final class UserCorrectionReranker {
                     continue
                 }
 
-                // Convert distance to a boost weight:
-                //   ≤ 18   : strong match (0.6 – 1.0)
-                //   ≤ 25   : loose match  (0.2 – 0.6)
-                //   > 25   : ignore
+                // Vision feature-print distances on cropped minifigure
+                // photos cluster tightly — even unrelated figures often
+                // sit at 15–22. Generous thresholds here cause every
+                // scan after one correction to think it's that figure.
+                //
+                // Tightened thresholds:
+                //   ≤ 10 : strong match — boost AND add to result if missing
+                //   ≤ 14 : moderate match — boost only if already in results
+                //   > 14 : ignore
                 let weight: Double
-                if distance <= 18 {
-                    weight = 1.0 - Double(distance) / 30.0   // ~0.60 at 12, ~0.40 at 18
-                    // ensure at least 0.6 for strong matches
-                } else if distance <= 25 {
-                    weight = 0.35 - Double(distance - 18) / 40.0
+                let isStrong: Bool
+                if distance <= 10 {
+                    // 0.55 at distance 10, ~0.95 at distance 2
+                    weight = max(0.5, 1.0 - Double(distance) / 22.0)
+                    isStrong = true
+                } else if distance <= 14 {
+                    // 0.20 at 14, 0.40 at 10
+                    weight = 0.45 - Double(distance - 10) / 20.0
+                    isStrong = false
                 } else {
                     continue
                 }
 
                 // Spread weight across confirmed figure IDs (usually 1).
-                // Accumulate in case the same figure was confirmed for
-                // multiple past scans — those stack.
                 let perFigure = weight / Double(entry.confirmedFigIds.count)
                 for figId in entry.confirmedFigIds {
                     boosts[figId, default: 0] += perFigure
+                    if isStrong {
+                        strongMatches.insert(figId)
+                    }
                 }
             }
-            return (boosts, newPrints)
+            return (boosts, newPrints, strongMatches)
         }.value
 
         // Merge newly-computed prints into the main-actor cache.
@@ -129,11 +142,15 @@ final class UserCorrectionReranker {
             return currentCandidates
         }
 
-        Self.logger.info("Correction reranker boosting \(boosts.count) figures")
+        Self.logger.info(
+            "Correction reranker: \(boosts.count) boosted, \(strongMatches.count) strong"
+        )
 
         // Apply boosts. For candidates already in the list, increase
-        // confidence proportional to the boost weight. For boosted
-        // figures NOT in the list, add them at the top.
+        // confidence proportional to the boost weight. ONLY add boosted
+        // figures NOT already in the list when the match is *strong* —
+        // moderate-distance matches are noise on top of a tightly
+        // clustered feature-print distribution.
         let catalog = MinifigureCatalog.shared.allFigures
         let existingIds = Set(currentCandidates.compactMap { $0.figure?.id })
         var boostedList = currentCandidates.map { candidate -> MinifigureIdentificationService.ResolvedCandidate in
@@ -152,9 +169,10 @@ final class UserCorrectionReranker {
             )
         }
 
-        // Add any boosted figures that weren't in the original list.
-        for (figId, weight) in boosts where !existingIds.contains(figId) {
-            guard let fig = catalog.first(where: { $0.id == figId }) else { continue }
+        // Add ONLY strong-match boosted figures that weren't in the list.
+        for figId in strongMatches where !existingIds.contains(figId) {
+            guard let fig = catalog.first(where: { $0.id == figId }),
+                  let weight = boosts[figId] else { continue }
             let confidence = min(0.96, 0.55 + 0.40 * weight)
             boostedList.append(
                 MinifigureIdentificationService.ResolvedCandidate(
