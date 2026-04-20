@@ -44,63 +44,322 @@ final class MinifigureIdentificationService {
         }
     }
 
-    /// Max reference images to download per identification attempt.
-    private let maxReferenceDownloads = 10
-    /// Max concurrent image downloads.
-    private let downloadConcurrency = 15
-    /// Timeout per reference image download (seconds).
-    private let downloadTimeout: TimeInterval = 3
-
     private init() {}
 
     // MARK: - Public API
 
     /// Identify a minifigure from a captured photo.
     ///
-    /// Tries CoreML first (if available), then falls back to Vision-based
-    /// feature-print comparison against catalog reference images.
-    /// Includes a 30-second hard timeout to prevent indefinite hangs.
+    /// Two-phase strategy (offline-first):
+    /// 1. **Fast phase** (always runs, completes in <1s): color-based
+    ///    catalog filtering returns a list of candidates immediately.
+    /// 2. **Refinement phase** (best-effort, capped at 6s): re-ranks
+    ///    candidates by visual similarity using LOCALLY AVAILABLE images
+    ///    only (memory cache, disk cache, or bundled assets). No network
+    ///    downloads — the app works fully offline.
+    ///
+    /// The function ALWAYS returns results — it never throws unless the
+    /// catalog is empty or the image is unreadable.
     func identify(torsoImage: UIImage) async throws -> [ResolvedCandidate] {
         await MinifigureCatalog.shared.load()
 
-        // Preprocess: remove background, enhance contrast
-        let processedImage = await preprocessImage(torsoImage)
-
-        // Wrap the entire pipeline in a 30-second timeout so the UI never
-        // hangs indefinitely on slow networks or large candidate sets.
-        let pipeline = Task<[ResolvedCandidate], Error> {
-            // ── Tier 1: CoreML (on-device trained model) ─────────────────
-            if let coreMLResults = try? await self.identifyWithCoreML(torsoImage: processedImage),
-               !coreMLResults.isEmpty {
-                return coreMLResults
-            }
-
-            // ── Tier 2: Vision feature-print comparison ──────────────────
-            Self.logger.info("CoreML unavailable; using Vision feature-print identification")
-            let visionResults = await self.identifyWithVisionFeaturePrint(capturedImage: processedImage)
-            if !visionResults.isEmpty {
-                return visionResults
-            }
-
+        guard let cgImage = torsoImage.cgImage else {
             throw IdentificationError.noResults
         }
 
-        let timeout = Task {
-            try await Task.sleep(nanoseconds: 30_000_000_000)
-            pipeline.cancel()
-            return [ResolvedCandidate]()
+        Self.logger.info("Identification started")
+
+        // Snapshot the catalog on the MainActor BEFORE going to background.
+        // Calling MainActor.assumeIsolated from a detached task would crash.
+        let catalogSnapshot = MinifigureCatalog.shared.allFigures
+
+        // ── Phase 1: Fast color-based candidates (no network, <1s) ──
+        let fastResults = await Task.detached(priority: .userInitiated) { [self, catalogSnapshot] in
+            self.fastColorBasedCandidates(cgImage: cgImage, allFigures: catalogSnapshot)
+        }.value
+
+        Self.logger.info("Fast phase returned \(fastResults.count) candidates")
+
+        guard !fastResults.isEmpty else {
+            throw IdentificationError.noResults
         }
 
-        do {
-            let result = try await pipeline.value
-            timeout.cancel()
-            if result.isEmpty { throw IdentificationError.noResults }
-            return result
-        } catch is CancellationError {
-            throw IdentificationError.noResults
-        } catch {
-            timeout.cancel()
-            throw error
+        // ── Phase 2: Refinement using locally-available reference images ──
+        let refinement = Task<[ResolvedCandidate], Never> { [fastResults] in
+            await self.refineWithLocalReferenceImages(
+                cgImage: cgImage,
+                fastCandidates: fastResults
+            )
+        }
+
+        let timeout = Task<[ResolvedCandidate], Never> { [fastResults] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            refinement.cancel()
+            return fastResults
+        }
+
+        let refined = await refinement.value
+        timeout.cancel()
+
+        let baseResult = refined.isEmpty ? fastResults : refined
+
+        // Apply the user-correction reranker: if the current captured
+        // image looks like a past scan the user manually corrected,
+        // inject or boost the figure(s) they confirmed for that scan.
+        // This is what makes manual catalog selections actually carry
+        // forward to future scans without a model retrain.
+        let final = await UserCorrectionReranker.shared.rerank(
+            capturedImage: torsoImage,
+            currentCandidates: baseResult
+        )
+
+        Self.logger.info("Identification complete: returning \(final.count) candidates")
+        return final
+    }
+
+    // MARK: - Phase 1: Fast Color-Based Candidates
+
+    /// Extract dominant colors from the captured image and filter the catalog
+    /// for figures whose torso/major parts match. Sorts by recency (year desc).
+    /// Pure on-device, no network — completes in well under a second.
+    nonisolated private func fastColorBasedCandidates(
+        cgImage: CGImage,
+        allFigures: [Minifigure]
+    ) -> [ResolvedCandidate] {
+        // Crop to subject for cleaner color extraction. If saliency returns
+        // a region covering most of the image (i.e. nothing was isolated),
+        // fall back to a tighter center crop to remove background.
+        let subjectCG = bestSubjectCrop(cgImage: cgImage)
+        let dominantRGB = extractDominantColors(from: subjectCG, excludeBackground: true)
+        let matched = dominantRGB.prefix(4).compactMap {
+            closestLegoColor(r: $0.r, g: $0.g, b: $0.b)
+        }
+        let colorSet = Set(matched.map(\.color))
+        // Treat the strongest extracted color (the largest cluster) as the
+        // torso color signal — it gets a heavier weight in scoring below.
+        let primaryColor = matched.first?.color
+
+        Self.logger.debug(
+            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", "))"
+        )
+
+        // Score each figure: torso match dominates; other parts are tiebreakers.
+        // Figures whose torso color is in the captured palette get a big bonus;
+        // figures matching only on accessory/leg colors are kept but scored low.
+        let majorSlots: Set<MinifigurePartSlot> = [.legLeft, .legRight, .hips]
+        var matches: [(figure: Minifigure, score: Int, torsoMatch: Bool)] = []
+        for fig in allFigures {
+            guard fig.imageURL != nil else { continue }
+            var score = 0
+            var torsoMatched = false
+
+            if let torso = fig.torsoPart, let tc = LegoColor(rawValue: torso.color) {
+                if colorSet.contains(tc) {
+                    score += 5
+                    torsoMatched = true
+                    if let primary = primaryColor, primary == tc {
+                        score += 5  // Torso matches the LARGEST captured color cluster
+                    }
+                }
+            }
+            // Major non-torso parts (legs, hips) — modest weight
+            for part in fig.parts where majorSlots.contains(part.slot) {
+                if let pc = LegoColor(rawValue: part.color), colorSet.contains(pc) {
+                    score += 1
+                }
+            }
+            if score > 0 {
+                matches.append((fig, score, torsoMatched))
+            }
+        }
+
+        // If color extraction failed entirely, fall back to recent figures
+        if matches.isEmpty {
+            Self.logger.info("Color match empty; using recent figures fallback")
+            let recent = allFigures
+                .filter { $0.imageURL != nil }
+                .sorted { $0.year > $1.year }
+                .prefix(8)
+            return recent.map { fig in
+                ResolvedCandidate(
+                    figure: fig,
+                    modelName: fig.name,
+                    confidence: 0.3,
+                    reasoning: "Recent catalog suggestion (color extraction inconclusive)."
+                )
+            }
+        }
+
+        // Prioritize torso-matched figures, then by score, then year
+        matches.sort {
+            if $0.torsoMatch != $1.torsoMatch { return $0.torsoMatch && !$1.torsoMatch }
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.figure.year > $1.figure.year
+        }
+
+        // Return a wide pool so Phase 2 (visual feature-print refinement)
+        // has plenty of figures to visually compare. Phase 2 trims down
+        // to the top 8 by visual similarity. Without a wide pool here,
+        // Phase 2 just re-ranks 8 figures all picked by color alone.
+        let top = matches.prefix(60)
+        let maxScore = Double(top.first?.score ?? 1)
+        return top.map { match in
+            // Confidence: lower baseline for non-torso matches; higher when
+            // torso color matches AND it's the dominant captured color.
+            let normalized = Double(match.score) / maxScore
+            let confidence = match.torsoMatch
+                ? 0.40 + 0.30 * normalized
+                : 0.20 + 0.15 * normalized
+
+            let reasoning: String
+            if match.torsoMatch {
+                reasoning = "Torso color match (score \(match.score))."
+            } else {
+                reasoning = "Partial color match (score \(match.score) — torso color differs)."
+            }
+
+            return ResolvedCandidate(
+                figure: match.figure,
+                modelName: match.figure.name,
+                confidence: confidence,
+                reasoning: reasoning
+            )
+        }
+    }
+
+    /// Best available crop of the subject from a captured frame:
+    /// 1. Try saliency. If it returns a tight region (<70% of image), use it.
+    /// 2. Otherwise fall back to a centered crop (60% width × 80% height)
+    ///    which approximately matches the pre-scan viewfinder rectangle.
+    nonisolated private func bestSubjectCrop(cgImage: CGImage) -> CGImage {
+        if let salient = cropToSalientSubject(cgImage) {
+            let w = CGFloat(cgImage.width)
+            let h = CGFloat(cgImage.height)
+            let salientArea = CGFloat(salient.width) * CGFloat(salient.height)
+            let totalArea = w * h
+            if salientArea / totalArea < 0.70 {
+                return salient
+            }
+        }
+        let w = CGFloat(cgImage.width)
+        let h = CGFloat(cgImage.height)
+        let cropW = w * 0.60
+        let cropH = h * 0.80
+        let cropRect = CGRect(
+            x: (w - cropW) / 2,
+            y: (h - cropH) / 2,
+            width: cropW,
+            height: cropH
+        )
+        return cgImage.cropping(to: cropRect) ?? cgImage
+    }
+
+    // MARK: - Phase 2: Local Reference Image Refinement
+
+    /// Re-rank fast-phase candidates by visual similarity using ONLY
+    /// reference images that are already available locally (memory cache,
+    /// disk cache, or bundled assets). Skips any figure whose image isn't
+    /// on-device — never makes a network request.
+    ///
+    /// If no candidates have a local image, returns empty (caller will
+    /// keep the fast-phase results).
+    private func refineWithLocalReferenceImages(
+        cgImage: CGImage,
+        fastCandidates: [ResolvedCandidate]
+    ) async -> [ResolvedCandidate] {
+        // Generate the captured-image feature print off the main actor.
+        let capturedPrint: VNFeaturePrintObservation? = await Task.detached(priority: .userInitiated) { [self] in
+            let subjectCG = self.cropToSalientSubject(cgImage) ?? cgImage
+            return self.generateFeaturePrint(from: subjectCG)
+        }.value
+
+        guard let capturedPrint = capturedPrint else { return [] }
+
+        // Build a list of (figure, localImage) — only figures whose image
+        // is already available offline. Check the bundled reference set
+        // first (curated, ships with the app), then fall back to the disk
+        // URL cache (figures the user has previously viewed in the catalog).
+        let cache = MinifigureImageCache.shared
+        let bundled = MinifigureReferenceImageStore.shared
+        let userImages = UserFigureImageStorage.shared
+        var localPairs: [(figure: Minifigure, image: UIImage)] = []
+        for candidate in fastCandidates {
+            guard let fig = candidate.figure else { continue }
+            // User-added figures always have their photo on disk.
+            if MinifigureCatalog.isUserFigureId(fig.id),
+               let img = userImages.image(for: fig.id) {
+                localPairs.append((fig, img))
+                continue
+            }
+            if let img = bundled.image(for: fig.id) {
+                localPairs.append((fig, img))
+                continue
+            }
+            if let url = fig.imageURL, let img = cache.image(for: url) {
+                localPairs.append((fig, img))
+            }
+        }
+
+        guard !localPairs.isEmpty else {
+            Self.logger.info("No local reference images available; skipping refinement")
+            return []
+        }
+
+        Self.logger.info("Refining with \(localPairs.count) locally-available reference images")
+
+        // Score off the main actor.
+        let pairsCopy = localPairs
+        let scored: [(Minifigure, Float)] = await Task.detached(priority: .userInitiated) { [self] in
+            var results: [(Minifigure, Float)] = []
+            for (fig, img) in pairsCopy {
+                if Task.isCancelled { break }
+                guard let refCG = img.cgImage,
+                      let refPrint = self.generateFeaturePrint(from: refCG) else { continue }
+                var distance: Float = 0
+                do {
+                    try capturedPrint.computeDistance(&distance, to: refPrint)
+                } catch {
+                    continue
+                }
+                results.append((fig, distance))
+            }
+            return results
+        }.value
+
+        guard !scored.isEmpty else { return [] }
+
+        // Normalize distances within the candidate set so confidence
+        // reflects relative ranking, not an arbitrary absolute scale.
+        // Vision feature-print distances for minifigure-style photos
+        // cluster tightly (5–25), so a fixed denominator collapses
+        // everything to "98% match" — useless for the user. Stretch
+        // the observed range to a 0.40–0.92 confidence band, with the
+        // best match getting the highest confidence and the worst
+        // getting the lowest.
+        let ranked = scored.sorted { $0.1 < $1.1 }  // smaller distance = better
+        let bestDistance = ranked.first?.1 ?? 0
+        let worstDistance = ranked.last?.1 ?? 1
+        let range = max(0.001, worstDistance - bestDistance)
+
+        return ranked.prefix(8).enumerated().map { (idx, item) in
+            let (fig, distance) = item
+            // 0.0 (best) -> 0.92, 1.0 (worst) -> 0.40
+            let normalized = Double((distance - bestDistance) / range)
+            let confidence = 0.92 - (normalized * 0.52)
+
+            // Penalize low absolute similarity even for the "best" match
+            // when the captured image looks nothing like ANY reference.
+            let absoluteFloor = max(0.30, 1.0 - Double(bestDistance) / 40.0)
+            let finalConfidence = max(0.30, min(confidence, absoluteFloor + 0.10))
+
+            return ResolvedCandidate(
+                figure: fig,
+                modelName: fig.name,
+                confidence: finalConfidence,
+                reasoning: idx == 0
+                    ? "Best visual match (distance \(String(format: "%.1f", distance)))."
+                    : "Visual match (distance \(String(format: "%.1f", distance)))."
+            )
         }
     }
 
@@ -184,398 +443,6 @@ final class MinifigureIdentificationService {
         }
 
         return minifigureScore >= pileScore
-    }
-
-    // MARK: - Image Preprocessing
-
-    /// Preprocess a captured photo before identification:
-    /// 1. Isolate the subject using saliency-based cropping
-    /// 2. Normalize brightness and contrast via CIFilter
-    /// 3. Scale to a consistent size for feature comparison
-    private func preprocessImage(_ image: UIImage) async -> UIImage {
-        guard let cgImage = image.cgImage else { return image }
-
-        return await Task.detached(priority: .userInitiated) {
-            let context = CIContext()
-
-            // Step 1: Crop to salient subject (isolate minifigure from background)
-            let subjectCG = self.cropToSalientSubject(cgImage) ?? cgImage
-
-            // Step 2: Apply CIFilter chain for brightness/contrast normalization
-            var ciImage = CIImage(cgImage: subjectCG)
-
-            // Auto-adjust exposure
-            if let autoAdjust = CIFilter(name: "CIColorControls") {
-                autoAdjust.setValue(ciImage, forKey: kCIInputImageKey)
-                autoAdjust.setValue(0.08, forKey: kCIInputBrightnessKey)  // Slight brightness boost
-                autoAdjust.setValue(1.15, forKey: kCIInputContrastKey)    // Enhance contrast
-                autoAdjust.setValue(1.1, forKey: kCIInputSaturationKey)   // Slightly boost color
-                if let output = autoAdjust.outputImage {
-                    ciImage = output
-                }
-            }
-
-            // Sharpen to help feature print comparison
-            if let sharpen = CIFilter(name: "CISharpenLuminance") {
-                sharpen.setValue(ciImage, forKey: kCIInputImageKey)
-                sharpen.setValue(0.4, forKey: kCIInputSharpnessKey)
-                if let output = sharpen.outputImage {
-                    ciImage = output
-                }
-            }
-
-            // Step 3: Render to CGImage at a consistent size
-            guard let processed = context.createCGImage(ciImage, from: ciImage.extent) else {
-                return image
-            }
-            return UIImage(cgImage: processed)
-        }.value
-    }
-
-    // MARK: - Tier 1: CoreML
-
-    private func identifyWithCoreML(torsoImage: UIImage) async throws -> [ResolvedCandidate]? {
-        let classifier = MinifigureClassificationService.shared
-        guard classifier.isModelLoaded else { return nil }
-
-        // High-confidence threshold
-        if let results = await classifier.classifyWithThreshold(torsoImage: torsoImage) {
-            let resolved = results.flatMap { result in
-                result.figures.map { figure in
-                    ResolvedCandidate(
-                        figure: figure,
-                        modelName: figure.name,
-                        confidence: result.confidence,
-                        reasoning: "Identified on-device via torso pattern match (part \(result.torsoPart))."
-                    )
-                }
-            }
-            if !resolved.isEmpty {
-                var deduped = deduplicate(resolved)
-                deduped.sort { $0.confidence > $1.confidence }
-                return deduped
-            }
-        }
-
-        // Lower-confidence fallback
-        do {
-            let fallback = try await classifier.classify(torsoImage: torsoImage)
-            let resolved = fallback.flatMap { result in
-                result.figures.map { figure in
-                    ResolvedCandidate(
-                        figure: figure,
-                        modelName: figure.name,
-                        confidence: result.confidence,
-                        reasoning: "On-device match (lower confidence)."
-                    )
-                }
-            }
-            if !resolved.isEmpty {
-                var deduped = deduplicate(resolved)
-                deduped.sort { $0.confidence > $1.confidence }
-                return deduped
-            }
-        } catch {
-            throw IdentificationError.underlying(error)
-        }
-        return nil
-    }
-
-    // MARK: - Tier 2: Vision Feature-Print Identification
-
-    /// Identify by downloading reference images and comparing feature prints.
-    ///
-    /// Pipeline:
-    /// 1. Detect the salient subject in the captured photo (isolate minifigure from background)
-    /// 2. Generate feature print of the captured subject
-    /// 3. Pre-filter catalog by dominant body colors (generous) to reduce 16K → ~300 candidates
-    /// 4. Download reference images for those candidates from the CDN
-    /// 5. Compare feature prints; rank by visual similarity
-    private func identifyWithVisionFeaturePrint(capturedImage: UIImage) async -> [ResolvedCandidate] {
-        guard let cgImage = capturedImage.cgImage else { return [] }
-
-        // Run compute-heavy Vision operations off the main actor to keep UI responsive.
-        let analysisResult: (VNFeaturePrintObservation, [(color: LegoColor, distance: Double)])?
-        analysisResult = await Task.detached(priority: .userInitiated) { [self] in
-            // 1. Crop to salient subject (removes background bias)
-            let subjectCG = self.cropToSalientSubject(cgImage) ?? cgImage
-
-            // 2. Feature print of the captured image
-            guard let capturedPrint = self.generateFeaturePrint(from: subjectCG) else {
-                return nil as (VNFeaturePrintObservation, [(color: LegoColor, distance: Double)])?
-            }
-
-            // 3. Extract dominant colors
-            let capturedColors = self.extractDominantColors(from: subjectCG, excludeBackground: true)
-            let matchedLegoColors = capturedColors.prefix(4).compactMap {
-                self.closestLegoColor(r: $0.r, g: $0.g, b: $0.b)
-            }
-
-            return (capturedPrint, matchedLegoColors)
-        }.value
-
-        guard let (capturedPrint, matchedLegoColors) = analysisResult else {
-            Self.logger.error("Failed to generate feature print from captured image")
-            return []
-        }
-
-        // Back on main actor: pre-filter catalog candidates by color
-        let catalog = MinifigureCatalog.shared
-
-        Self.logger.debug(
-            "Captured dominant colors: \(matchedLegoColors.map { $0.color.rawValue }.joined(separator: ", "))"
-        )
-
-        // Generously match any figure whose torso OR any major part
-        // color matches one of the captured colors.
-        let colorSet = Set(matchedLegoColors.map(\.color))
-        var candidates: [Minifigure] = []
-        for fig in catalog.allFigures {
-            guard fig.imageURL != nil else { continue } // need reference image
-            // Check torso color
-            if let torso = fig.torsoPart,
-               let tc = LegoColor(rawValue: torso.color),
-               colorSet.contains(tc) {
-                candidates.append(fig)
-                continue
-            }
-            // Check other major part colors (legs, hips) as secondary signal
-            let majorSlots: Set<MinifigurePartSlot> = [.torso, .legLeft, .legRight, .hips]
-            for part in fig.parts where majorSlots.contains(part.slot) {
-                if let pc = LegoColor(rawValue: part.color), colorSet.contains(pc) {
-                    candidates.append(fig)
-                    break
-                }
-            }
-        }
-
-        Self.logger.info("Color pre-filter: \(candidates.count) candidates from \(catalog.allFigures.count) total")
-
-        // If too few matches (wrong color extraction), expand to all figures with images
-        if candidates.count < 20 {
-            Self.logger.info("Too few color matches; expanding to all figures with images")
-            candidates = catalog.allFigures.filter { $0.imageURL != nil }
-        }
-
-        // Prioritize: recent figures first (more likely in circulation), then shuffle
-        // within year buckets to get variety
-        candidates.sort { $0.year > $1.year }
-
-        // Cap at maxReferenceDownloads
-        let downloadCandidates = Array(candidates.prefix(maxReferenceDownloads))
-
-        // 4. Download reference images and compare feature prints
-        let scored = await downloadAndCompare(
-            candidates: downloadCandidates,
-            capturedPrint: capturedPrint,
-            capturedColors: matchedLegoColors
-        )
-
-        guard !scored.isEmpty else { return [] }
-
-        // 5. Build initial top results from vision scoring
-        var seenIds = Set<String>()
-        var topResults: [ResolvedCandidate] = []
-
-        for (fig, score) in scored {
-            guard !seenIds.contains(fig.id) else { continue }
-            seenIds.insert(fig.id)
-
-            topResults.append(ResolvedCandidate(
-                figure: fig,
-                modelName: fig.name,
-                confidence: score,
-                reasoning: "Visual match via on-device Vision analysis."
-            ))
-            if topResults.count >= 5 { break }
-        }
-
-        // 6. Expand results with related figures from the same name/theme family.
-        // If we identified "Island Warrior", also show other "Island Warrior" variants.
-        if let topMatch = topResults.first?.figure {
-            let related = expandWithRelatedFigures(
-                topMatch: topMatch,
-                existingIds: seenIds,
-                topScore: topResults.first?.confidence ?? 0.5
-            )
-            topResults.append(contentsOf: related)
-        }
-
-        Self.logger.info("Feature-print identification returned \(topResults.count) candidates (with related)")
-        return topResults
-    }
-
-    // MARK: - Related Figure Expansion
-
-    /// Given the top visual match, find related figures from the same name
-    /// family and theme. E.g., if the scanner identified "Island Warrior",
-    /// this returns other "Island Warrior" variants from the catalog.
-    private func expandWithRelatedFigures(
-        topMatch: Minifigure,
-        existingIds: Set<String>,
-        topScore: Double
-    ) -> [ResolvedCandidate] {
-        let catalog = MinifigureCatalog.shared
-
-        // 1. Find related figures by name/theme similarity
-        let related = catalog.relatedFigures(to: topMatch, limit: 15)
-            .filter { !existingIds.contains($0.id) }
-
-        // 2. Score them with decreasing confidence based on name similarity
-        var expanded: [ResolvedCandidate] = []
-        let nameTokens = Set(topMatch.name.lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { $0.count > 1 })
-
-        for fig in related {
-            let figTokens = Set(fig.name.lowercased()
-                .components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { $0.count > 1 })
-            let shared = nameTokens.intersection(figTokens)
-            let nameOverlap = nameTokens.isEmpty ? 0.0 : Double(shared.count) / Double(nameTokens.count)
-
-            // Base confidence from name overlap, capped below the top match
-            let confidence = min(topScore - 0.05, 0.3 + nameOverlap * 0.4)
-
-            var reasoning = "Related: "
-            if fig.theme == topMatch.theme {
-                reasoning += "same theme (\(fig.theme))"
-            }
-            if !shared.isEmpty {
-                let sharedNames = shared.sorted().joined(separator: ", ")
-                reasoning += reasoning.hasSuffix(")") ? ", similar name (\(sharedNames))" : "similar name (\(sharedNames))"
-            }
-
-            expanded.append(ResolvedCandidate(
-                figure: fig,
-                modelName: fig.name,
-                confidence: confidence,
-                reasoning: reasoning
-            ))
-        }
-
-        // Sort by confidence, take top 5 related
-        expanded.sort { $0.confidence > $1.confidence }
-        return Array(expanded.prefix(5))
-    }
-
-    // MARK: - Download & Compare
-
-    /// Download reference images in parallel and compare feature prints.
-    /// Returns candidates sorted by similarity score descending.
-    private func downloadAndCompare(
-        candidates: [Minifigure],
-        capturedPrint: VNFeaturePrintObservation,
-        capturedColors: [(color: LegoColor, distance: Double)]
-    ) async -> [(figure: Minifigure, score: Double)] {
-
-        // Use a TaskGroup to download concurrently with a semaphore-like limit
-        let colorSet = Set(capturedColors.map(\.color))
-
-        let results: [(Minifigure, Double)] = await withTaskGroup(
-            of: (Minifigure, Double)?.self,
-            returning: [(Minifigure, Double)].self
-        ) { group in
-            var active = 0
-            var index = 0
-            var collected: [(Minifigure, Double)] = []
-            collected.reserveCapacity(candidates.count)
-
-            for candidate in candidates {
-                group.addTask { [self] in
-                    await self.scoreCandidate(
-                        candidate,
-                        capturedPrint: capturedPrint,
-                        capturedColors: colorSet
-                    )
-                }
-                active += 1
-                index += 1
-
-                // Throttle: wait for some results before adding more
-                if active >= downloadConcurrency {
-                    if let result = await group.next() {
-                        if let r = result { collected.append(r) }
-                        active -= 1
-                    }
-                }
-            }
-
-            // Collect remaining
-            for await result in group {
-                if let r = result { collected.append(r) }
-            }
-
-            return collected
-        }
-
-        return results.sorted { $0.1 > $1.1 }
-    }
-
-    /// Download a single reference image and compute its similarity score.
-    /// Returns nil if the image can't be fetched or processed.
-    nonisolated private func scoreCandidate(
-        _ figure: Minifigure,
-        capturedPrint: VNFeaturePrintObservation,
-        capturedColors: Set<LegoColor>
-    ) async -> (Minifigure, Double)? {
-        guard let url = figure.imageURL else { return nil }
-
-        // Try cache first, then download
-        let refImage: UIImage
-        if let cached = MinifigureImageCache.shared.image(for: url) {
-            refImage = cached
-        } else {
-            guard let downloaded = await downloadImage(url: url) else { return nil }
-            MinifigureImageCache.shared.store(downloaded, for: url, bytes: 0)
-            refImage = downloaded
-        }
-
-        guard let refCG = refImage.cgImage else { return nil }
-
-        // Generate feature print for reference image
-        guard let refPrint = generateFeaturePrint(from: refCG) else { return nil }
-
-        // Compute feature-print distance
-        var distance: Float = 0
-        do {
-            try capturedPrint.computeDistance(&distance, to: refPrint)
-        } catch {
-            return nil
-        }
-
-        // Feature-print distances typically range 0–80+
-        // Lower = more visually similar
-        // Map to 0–1 similarity score
-        let similarity = max(0.0, min(1.0, 1.0 - Double(distance) / 70.0))
-
-        // Small color bonus if torso color matches captured colors
-        var colorBonus = 0.0
-        if let torso = figure.torsoPart,
-           let tc = LegoColor(rawValue: torso.color),
-           capturedColors.contains(tc) {
-            colorBonus = 0.05
-        }
-
-        let finalScore = min(0.99, similarity + colorBonus)
-
-        return (figure, finalScore)
-    }
-
-    /// Download an image from a URL with timeout.
-    nonisolated private func downloadImage(url: URL) async -> UIImage? {
-        var request = URLRequest(url: url)
-        request.cachePolicy = .returnCacheDataElseLoad
-        request.timeoutInterval = downloadTimeout
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse,
-                  (200..<300).contains(http.statusCode) else { return nil }
-            return UIImage(data: data)
-        } catch {
-            return nil
-        }
     }
 
     // MARK: - Saliency Detection
@@ -729,20 +596,7 @@ final class MinifigureIdentificationService {
         return best.map { ($0, bestDist) }
     }
 
-    // MARK: - Deduplication & Utilities
-
-    private func deduplicate(_ candidates: [ResolvedCandidate]) -> [ResolvedCandidate] {
-        var seen = Set<String>()
-        var result: [ResolvedCandidate] = []
-        for c in candidates.sorted(by: { $0.confidence > $1.confidence }) {
-            let key = c.figure?.id ?? c.modelName
-            if !seen.contains(key) {
-                seen.insert(key)
-                result.append(c)
-            }
-        }
-        return result
-    }
+    // MARK: - Utilities
 
     static func fuzzyScore(_ a: String, _ b: String) -> Double {
         if a == b { return 1.0 }

@@ -16,6 +16,11 @@ struct SettingsView: View {
     @State private var showPrivacyPolicy = false
     @State private var showHelp = false
 
+    /// Disk cache size for downloaded minifigure reference images.
+    /// Refreshed when the Data & About section is opened.
+    @State private var minifigCacheBytes: Int64 = 0
+    @State private var showClearMinifigCacheConfirmation = false
+
     /// Number of consecutive taps on the version row. 7 reveals the hidden
     /// developer section. Resets after a brief idle window.
     @State private var versionTapCount = 0
@@ -453,6 +458,25 @@ struct SettingsView: View {
 
                 Divider()
 
+                Button(role: .destructive) {
+                    showClearMinifigCacheConfirmation = true
+                } label: {
+                    HStack {
+                        Label("Clear Minifigure Image Cache", systemImage: "photo.stack")
+                        Spacer()
+                        Text(formatBytes(minifigCacheBytes))
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
+                .disabled(minifigCacheBytes == 0)
+
+                Text("Catalog images you've viewed are saved on-device so the minifigure scanner can identify them offline.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+
                 Text("About")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -478,6 +502,12 @@ struct SettingsView: View {
                     Text("\(LegoPartsCatalog.shared.pieces.count) pieces")
                         .foregroundStyle(.secondary)
                 }
+                HStack {
+                    Text("Bundled Reference Images")
+                    Spacer()
+                    Text("\(MinifigureReferenceImageStore.shared.bundledFigureCount) figures")
+                        .foregroundStyle(.secondary)
+                }
                 } label: {
                     Label("Data & About", systemImage: "info.circle.fill")
                 }
@@ -498,6 +528,20 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            refreshMinifigCacheSize()
+        }
+        .confirmationDialog(
+            "Clear Minifigure Image Cache?",
+            isPresented: $showClearMinifigCacheConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Cache", role: .destructive) {
+                MinifigureImageCache.shared.clear()
+                refreshMinifigCacheSize()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This frees up \(formatBytes(minifigCacheBytes)) of storage. Catalog images will be re-downloaded the next time you view them, but offline minifigure scanning may be less accurate until then.")
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
@@ -525,5 +569,22 @@ struct SettingsView: View {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             if !Task.isCancelled { versionTapCount = 0 }
         }
+    }
+
+    /// Read the current on-disk byte count for cached minifigure images.
+    /// Performed off the main actor since it walks the cache directory.
+    private func refreshMinifigCacheSize() {
+        Task.detached(priority: .utility) {
+            let bytes = MinifigureImageCache.shared.diskByteCount()
+            await MainActor.run { self.minifigCacheBytes = bytes }
+        }
+    }
+
+    /// Format a byte count for display (e.g. "12.4 MB", "843 KB").
+    private func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        return formatter.string(fromByteCount: max(0, bytes))
     }
 }

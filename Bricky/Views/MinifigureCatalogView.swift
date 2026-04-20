@@ -17,6 +17,7 @@ struct MinifigureCatalogView: View {
     @State private var sort: MinifigureCatalog.SortOrder = .nameAsc
     @State private var showFilters = false
     @State private var showScan = false
+    @State private var showAddCustom = false
     @State private var searchTask: Task<Void, Never>?
     /// Set by the .minifigureScanCompleted notification to push the catalog
     /// straight into the detail view of the figure the user just scanned.
@@ -36,6 +37,10 @@ struct MinifigureCatalogView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 8) {
+                    Button { showAddCustom = true } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .accessibilityLabel("Add Custom Figure")
+                    }
                     Button { showScan = true } label: {
                         Image(systemName: "viewfinder.circle.fill")
                             .accessibilityLabel("Identify by Scan")
@@ -60,6 +65,9 @@ struct MinifigureCatalogView: View {
         }
         .sheet(isPresented: $showFilters) {
             filterSheet
+        }
+        .sheet(isPresented: $showAddCustom) {
+            AddCustomFigureView()
         }
         .fullScreenCover(isPresented: $showScan) {
             MinifigureScanView()

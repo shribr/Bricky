@@ -120,28 +120,105 @@ struct MissingImagePlaceholder: View {
 
 // MARK: - Cache
 
-/// Shared in-memory cache for minifig images. Bounded so we don't blow
-/// up memory on long scroll sessions.
+/// Shared image cache for minifig images.
+///
+/// Two-tier:
+/// - **Memory** (`NSCache`): bounded, fast, cleared on memory pressure.
+/// - **Disk** (`Caches/MinifigImages/`): persists across app launches.
+///   Every image fetched from the network is also written to disk so the
+///   minifigure scanner can use it for offline identification.
 final class MinifigureImageCache {
     static let shared = MinifigureImageCache()
 
     private let cache = NSCache<NSURL, UIImage>()
+    private let diskQueue = DispatchQueue(label: "com.bricky.minifigImageCache.disk", qos: .utility)
+    private let diskDirectory: URL
 
     private init() {
         cache.countLimit = 500              // ~500 figures in memory
         cache.totalCostLimit = 64_000_000   // 64 MB
+
+        let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        diskDirectory = cachesDir.appendingPathComponent("MinifigImages", isDirectory: true)
+        try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
     }
 
+    // MARK: - Memory tier
+
     func image(for url: URL) -> UIImage? {
-        cache.object(forKey: url as NSURL)
+        if let mem = cache.object(forKey: url as NSURL) {
+            return mem
+        }
+        // Promote from disk if present (sync read, fast for ~20 KB JPEGs)
+        if let onDisk = readDisk(url: url) {
+            cache.setObject(onDisk, forKey: url as NSURL)
+            return onDisk
+        }
+        return nil
     }
 
     func store(_ image: UIImage, for url: URL, bytes: Int) {
-        cache.setObject(image, forKey: url as NSURL, cost: bytes)
+        cache.setObject(image, forKey: url as NSURL, cost: bytes > 0 ? bytes : 1)
+        // Also persist to disk asynchronously (fire-and-forget) so
+        // identification can use it offline later.
+        writeDisk(image: image, url: url)
     }
 
-    /// Test-only: clear everything.
+    /// Synchronous disk lookup. Returns nil if not on disk.
+    func diskImage(for url: URL) -> UIImage? {
+        readDisk(url: url)
+    }
+
+    /// Test-only: clear everything (memory + disk).
     func clear() {
         cache.removeAllObjects()
+        diskQueue.sync {
+            try? FileManager.default.removeItem(at: diskDirectory)
+            try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
+        }
+    }
+
+    /// Total bytes stored on disk (for diagnostics / settings UI).
+    func diskByteCount() -> Int64 {
+        var total: Int64 = 0
+        if let enumerator = FileManager.default.enumerator(
+            at: diskDirectory,
+            includingPropertiesForKeys: [.fileSizeKey]
+        ) {
+            for case let url as URL in enumerator {
+                if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                    total += Int64(size)
+                }
+            }
+        }
+        return total
+    }
+
+    // MARK: - Disk implementation
+
+    private func diskPath(for url: URL) -> URL {
+        // Stable filename derived from the URL string. Hash collisions are
+        // astronomically rare for a 16K catalog.
+        let key = String(format: "%016x", abs(url.absoluteString.hashValue))
+        return diskDirectory.appendingPathComponent("\(key).jpg")
+    }
+
+    private func readDisk(url: URL) -> UIImage? {
+        let path = diskPath(for: url)
+        guard FileManager.default.fileExists(atPath: path.path),
+              let data = try? Data(contentsOf: path),
+              let img = UIImage(data: data) else {
+            return nil
+        }
+        return img
+    }
+
+    private func writeDisk(image: UIImage, url: URL) {
+        let path = diskPath(for: url)
+        diskQueue.async {
+            // JPEG @ quality 0.8 keeps each catalog image in the 10–25 KB range.
+            guard let data = image.jpegData(compressionQuality: 0.8) else { return }
+            try? data.write(to: path, options: .atomic)
+        }
     }
 }

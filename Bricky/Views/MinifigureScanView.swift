@@ -20,6 +20,9 @@ struct MinifigureScanView: View {
     @State private var pendingAddToCatalog: MinifigureIdentificationService.ResolvedCandidate?
     @State private var savedFigureName: String?
     @State private var showCorrectionPicker = false
+    @State private var autoEnhance: Bool = ScanImageEnhancer.isEnabled
+    @State private var enhancingInProgress = false
+    @State private var hybridAnalysis: HybridFigureAnalyzer.Analysis?
 
     var body: some View {
         ZStack {
@@ -50,11 +53,11 @@ struct MinifigureScanView: View {
                 }
                 Color.black.opacity(0.55).ignoresSafeArea()
                 VStack(spacing: 24) {
-                    MinifigureScanStatusView()
-                    Text("Photo captured — you can put the camera down")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(.horizontal, 32)
+                    MinifigureScanStatusView(
+                        overrideMessage: enhancingInProgress
+                            ? "Enhancing image — auto-cropping & adjusting lighting…"
+                            : nil
+                    )
                 }
             }
         }
@@ -95,7 +98,10 @@ struct MinifigureScanView: View {
             capturedImage = image
             Task { await identify(image: image) }
         }
-        .sheet(isPresented: $showResults, onDismiss: { resolvedCandidates = [] }) {
+        .sheet(isPresented: $showResults, onDismiss: {
+            resolvedCandidates = []
+            hybridAnalysis = nil
+        }) {
             resultsSheet
         }
         .alert("Saved",
@@ -218,6 +224,22 @@ struct MinifigureScanView: View {
             Text("Tap to scan")
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.85))
+
+            Button {
+                autoEnhance.toggle()
+                ScanImageEnhancer.isEnabled = autoEnhance
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: autoEnhance ? "wand.and.stars" : "wand.and.stars.inverse")
+                    Text(autoEnhance ? "Auto-enhance: On" : "Auto-enhance: Off")
+                }
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(.black.opacity(0.55)))
+                .foregroundStyle(autoEnhance ? Color.yellow : .white.opacity(0.75))
+            }
+            .accessibilityLabel(autoEnhance ? "Auto-enhance on" : "Auto-enhance off")
         }
         .padding(.bottom, 30)
     }
@@ -229,10 +251,71 @@ struct MinifigureScanView: View {
         isIdentifying = true
         defer { isIdentifying = false }
 
+        // Bake EXIF orientation into the bitmap so .cgImage downstream
+        // (saliency, color extraction, feature prints) sees the image
+        // in the correct orientation. Then, if the user has auto-enhance
+        // enabled (default), run our auto-crop + CoreImage enhancement
+        // pipeline OFF the main actor with a visible status message.
+        var oriented = image.normalizedOrientation()
+        if ScanImageEnhancer.isEnabled {
+            enhancingInProgress = true
+            oriented = await ScanImageEnhancer.enhanceAsync(oriented)
+            enhancingInProgress = false
+        }
+        if oriented !== image {
+            capturedImage = oriented
+        }
+
+        // Run identification and a minimum-duration timer in parallel so
+        // the user always sees the full 6-phase animation cycle (~9 s),
+        // even when the on-device pipeline finishes in milliseconds.
+        let started = Date()
+        let minimumDuration: TimeInterval = 9.0
+
         do {
-            let resolved = try await MinifigureIdentificationService.shared
-                .identify(torsoImage: image)
-            resolvedCandidates = resolved
+            async let resolved = MinifigureIdentificationService.shared
+                .identify(torsoImage: oriented)
+
+            let result = try await resolved
+            let elapsed = Date().timeIntervalSince(started)
+            if elapsed < minimumDuration {
+                let remaining = UInt64((minimumDuration - elapsed) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: remaining)
+            }
+            resolvedCandidates = result
+
+            // Run hybrid analysis on the top candidate (best effort,
+            // non-blocking failure) using its local reference image.
+            if let top = result.first, let fig = top.figure {
+                let refImage: UIImage? = {
+                    if MinifigureCatalog.isUserFigureId(fig.id) {
+                        return UserFigureImageStorage.shared.image(for: fig.id)
+                    }
+                    if let bundled = MinifigureReferenceImageStore.shared.image(for: fig.id) {
+                        return bundled
+                    }
+                    if let url = fig.imageURL {
+                        return MinifigureImageCache.shared.image(for: url)
+                    }
+                    return nil
+                }()
+                if let refImage {
+                    let captured = oriented
+                    let analysis = await Task.detached(priority: .userInitiated) {
+                        HybridFigureAnalyzer.analyze(
+                            captured: captured,
+                            candidate: fig,
+                            referenceImage: refImage
+                        )
+                    }.value
+                    hybridAnalysis = analysis
+                } else {
+                    hybridAnalysis = nil
+                }
+            } else {
+                hybridAnalysis = nil
+            }
+
             showResults = true
         } catch {
             errorMessage = error.localizedDescription
@@ -246,6 +329,10 @@ struct MinifigureScanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
+                    if let hybrid = hybridAnalysis {
+                        hybridBanner(hybrid)
+                    }
+
                     if resolvedCandidates.isEmpty {
                         ContentUnavailableView(
                             "No matches",
@@ -272,7 +359,7 @@ struct MinifigureScanView: View {
                     .padding(.top, 10)
 
                     Button {
-                        showResults = false
+                        showCorrectionPicker = true
                     } label: {
                         Label("None of these", systemImage: "xmark.circle")
                             .font(.subheadline.weight(.semibold))
@@ -312,6 +399,19 @@ struct MinifigureScanView: View {
                             capturedImage: capturedImage,
                             confirmed: true
                         )
+                        // Also feed the confirmation into the training
+                        // store so the correction reranker can boost this
+                        // figure on future similar scans. (Previously
+                        // this only happened via "None of these" flow.)
+                        if let capture = capturedImage {
+                            MinifigureTrainingStore.shared.record(
+                                capturedImage: capture,
+                                confirmedFigIds: [fig.id],
+                                rejectedFigIds: [],
+                                aiCandidateName: candidate.modelName,
+                                aiConfidence: candidate.confidence
+                            )
+                        }
                         // Close everything and ask the catalog to push the
                         // detail view for this figure.
                         showResults = false
@@ -365,6 +465,34 @@ struct MinifigureScanView: View {
                 }
             )
         }
+    }
+
+    // MARK: - Hybrid banner
+
+    private func hybridBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(analysis.summary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+            Text(analysis.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+        )
     }
 
     private func candidateRow(_ candidate: MinifigureIdentificationService.ResolvedCandidate) -> some View {

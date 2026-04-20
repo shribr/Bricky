@@ -15,6 +15,8 @@ struct MinifigureCorrectionPicker: View {
     @State private var figures: [Minifigure] = []
     @State private var isSaving = false
     @State private var userTagsText = ""
+    @State private var selectedTheme: String?
+    @State private var showAddCustomFigure = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -28,7 +30,13 @@ struct MinifigureCorrectionPicker: View {
 
                 tagsInput
 
+                aiSuggestionChip
+
+                themeFilterBar
+
                 figureList
+
+                addCustomFigureFooter
             }
             .navigationTitle("Correct Results")
             .navigationBarTitleDisplayMode(.inline)
@@ -42,15 +50,57 @@ struct MinifigureCorrectionPicker: View {
                         .disabled(selectedIds.isEmpty || isSaving)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search by name, theme, or ID")
+            .searchable(text: $searchText, prompt: "Search 16,000+ figures by name, theme, or ID")
             .onChange(of: searchText) { _, _ in updateResults() }
+            .onChange(of: selectedTheme) { _, _ in updateResults() }
             .onAppear {
-                // Pre-fill search with AI's guess to help the user find variants
-                searchText = aiCandidateName
-                    .components(separatedBy: ",").first?
-                    .trimmingCharacters(in: .whitespaces) ?? aiCandidateName
+                // Start with the FULL catalog visible. The AI's guess is
+                // surfaced as a one-tap chip in `aiSuggestionChip` so the
+                // user can apply it if they want, but it doesn't lock them
+                // into searching for a name that's almost certainly wrong.
+                searchText = ""
                 updateResults()
             }
+            .sheet(isPresented: $showAddCustomFigure) {
+                AddCustomFigureView(initialImage: capturedImage) { newFig in
+                    // Auto-select the freshly-added figure so the user
+                    // can hit Save and be done.
+                    selectedIds.insert(newFig.id)
+                    updateResults()
+                }
+            }
+        }
+    }
+
+    /// Footer row offering the "add to catalog" escape hatch when none of
+    /// the existing catalog figures match what the user scanned.
+    private var addCustomFigureFooter: some View {
+        VStack(spacing: 0) {
+            Divider()
+            Button {
+                showAddCustomFigure = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Can't find it? Add to catalog")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Save this figure locally with your own photo & details")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(Color(.secondarySystemBackground))
         }
     }
 
@@ -58,10 +108,11 @@ struct MinifigureCorrectionPicker: View {
 
     private func capturedImageHeader(_ image: UIImage) -> some View {
         VStack(spacing: 6) {
-            Image(uiImage: image)
+            // Normalize orientation so a portrait scan always displays upright.
+            Image(uiImage: image.normalizedOrientation())
                 .resizable()
                 .scaledToFit()
-                .frame(height: 100)
+                .frame(maxHeight: 160)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .shadow(radius: 3)
 
@@ -72,6 +123,83 @@ struct MinifigureCorrectionPicker: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
+    }
+
+    /// One-tap chip showing the AI's best guess. Tapping fills the search
+    /// box; long-pressing clears it. Lets the user explore the AI's hint
+    /// without being trapped by it.
+    @ViewBuilder
+    private var aiSuggestionChip: some View {
+        let primaryGuess = aiCandidateName
+            .components(separatedBy: ",").first?
+            .trimmingCharacters(in: .whitespaces) ?? aiCandidateName
+
+        if !primaryGuess.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.tint)
+                Text("AI suggested:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button {
+                    searchText = primaryGuess
+                } label: {
+                    Text(primaryGuess)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                Spacer()
+                if !searchText.isEmpty || selectedTheme != nil {
+                    Button("Reset filters") {
+                        searchText = ""
+                        selectedTheme = nil
+                    }
+                    .font(.caption.weight(.medium))
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var themeFilterBar: some View {
+        let themes = MinifigureCatalog.shared.themes
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                themeChip(label: "All themes", isSelected: selectedTheme == nil) {
+                    selectedTheme = nil
+                }
+                ForEach(themes, id: \.self) { theme in
+                    themeChip(label: theme, isSelected: selectedTheme == theme) {
+                        selectedTheme = (selectedTheme == theme ? nil : theme)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    @ViewBuilder
+    private func themeChip(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
+                )
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
     }
 
     private var selectionSummary: some View {
@@ -112,22 +240,44 @@ struct MinifigureCorrectionPicker: View {
     }
 
     private var figureList: some View {
-        List(figures) { fig in
-            Button {
-                toggleSelection(fig.id)
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack(alignment: .bottomTrailing) {
-                        MinifigureImageView(url: fig.imageURL)
-                            .frame(width: 50, height: 60)
-
-                        if selectedIds.contains(fig.id) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.white, .green)
-                                .offset(x: 4, y: 4)
-                        }
+        List {
+            Section {
+                ForEach(figures) { fig in
+                    figureRow(fig)
+                }
+            } header: {
+                HStack {
+                    Text("\(figures.count) figure\(figures.count == 1 ? "" : "s")")
+                    Spacer()
+                    if figures.isEmpty {
+                        Text("No matches — try clearing filters")
+                            .foregroundStyle(.secondary)
                     }
+                }
+                .font(.caption)
+                .textCase(nil)
+            }
+        }
+        .listStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func figureRow(_ fig: Minifigure) -> some View {
+        Button {
+            toggleSelection(fig.id)
+        } label: {
+            HStack(spacing: 12) {
+                ZStack(alignment: .bottomTrailing) {
+                    MinifigureImageView(url: fig.imageURL)
+                        .frame(width: 50, height: 60)
+
+                    if selectedIds.contains(fig.id) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.white, .green)
+                            .offset(x: 4, y: 4)
+                    }
+                }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(fig.name)
@@ -156,8 +306,6 @@ struct MinifigureCorrectionPicker: View {
                     ? Color.green.opacity(0.08)
                     : Color.clear
             )
-        }
-        .listStyle(.plain)
     }
 
     // MARK: - Logic
@@ -172,16 +320,14 @@ struct MinifigureCorrectionPicker: View {
 
     private func updateResults() {
         let catalog = MinifigureCatalog.shared
+        let themeFilter: Set<String> = selectedTheme.map { [$0] } ?? []
         figures = catalog.search(
             query: searchText,
-            themes: [],
+            themes: themeFilter,
             yearRange: nil,
             sort: .nameAsc
         )
-        // Cap at 200 results to keep the list performant
-        if figures.count > 200 {
-            figures = Array(figures.prefix(200))
-        }
+        // No cap — `List` is lazy so it can handle the full catalog.
     }
 
     private func saveCorrections() {

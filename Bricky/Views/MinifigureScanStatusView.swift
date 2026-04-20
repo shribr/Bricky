@@ -11,36 +11,50 @@ struct MinifigureScanStatusView: View {
     static let defaultStages: [String] = [
         "Locating minifigure…",
         "Analyzing torso & uniform…",
-        "Reading facial features…",
         "Matching colors & printing…",
         "Estimating theme & year…",
         "Ranking catalog candidates…",
-        "Refining visual match…",
-        "Comparing reference images…",
-        "Almost there…"
+        "Refining visual match…"
     ]
 
     let stages: [String]
     let interval: TimeInterval
+    /// Optional override message. When non-nil, this is shown instead of
+    /// the cycling stage text — used for short-lived pre-scan steps like
+    /// "Enhancing image…" that run before the main identification loop.
+    var overrideMessage: String?
 
     /// Captured at construction so `TimelineView` ticks compute elapsed
     /// time deterministically.
     private let startedAt: Date
 
     init(stages: [String] = MinifigureScanStatusView.defaultStages,
-         interval: TimeInterval = 2.0) {
+         interval: TimeInterval = 1.5,
+         overrideMessage: String? = nil) {
         self.stages = stages
         self.interval = interval
+        self.overrideMessage = overrideMessage
         self.startedAt = Date()
     }
 
     var body: some View {
         TimelineView(.periodic(from: startedAt, by: 0.25)) { context in
             let elapsed = context.date.timeIntervalSince(startedAt)
-            // Loop continuously through stages instead of stopping at the last one
+            let totalCycle = interval * Double(stages.count)
+            // Walk through the stages exactly once. After one full cycle,
+            // hold on a "still working" message so the user doesn't see
+            // the same labels loop forever.
+            let pastCycle = elapsed >= totalCycle
             let target = stages.isEmpty
                 ? 0
-                : Int(elapsed / interval) % stages.count
+                : pastCycle
+                    ? stages.count - 1
+                    : min(Int(elapsed / interval), stages.count - 1)
+
+            let cycleLabel = pastCycle
+                ? "Still working — almost done…"
+                : (stages.isEmpty ? "" : stages[target])
+            let label = overrideMessage ?? cycleLabel
 
             VStack(spacing: 18) {
                 ProgressView()
@@ -51,14 +65,14 @@ struct MinifigureScanStatusView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text(stages.isEmpty ? "" : stages[target])
+                Text(label)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .frame(minHeight: 22)
-                    .id(target) // re-trigger transition on each change
+                    .id(label) // re-trigger transition on each change
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    .animation(.easeInOut(duration: 0.35), value: target)
+                    .animation(.easeInOut(duration: 0.35), value: label)
             }
             .padding(.horizontal, 28)
         }

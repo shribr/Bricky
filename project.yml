@@ -36,7 +36,12 @@ targets:
       - path: Bricky
         excludes:
           - "Resources/LDraw"
+          - "Resources/MinifigImages"
       - path: Bricky/Resources/LDraw
+        buildPhase: resources
+        optional: true
+        type: folder
+      - path: Bricky/Resources/MinifigImages
         buildPhase: resources
         optional: true
         type: folder

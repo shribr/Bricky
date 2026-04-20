@@ -42,38 +42,35 @@ struct PreScanAnalysisView: View {
                 CameraPreview(session: camera.session)
                     .ignoresSafeArea()
 
-                // Dimmed overlay with scan frame cutout
-                Color.black.opacity(0.65)
-                    .ignoresSafeArea()
-                    .mask(
-                        Rectangle()
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .frame(width: frameW, height: frameH)
-                                    .position(
-                                        x: geo.size.width / 2,
-                                        y: geo.safeAreaInsets.top + 60 + frameH / 2
-                                    )
-                                    .blendMode(.destinationOut)
-                            )
-                            .compositingGroup()
-                    )
-
-                // Main layout
+                // Main layout — the dim overlay is built from the same VStack
+                // so it always aligns with the scan frame.
                 VStack(spacing: 0) {
                     // Top bar
                     topBar
 
-                    // Scan frame with animations
-                    scanFrame(width: frameW, height: frameH)
-                        .padding(.top, 12)
+                    // Top dim region (above scan frame)
+                    Color.black.opacity(0.65)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 12)
 
-                    // Status section (below frame)
-                    statusSection
-                        .padding(.top, 24)
-                        .padding(.horizontal, 24)
+                    // Scan frame with horizontal dim sides
+                    HStack(spacing: 0) {
+                        Color.black.opacity(0.65)
+                            .frame(width: 28)
+                        scanFrame(width: frameW, height: frameH)
+                        Color.black.opacity(0.65)
+                            .frame(width: 28)
+                    }
+                    .frame(height: frameH)
 
-                    Spacer()
+                    // Status section (below frame, on top of dim)
+                    ZStack(alignment: .top) {
+                        Color.black.opacity(0.65)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        statusSection
+                            .padding(.top, 24)
+                            .padding(.horizontal, 24)
+                    }
                 }
             }
         }
@@ -462,6 +459,8 @@ struct PreScanAnalysisView: View {
     }
 
     /// Capture a single frame from the camera's live feed as a UIImage.
+    /// Applies portrait orientation since the camera sensor is landscape-native
+    /// but the user is holding the phone vertically.
     private func captureFrameAsImage() async -> UIImage? {
         await withCheckedContinuation { continuation in
             var hasResumed = false
@@ -475,7 +474,13 @@ struct PreScanAnalysisView: View {
                     continuation.resume(returning: nil)
                     return
                 }
-                continuation.resume(returning: UIImage(cgImage: cgImage))
+                // Rear camera sensor is landscape-native; in portrait the
+                // user-facing image needs a 90° CW rotation, expressed via
+                // UIImage.Orientation.right. We then normalize so the
+                // pixel data itself is portrait (so .cgImage downstream
+                // returns a portrait bitmap for Vision processing).
+                let oriented = UIImage(cgImage: cgImage, scale: 1, orientation: .right)
+                continuation.resume(returning: oriented.normalizedOrientation())
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

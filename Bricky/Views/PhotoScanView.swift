@@ -389,20 +389,7 @@ private struct LassoOverlay: View {
 }
 
 // MARK: - UIImage helpers
-
-private extension UIImage {
-    /// Bake the EXIF orientation into the bitmap so downstream Vision/CoreML
-    /// pipelines see a properly oriented image.
-    func normalizedOrientation() -> UIImage {
-        guard imageOrientation != .up else { return self }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { _ in
-            draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
-}
+// `normalizedOrientation()` lives in Extensions/UIImage+Orientation.swift
 
 // MARK: - Lasso → cropped image
 
