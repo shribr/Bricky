@@ -127,10 +127,54 @@ enum HybridFigureAnalyzer {
         let matchThreshold: Double = 28
         // Coverage below this means "empty" (background dominates).
         let missingCoverageThreshold: Double = 0.10
+        // Coverage below this means we have insufficient evidence to
+        // confidently say anything about a band — skip it entirely
+        // rather than report noise from a few stray pixels.
+        let insufficientEvidenceThreshold: Double = 0.20
+
+        // Generic LEGO yellow head detection: if the captured head band
+        // is dominated by LEGO yellow (#F2CD37 ≈ LAB(86, -8, 75)), it's
+        // a generic head and contains zero information about WHICH
+        // figure this is — every minifig in the catalog has a yellow
+        // head unless it's a licensed character. Don't even try to
+        // attribute the head/face to another figure.
+        let capturedHeadIsGenericYellow: Bool = {
+            guard let head = capturedBands[.head]?.color else { return false }
+            // Yellow ≈ L:85±10, a:-15..+5, b:60..90
+            return head.L > 70 && head.a > -20 && head.a < 10
+                && head.b > 50
+        }()
 
         var findings: [Analysis.RegionFinding] = []
         for region in Analysis.Region.allCases {
             guard let capturedBand = capturedBands[region] else { continue }
+
+            // ── REGION GATING (per user's 80/10/10 weighting guideline) ──
+            // Torso designs are visually unique; everything else is too
+            // generic to confidently cross-attribute. Filter rules:
+            //   - hair  : only ever report MISSING (bald vs. hat). Never
+            //             attribute "looks like X's hair" — hair color
+            //             alone is non-discriminating across the catalog.
+            //   - head  : skip entirely if generic yellow LEGO head.
+            //             Otherwise still don't cross-attribute (faces
+            //             are generic prints — only matter if missing).
+            //   - torso : full match/mismatch/cross-attribute pipeline.
+            //   - legs  : never cross-attribute — solid leg colors carry
+            //             no figure-specific signal. Skip entirely.
+            //
+            // This eliminates the "the hair piece looks like Nearly
+            // Headless Nick's hair" noise that appears when the
+            // captured figure is bald but a faint background tint
+            // happens to match another candidate's hair color.
+
+            if region == .legs {
+                // Skip legs from hybrid reporting entirely.
+                continue
+            }
+            if region == .head && capturedHeadIsGenericYellow {
+                // Generic yellow head — no information.
+                continue
+            }
 
             // Missing-part detection: captured band is mostly background,
             // but the anchor's reference band has meaningful coverage.
@@ -143,6 +187,14 @@ enum HybridFigureAnalyzer {
                     matchedFigure: nil,
                     kind: .missing
                 ))
+                continue
+            }
+
+            // Insufficient-evidence guard: too few foreground pixels in
+            // the captured band to draw any conclusion. Skip silently
+            // rather than emit a noisy "doesn't match" finding driven
+            // by a handful of off-color pixels.
+            if capturedBand.coverage < insufficientEvidenceThreshold {
                 continue
             }
 
@@ -161,9 +213,19 @@ enum HybridFigureAnalyzer {
                 }
             }
 
-            // Captured band differs from anchor. Try to attribute it to
-            // another candidate by finding the figure whose corresponding
-            // band is the closest LAB match to the captured band.
+            // Cross-attribution gate (per region):
+            //   - torso : allowed (printed designs are distinctive)
+            //   - hair  : NOT allowed — too generic, only `missing` matters
+            //   - head  : NOT allowed — generic yellow already filtered;
+            //             non-yellow heads are still mostly indistinct
+            // For non-torso regions we just skip without recording an
+            // `unknownMismatch` so we don't pollute the user-facing
+            // detail string with vague "the head doesn't match" lines.
+            guard region == .torso else { continue }
+
+            // Captured TORSO band differs from anchor. Try to attribute
+            // it to another candidate by finding the figure whose
+            // corresponding band is the closest LAB match.
             if let capturedColor = capturedBand.color {
                 var best: (figure: Minifigure, distance: Double)?
                 for other in otherCandidates {

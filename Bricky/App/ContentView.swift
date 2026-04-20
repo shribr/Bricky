@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: UserDefaultsKey.hasCompletedOnboarding)
+    @State private var navigationPath = NavigationPath()
 
     /// Use device idiom instead of horizontalSizeClass — on Plus/Pro Max iPhones,
     /// landscape flips horizontalSizeClass to .regular which would otherwise tear
@@ -15,8 +16,17 @@ struct ContentView: View {
             if isPad {
                 iPadLayout
             } else {
-                NavigationStack {
+                NavigationStack(path: $navigationPath) {
                     HomeView()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .scanFlowShouldPopToRoot)) { _ in
+                    // Pop the entire navigation stack back to Home when a
+                    // scan flow ends (confirm, cancel, or close). Without
+                    // this the user is left on PreScanAnalysisView or the
+                    // scan view itself after finishing identification.
+                    if !navigationPath.isEmpty {
+                        navigationPath = NavigationPath()
+                    }
                 }
             }
         } else {

@@ -64,19 +64,23 @@ struct MinifigureScanView: View {
                         overrideMessage: enhanceOverrideMessage
                     )
                 }
-                // Persistent badge in top-left so the user always has
+                // Persistent badge in bottom-right so the user always has
                 // visual confirmation the auto-enhance pipeline ran.
+                // Bottom-right is used (rather than top-right) because
+                // the captured-image backdrop sometimes pushes the
+                // top-right placement outside the visible frame on the
+                // direct-scan entry path.
                 if enhanceWasApplied {
                     VStack {
-                        HStack {
-                            enhancedBadge
-                                .padding(.leading, 16)
-                                .padding(.top, 60)
-                            Spacer()
-                        }
                         Spacer()
+                        HStack {
+                            Spacer()
+                            enhancedBadge
+                                .padding(.trailing, 16)
+                                .padding(.bottom, 60)
+                        }
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
         }
@@ -129,8 +133,11 @@ struct MinifigureScanView: View {
                 set: { if !$0 { savedFigureName = nil } }
                )
         ) {
-            Button("Scan another") { savedFigureName = nil }
-            Button("Done") { savedFigureName = nil; dismiss() }
+            Button("Done") {
+                savedFigureName = nil
+                dismiss()
+                NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
+            }
         } message: {
             Text("\(savedFigureName ?? "Minifigure") added to your collection.")
         }
@@ -160,8 +167,8 @@ struct MinifigureScanView: View {
         return nil
     }
 
-    /// Persistent confirmation badge shown in the top-left during the
-    /// entire identification overlay once enhance has been applied.
+    /// Persistent confirmation badge shown in the bottom-right during
+    /// the entire identification overlay once enhance has been applied.
     private var enhancedBadge: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.seal.fill")
@@ -221,7 +228,10 @@ struct MinifigureScanView: View {
 
     private var topBar: some View {
         HStack {
-            Button { dismiss() } label: {
+            Button {
+                dismiss()
+                NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
+            } label: {
                 Image(systemName: "xmark")
                     .font(.title3.weight(.semibold))
                     .padding(12)
@@ -311,7 +321,11 @@ struct MinifigureScanView: View {
             // the user can clearly see "Enhancing image…" — without this
             // the message flashes too fast to register on a fast pipeline.
             // 2.0s is comfortably long enough to read and process.
-            async let enhanced = ScanImageEnhancer.enhanceAsync(oriented)
+            // Snapshot `oriented` as an immutable `let` before the
+            // `async let` capture — Swift 6 forbids captured-var
+            // mutation across concurrently-executing tasks.
+            let toEnhance = oriented
+            async let enhanced = ScanImageEnhancer.enhanceAsync(toEnhance)
             async let minDelay: Void = Task.sleep(nanoseconds: 2_000_000_000)
             oriented = await enhanced
             _ = try? await minDelay
@@ -338,8 +352,12 @@ struct MinifigureScanView: View {
         let minimumDuration: TimeInterval = 9.0
 
         do {
+            // Snapshot the (possibly enhanced) image as a `let` for the
+            // `async let` capture — Swift 6 forbids captured-var
+            // mutation across concurrently-executing tasks.
+            let identifyImage = oriented
             async let resolved = MinifigureIdentificationService.shared
-                .identify(torsoImage: oriented)
+                .identify(torsoImage: identifyImage)
 
             let result = try await resolved
             let elapsed = Date().timeIntervalSince(started)
@@ -467,7 +485,11 @@ struct MinifigureScanView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Close") { showResults = false; dismiss() }
+                    Button("Close") {
+                        showResults = false
+                        dismiss()
+                        NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
+                    }
                 }
             }
         }
@@ -508,6 +530,7 @@ struct MinifigureScanView: View {
                         // detail view for this figure.
                         showResults = false
                         dismiss()
+                        NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                             NotificationCenter.default.post(
                                 name: .minifigureScanCompleted,
@@ -536,6 +559,7 @@ struct MinifigureScanView: View {
                 onSaved: { fig in
                     showResults = false
                     dismiss()
+                    NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                         NotificationCenter.default.post(
                             name: .minifigureScanCompleted,
@@ -554,6 +578,8 @@ struct MinifigureScanView: View {
                 rejectedFigIds: resolvedCandidates.compactMap { $0.figure?.id },
                 onDone: {
                     showResults = false
+                    dismiss()
+                    NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
                 }
             )
         }
@@ -716,4 +742,9 @@ extension Notification.Name {
     /// Catalog view observes this and pushes the figure's detail view.
     /// `userInfo["minifigId"]` is the `Minifigure.id` to display.
     static let minifigureScanCompleted = Notification.Name("BrickVision.minifigureScanCompleted")
+
+    /// Posted whenever a scan flow ends (confirm, cancel, or close)
+    /// and the user should be returned to the root home screen.
+    /// ContentView's NavigationStack observes this and resets its path.
+    static let scanFlowShouldPopToRoot = Notification.Name("BrickVision.scanFlowShouldPopToRoot")
 }

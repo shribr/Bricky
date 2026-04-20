@@ -84,24 +84,45 @@ final class MinifigureIdentificationService {
             throw IdentificationError.noResults
         }
 
+        // ── Phase 1.5: Trained torso-embedding retrieval (optional) ──
+        //
+        // When the bundled torso encoder + vector index are present
+        // (i.e. the offline training pipeline under
+        // Tools/torso-embeddings/ has been run and its artifacts
+        // shipped in Resources/TorsoEmbeddings/), run the trained
+        // model over the captured torso band and pull the top-K
+        // visually-nearest figures from the index. Inject any high-
+        // confidence hits that the color cascade missed so Phase 2
+        // can verify them with the structural reranker too.
+        //
+        // No artifacts ⇒ isAvailable == false ⇒ this is a graceful
+        // no-op and the original Phase-1 → Phase-2 path runs
+        // unchanged. That's important because it lets the runtime
+        // ship before the offline training pipeline produces its
+        // first model.
+        let mergedFastResults = await mergeWithEmbeddingHits(
+            cgImage: cgImage,
+            fastResults: fastResults
+        )
+
         // ── Phase 2: Refinement using locally-available reference images ──
-        let refinement = Task<[ResolvedCandidate], Never> { [fastResults] in
+        let refinement = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
             await self.refineWithLocalReferenceImages(
                 cgImage: cgImage,
-                fastCandidates: fastResults
+                fastCandidates: mergedFastResults
             )
         }
 
-        let timeout = Task<[ResolvedCandidate], Never> { [fastResults] in
+        let timeout = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
             try? await Task.sleep(nanoseconds: 6_000_000_000)
             refinement.cancel()
-            return fastResults
+            return mergedFastResults
         }
 
         let refined = await refinement.value
         timeout.cancel()
 
-        let baseResult = refined.isEmpty ? fastResults : refined
+        let baseResult = refined.isEmpty ? mergedFastResults : refined
 
         // Apply the user-correction reranker: if the current captured
         // image looks like a past scan the user manually corrected,
@@ -183,32 +204,83 @@ final class MinifigureIdentificationService {
         let colorSet = Set(matched.map(\.color))
         let primaryColor = matched.first?.color
 
-        // Build a torso-band-only color set (independent of full-image
-        // colors). Used both to detect patterned/multicolored torsos and
-        // to give every torso-band color a fair shot at being treated as
-        // "primary" — important because the catalog records ONE base
-        // color per torso part even though many torsos are heavily
-        // printed (e.g. Imperial Guard's torso is catalogued as White
-        // even though the visible coat is mostly red).
-        let torsoBandColors: Set<LegoColor> = {
+        // Torso pattern signature: distinct LEGO colors in the band PLUS
+        // a print-pixel ratio. The ratio captures real print detail
+        // (zipper stripes, badges, insignia) that the color-only check
+        // misses on a printed-but-monochromatic-looking torso such as
+        // a black police jacket where the white print is small.
+        let torsoSignature = analyzeTorsoSignature(
+            torsoBandImage: torsoBand,
+            hasGenericHead: hasGenericHead
+        )
+        let torsoBandColors = torsoSignature.bandColors
+        let torsoIsPatterned = torsoSignature.isPatterned
+
+        Self.logger.debug(
+            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned) | printRatio: \(String(format: "%.2f", torsoSignature.printPixelRatio))"
+        )
+
+        // ── Silhouette layer: hair / headgear presence ──
+        // Per the LEGO design heuristic (see docs/MINIFIGURE_ANATOMY.md),
+        // hair/headgear is the SILHOUETTE layer — the first thing the
+        // human eye registers. We don't try to attribute "this hair
+        // looks like X's hair" (too widely shared across characters),
+        // but PRESENCE/ABSENCE of headgear and its color does help
+        // narrow the catalog: a figure with a tall white feather on
+        // top should not match a bald yellow figure, and vice versa.
+        //
+        // Detection: sample the very top of the head band. If the
+        // topmost stripe is dominated by a NON-yellow LEGO color with
+        // decent coverage, the figure is wearing headgear of that color.
+        let silhouetteBand = cropVerticalBand(subjectCG, top: 0.0, bottom: 0.15)
+        let silhouetteDominant = extractDominantColors(from: silhouetteBand, excludeBackground: true)
+        let headgearColor: LegoColor? = {
+            guard let top = silhouetteDominant.first,
+                  let lc = closestLegoColor(r: top.r, g: top.g, b: top.b)?.color
+            else { return nil }
+            // Yellow at the top = bald yellow head, not headgear.
+            if lc == .yellow { return nil }
+            return lc
+        }()
+        let figureHasHeadgear = headgearColor != nil
+
+        // ── Disambiguator layer: non-yellow head color ──
+        // Per docs/MINIFIGURE_SCANNER_LESSONS.md: non-yellow heads
+        // (Star Wars helmets, Harry Potter flesh-tone, alien colors,
+        // etc.) are licensed-character / specific-character signals
+        // and carry meaningful identity information. Yellow heads are
+        // generic and carry none. Capture the captured head color
+        // here for use as a per-figure scoring bonus below.
+        let capturedNonYellowHeadColor: LegoColor? = {
+            guard !hasGenericHead, let head = headDominant.first,
+                  let lc = closestLegoColor(r: head.r, g: head.g, b: head.b)?.color
+            else { return nil }
+            return lc == .yellow ? nil : lc
+        }()
+
+        // ── Printed-legs detection ──
+        // Per the same doc: most legs are solid color and add no
+        // signal, BUT printed/dual-molded legs (boots, armor, tuxedo)
+        // are character-specific and jump to torso-tier discriminative
+        // power. Detect a "printed" capture by sampling whether the
+        // legs band has 2+ distinct LEGO colors after background
+        // filtering — same heuristic we already use for torsos.
+        let legsBandColors: Set<LegoColor> = {
+            // Sampled below; computed early so it's available when we
+            // build legSlots / legsPrimary.
             var set: Set<LegoColor> = []
-            for c in torsoDominant.prefix(4) {
+            // Reuse the same legs band sampled below by sampling here
+            // first — a tiny duplicated sample, but keeps scoring
+            // straight-line readable.
+            let band = cropVerticalBand(subjectCG, top: 0.65, bottom: 1.0)
+            for c in extractDominantColors(from: band, excludeBackground: true).prefix(4) {
                 guard let lc = closestLegoColor(r: c.r, g: c.g, b: c.b)?.color else { continue }
                 if hasGenericHead && lc == .yellow { continue }
                 set.insert(lc)
             }
             return set
         }()
-        // A "patterned" / multicolored torso is any torso band with 2+
-        // distinct LEGO colors after filtering. The user's heuristic:
-        // multicolored clothing is more distinctive than solid pants, so
-        // the torso should drive matching even when its catalog color
-        // isn't the visually-dominant one.
-        let torsoIsPatterned = torsoBandColors.count >= 2
-
-        Self.logger.debug(
-            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned)"
-        )
+        let capturedHasPrintedLegs = legsBandColors.count >= 2
 
         // Score each figure. Heavy weight on combined torso+legs match
         // because that's the most distinctive signal once head color is
@@ -226,69 +298,176 @@ final class MinifigureIdentificationService {
             return (mapped == .yellow && hasGenericHead) ? nil : mapped
         }()
 
-        var matches: [(figure: Minifigure, score: Int, torsoMatch: Bool)] = []
+        var matches: [(figure: Minifigure, composite: Double, scores: PartScores, torsoConfident: Bool)] = []
         for fig in allFigures {
             guard fig.imageURL != nil else { continue }
-            var score = 0
-            var torsoMatched = false
-            var legsMatched = false
+            var s = PartScores()
 
+            // ── Torso (PRIMARY CLASSIFIER, ~70–75% of total signal) ──
+            // Torsos are nearly in 1:1 correspondence with figures: LEGO
+            // almost never ships two distinct figures with the same torso
+            // print, so a strong torso match collapses the hypothesis
+            // space to ~one figure. We compute a normalized 0..1 torso
+            // score and treat it as the primary classifier in the
+            // cascade below.
             if let torso = fig.torsoPart, let tc = LegoColor(rawValue: torso.color) {
                 if colorSet.contains(tc) {
-                    score += 5
-                    torsoMatched = true
+                    // Base: torso color appears anywhere on the captured figure.
+                    s.torso = 0.50
                     if let primary = primaryColor, primary == tc {
-                        // Torso matches the LARGEST captured color cluster
-                        score += 5
+                        // Torso color is the LARGEST captured cluster — the
+                        // single strongest individual signal we can extract.
+                        s.torso = 1.00
                     } else if torsoIsPatterned && torsoBandColors.contains(tc) {
-                        // Patterned torso: the catalog records ONE base
-                        // color but the visible torso has multiple. Any
-                        // torso-band color that matches the figure's
-                        // catalogued torso color is just as discriminating
-                        // as a primary-color hit, so award the same bonus.
-                        score += 5
+                        // Patterned torso: catalog records ONE base color
+                        // but the visible torso has multiple. A torso-band
+                        // hit on a patterned figure is just as discriminating
+                        // as a primary-color hit.
+                        s.torso = 0.95
                     } else if torsoBandColors.contains(tc) {
                         // Match falls inside the torso band specifically
-                        // (not just somewhere on the figure) — still a
-                        // strong signal even if not THE dominant color.
-                        score += 3
-                    }
-                    // Patterned-torso recognition bonus: this figure's
-                    // catalog torso color is one of several distinct
-                    // colors we observed in the torso band. Heavily
-                    // boosts multi-color torsos over solid-color ones
-                    // when the user scans something distinctive.
-                    if torsoIsPatterned && torsoBandColors.contains(tc) {
-                        score += 2
+                        // (not just somewhere on the figure).
+                        s.torso = 0.80
                     }
                 }
             }
-            // Legs / hips: modest weight individually, but combined with
-            // a torso match it's a *very* strong signal (red+blue Pirates
-            // Imperial Guard, white+blue chef, blue+grey Star Wars, etc.)
+
+            // ── Headgear / hair (~10%, SILHOUETTE consistency check) ──
+            // We do NOT try to attribute "this hair = X's hair" (hair
+            // molds are aggressively reused). We only check whether the
+            // captured silhouette is *consistent* with the candidate's
+            // headgear presence + color.
+            //
+            // The check is intentionally ASYMMETRIC. Loose minifigures
+            // are routinely photographed without their hat/hair (the
+            // part falls off, gets lost, or the user deliberately
+            // removes it to scan the head). So:
+            //
+            //   captured = NO hat, candidate = HAS hat → NEUTRAL
+            //     (don't penalize — this is the most common real-world
+            //     case for older Town/Castle figures whose hats are
+            //     loose and easily separated)
+            //   captured = HAS hat, candidate = NO hat → MISMATCH
+            //     (less common; if the user kept the hat on, a bald
+            //     candidate genuinely doesn't fit)
+            //   match (both bald or both hatted) → consistency
+            //   color match on top of presence → confirmation bonus
+            let figHeadgearPart = fig.parts.first(where: { $0.slot == .hairOrHeadgear })
+            let figHasHeadgear = figHeadgearPart != nil
+            if figureHasHeadgear == figHasHeadgear {
+                // Presence agreement (both bald or both wearing something).
+                s.hair = 0.50
+                if let captured = headgearColor,
+                   let figColor = figHeadgearPart.flatMap({ LegoColor(rawValue: $0.color) }),
+                   captured == figColor {
+                    // Color agreement on top of presence agreement.
+                    s.hair = 1.00
+                }
+            } else if !figureHasHeadgear && figHasHeadgear {
+                // Captured shows no hat but the catalog figure has one.
+                // Likely the hat is just off in the photo. Treat as
+                // neutral so a hatted catalog figure isn't ranked below
+                // an actually-bald figure with the same torso colors.
+                s.hair = 0.30
+            }
+            // (Captured HAS hat but candidate doesn't → leaves
+            // s.hair = 0; that's a real mismatch worth penalizing.)
+
+            // ── Head / face (~10%, DISAMBIGUATOR for licensed chars) ──
+            // Yellow heads carry no identity signal (every generic
+            // figure has one). Non-yellow heads (Star Wars helmets,
+            // flesh-tone Harry Potter, etc.) are strong signals of a
+            // specific licensed character — used as a consistency
+            // booster against the candidate's catalog head color.
+            if let captured = capturedNonYellowHeadColor,
+               let headPart = fig.parts.first(where: { $0.slot == .head }),
+               let figHeadColor = LegoColor(rawValue: headPart.color),
+               figHeadColor != .yellow,
+               captured == figHeadColor {
+                s.head = 1.00
+            }
+
+            // ── Legs (~3–5%, only meaningful when printed/dual-molded) ──
+            // Solid leg colors are not figure-specific. They only
+            // contribute when the captured legs band is itself
+            // multi-colored (printed/dual-mold) AND the candidate
+            // figure has dual-color leg parts.
+            var legsMatched = false
             for part in fig.parts where legSlots.contains(part.slot) {
                 if let pc = LegoColor(rawValue: part.color) {
-                    if colorSet.contains(pc) {
-                        score += 1
-                        legsMatched = true
-                    }
-                    if let lp = legsPrimary, pc == lp {
-                        // Legs region's dominant color matches this fig's
-                        // leg color exactly — very specific signal.
-                        score += 3
-                        legsMatched = true
-                    }
+                    if colorSet.contains(pc) { legsMatched = true }
+                    if let lp = legsPrimary, pc == lp { legsMatched = true }
                 }
             }
-            // Combo bonus: torso AND legs both match — this is the most
-            // discriminating thing color matching can tell us. Without
-            // it, every red-torso figure scores the same regardless of
-            // whether their legs are blue, black, white, or tan.
-            if torsoMatched && legsMatched {
-                score += 6
+            if capturedHasPrintedLegs {
+                let legParts = fig.parts.filter { legSlots.contains($0.slot) }
+                let figLegColorStrings = Set(legParts.map(\.color))
+                if figLegColorStrings.count >= 2 {
+                    // Both captured AND figure show printed legs.
+                    s.legs = 0.70
+                    let figLegLegoColors = Set(figLegColorStrings.compactMap(LegoColor.init(rawValue:)))
+                    if !figLegLegoColors.isDisjoint(with: legsBandColors) {
+                        // Plus actual color overlap — character-specific.
+                        s.legs = 1.00
+                    }
+                }
+            } else if legsMatched {
+                // Plain solid-color legs match: tiny tiebreaker only.
+                s.legs = 0.30
             }
-            if score > 0 {
-                matches.append((fig, score, torsoMatched))
+
+            // ── Cascade combine ──
+            // Torso-first cascade: when the torso classifier is
+            // confident (torso score >= 0.80 AND we have actual
+            // identifying evidence beyond a common base color), this
+            // is essentially the figure — other parts only confirm/
+            // refute. When torso confidence is low (occluded, faded,
+            // ambiguous, or "the torso is just black"), fall back to
+            // joint inference using the weighted priors documented in
+            // docs/MINIFIGURE_ANATOMY.md §"Weighting".
+            //
+            // Why the extra evidence requirement: catalog `torso.color`
+            // is just the base plastic color, shared by hundreds of
+            // distinct figures (every black-jacket figure is
+            // "Black"). Treating "color matched" as "torso is the
+            // figure's primary key" would collapse every black-torso
+            // scan onto whichever same-color figure happens to win the
+            // year-desc tiebreak. The cascade only fires when EITHER:
+            //   • the captured torso shows print evidence (multi-
+            //     color band OR high print-pixel ratio), OR
+            //   • the figure's catalog torso is a *rare* color
+            //     (purple, lime, orange, dark red/green, light blue,
+            //     pink) — these long-tail colors carry enough signal
+            //     on their own that a base-color match is meaningful.
+            let figureTorsoBaseColor: LegoColor? = fig.torsoPart.flatMap {
+                LegoColor(rawValue: $0.color)
+            }
+            let isRareTorsoColor: Bool = {
+                guard let c = figureTorsoBaseColor else { return false }
+                return !Self.commonTorsoColors.contains(c)
+            }()
+            let hasIdentifyingEvidence = torsoSignature.isPatterned || isRareTorsoColor
+            let torsoConfident = s.torso >= 0.80 && hasIdentifyingEvidence
+            let composite: Double
+            if torsoConfident {
+                // Cascade: torso primary + small consistency-check bonuses.
+                // Bonuses cap at ~0.15 total so torso always dominates.
+                composite = s.torso
+                    + 0.07 * s.hair
+                    + 0.07 * s.head
+                    + 0.03 * s.legs
+            } else {
+                // Joint inference fallback (low torso confidence OR
+                // common-color torso with no detected print).
+                composite = 0.72 * s.torso
+                          + 0.10 * s.head
+                          + 0.10 * s.hair
+                          + 0.04 * s.legs
+                          + 0.02 * 0   // accessories: not yet captured
+            }
+
+            if composite > 0 {
+                matches.append((fig, composite, s, torsoConfident))
             }
         }
 
@@ -309,32 +488,80 @@ final class MinifigureIdentificationService {
             }
         }
 
-        // Prioritize torso-matched figures, then by score, then year
+        // Cascade ordering: torso-confident figures ALWAYS rank above
+        // non-confident ones (the cascade's primary classifier output is
+        // never overridden by aux-signal noise). Within each tier, sort
+        // by composite score, then by consistency hits (count of aux
+        // slots whose color agrees), then by recency. The consistency
+        // tiebreak matters when many figures share the same base
+        // colors — without it, year-desc sorting alone would always
+        // promote modern figures over older same-color ones.
         matches.sort {
-            if $0.torsoMatch != $1.torsoMatch { return $0.torsoMatch && !$1.torsoMatch }
-            if $0.score != $1.score { return $0.score > $1.score }
+            if $0.torsoConfident != $1.torsoConfident {
+                return $0.torsoConfident && !$1.torsoConfident
+            }
+            if $0.composite != $1.composite { return $0.composite > $1.composite }
+            let lhsHits =
+                ($0.scores.head > 0 ? 1 : 0) +
+                ($0.scores.hair > 0 ? 1 : 0) +
+                ($0.scores.legs > 0 ? 1 : 0)
+            let rhsHits =
+                ($1.scores.head > 0 ? 1 : 0) +
+                ($1.scores.hair > 0 ? 1 : 0) +
+                ($1.scores.legs > 0 ? 1 : 0)
+            if lhsHits != rhsHits { return lhsHits > rhsHits }
             return $0.figure.year > $1.figure.year
         }
+
+        // Quality gate: if NO candidate could enter cascade mode AND
+        // the captured torso shows essentially no print evidence, the
+        // image is probably too low-quality to identify (blurry,
+        // shadowed, or just a solid common-color torso that no
+        // automated system can disambiguate from base color alone).
+        // Cap top-result confidence and advise a retake.
+        let anyCascadeHit = matches.contains(where: { $0.torsoConfident })
+        let lowQualityScan = !anyCascadeHit
+            && torsoSignature.printPixelRatio < 0.05
+            && torsoSignature.bandColors.count <= 1
 
         // Return a wide pool so Phase 2 (visual feature-print refinement)
         // has plenty of figures to visually compare. Phase 2 trims down
         // to the top 8 by visual similarity. Without a wide pool here,
         // Phase 2 just re-ranks 8 figures all picked by color alone.
         let top = matches.prefix(60)
-        let maxScore = Double(top.first?.score ?? 1)
-        return top.map { match in
-            // Confidence: lower baseline for non-torso matches; higher when
-            // torso color matches AND it's the dominant captured color.
-            let normalized = Double(match.score) / maxScore
-            let confidence = match.torsoMatch
-                ? 0.40 + 0.30 * normalized
-                : 0.20 + 0.15 * normalized
-
-            let reasoning: String
-            if match.torsoMatch {
-                reasoning = "Torso color match (score \(match.score))."
+        return top.enumerated().map { (idx, match) in
+            // Confidence comes primarily from torso classification quality
+            // (cascade philosophy). Aux-signal matches can nudge it up
+            // slightly but cannot rescue a low-torso-confidence candidate.
+            var confidence: Double
+            if match.torsoConfident {
+                // 0.55 floor (any cascade hit) → ~0.85 ceiling.
+                let auxBoost = 0.07 * match.scores.hair
+                             + 0.07 * match.scores.head
+                             + 0.03 * match.scores.legs
+                confidence = min(0.85, 0.55 + 0.30 * match.scores.torso + auxBoost)
             } else {
-                reasoning = "Partial color match (score \(match.score) — torso color differs)."
+                // Joint-inference fallback: lower ceiling, scaled by composite.
+                confidence = min(0.55, 0.20 + 0.30 * match.composite)
+            }
+            // Quality cap: when the scan can't carry identifying
+            // evidence, no candidate deserves >0.40 confidence.
+            if lowQualityScan {
+                confidence = min(confidence, 0.40)
+            }
+
+            var reasoning: String
+            if match.torsoConfident {
+                reasoning = "Torso primary match (cascade)."
+            } else if match.scores.torso > 0 {
+                reasoning = "Torso color match only — falling back to joint inference (no print evidence on the captured torso)."
+            } else {
+                reasoning = "Joint inference: no torso color match."
+            }
+            // Surface the retake advisory on the top result so the UI
+            // can show it without needing a separate API change.
+            if lowQualityScan && idx == 0 {
+                reasoning = "Low-quality torso capture — try retaking closer, with even lighting and no shadows. " + reasoning
             }
 
             return ResolvedCandidate(
@@ -388,6 +615,71 @@ final class MinifigureIdentificationService {
 
     // MARK: - Phase 2: Local Reference Image Refinement
 
+    /// Merge color-cascade results (`fastResults`) with hits from the
+    /// trained torso-embedding retriever. Embedding hits with cosine
+    /// similarity above an empirical threshold are injected into the
+    /// candidate set if they aren't already present, with a confidence
+    /// derived from the cosine score.
+    ///
+    /// The merge intentionally keeps the color-cascade order and only
+    /// *adds* embedding hits — it never reorders existing candidates.
+    /// Phase 2's structural reranker is the place where final ranking
+    /// happens; this method's only job is to ensure the right figure
+    /// is *in* the pool of candidates Phase 2 sees.
+    ///
+    /// No-op (returns `fastResults` unchanged) when the embedding
+    /// service hasn't been trained / bundled yet.
+    private func mergeWithEmbeddingHits(
+        cgImage: CGImage,
+        fastResults: [ResolvedCandidate]
+    ) async -> [ResolvedCandidate] {
+        let service = TorsoEmbeddingService.shared
+        guard service.isAvailable else { return fastResults }
+
+        // Crop the same torso band Phase 2 uses so the encoder sees
+        // the same input domain it was trained on.
+        let torsoCG: CGImage = await Task.detached(priority: .userInitiated) { [self] in
+            let subject = self.cropToSalientSubject(cgImage) ?? cgImage
+            return self.cropVerticalBand(subject, top: 0.30, bottom: 0.70)
+        }.value
+
+        let hits = await service.nearestFigures(for: torsoCG, topK: 16)
+        guard !hits.isEmpty else { return fastResults }
+
+        // Cosine similarity ≥ 0.55 on the trained encoder is roughly
+        // "same torso family" (same uniform line, same faction). ≥
+        // 0.70 is "almost certainly the same printed torso under
+        // different lighting". Injection threshold is intentionally
+        // loose because Phase 2 will throw out anything that doesn't
+        // visually match the captured image anyway.
+        let injectionThreshold: Float = 0.55
+        let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
+        guard !usefulHits.isEmpty else { return fastResults }
+
+        let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
+        var merged = fastResults
+
+        for hit in usefulHits where !existingIds.contains(hit.figureId) {
+            guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else {
+                continue
+            }
+            // Map cosine [0.55, 1.0] → confidence [0.45, 0.85].
+            let normalized = Double((hit.cosine - injectionThreshold) / (1.0 - injectionThreshold))
+            let confidence = 0.45 + max(0.0, min(1.0, normalized)) * 0.40
+            merged.append(ResolvedCandidate(
+                figure: figure,
+                modelName: figure.name,
+                confidence: confidence,
+                reasoning: "Trained torso-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
+            ))
+        }
+
+        Self.logger.info(
+            "Embedding retrieval injected \(merged.count - fastResults.count) candidate(s) above cosine \(injectionThreshold)"
+        )
+        return merged
+    }
+
     /// Re-rank fast-phase candidates by visual similarity using ONLY
     /// reference images that are already available locally (memory cache,
     /// disk cache, or bundled assets). Skips any figure whose image isn't
@@ -399,13 +691,35 @@ final class MinifigureIdentificationService {
         cgImage: CGImage,
         fastCandidates: [ResolvedCandidate]
     ) async -> [ResolvedCandidate] {
-        // Generate the captured-image feature print off the main actor.
-        let capturedPrint: VNFeaturePrintObservation? = await Task.detached(priority: .userInitiated) { [self] in
+        // Generate the captured-image feature prints off the main actor.
+        // Two prints: one over the full subject (silhouette / overall
+        // figure shape — useful for general visual similarity) and one
+        // over just the torso band (where the print pattern lives, and
+        // where the figure's primary key actually resides). The torso-
+        // band print is what tells "printed Police torso" apart from
+        // "solid Ninjago torso" when both share Black as the catalog
+        // base color.
+        // Capture-side feature extraction. We compute three signatures
+        // up front so each reference comparison only pays the cost
+        // of the per-ref crops:
+        //   • full-figure VNFeaturePrint (overall silhouette / hue)
+        //   • torso-band VNFeaturePrint (print pattern in embedding space)
+        //   • torso-band TorsoVisualSignature (spatial color + edge layout)
+        // The TorsoVisualSignature is the new structural reranker that
+        // captures *where* color/print lives, not just overall hue —
+        // see TorsoVisualSignature.swift for the rationale.
+        let captured: (full: VNFeaturePrintObservation?, torso: VNFeaturePrintObservation?, signature: TorsoVisualSignature?, torsoCG: CGImage?) = await Task.detached(priority: .userInitiated) { [self] in
             let subjectCG = self.cropToSalientSubject(cgImage) ?? cgImage
-            return self.generateFeaturePrint(from: subjectCG)
+            let fullPrint = self.generateFeaturePrint(from: subjectCG)
+            let torsoBandCG = self.cropVerticalBand(subjectCG, top: 0.30, bottom: 0.70)
+            let torsoPrint = self.generateFeaturePrint(from: torsoBandCG)
+            let sig = TorsoVisualSignatureExtractor.signature(for: torsoBandCG)
+            return (fullPrint, torsoPrint, sig, torsoBandCG)
         }.value
 
-        guard let capturedPrint = capturedPrint else { return [] }
+        guard let capturedFullPrint = captured.full else { return [] }
+        let capturedTorsoPrint = captured.torso
+        let capturedTorsoSignature = captured.signature
 
         // Build a list of (figure, localImage) — only figures whose image
         // is already available offline. Check the bundled reference set
@@ -416,6 +730,7 @@ final class MinifigureIdentificationService {
         let userImages = UserFigureImageStorage.shared
         var localPairs: [(figure: Minifigure, image: UIImage, colorConfidence: Double)] = []
         var colorOnly: [ResolvedCandidate] = []
+        var missingForFetch: [(figure: Minifigure, url: URL, colorConfidence: Double)] = []
         for candidate in fastCandidates {
             guard let fig = candidate.figure else { continue }
             // User-added figures always have their photo on disk.
@@ -432,11 +747,60 @@ final class MinifigureIdentificationService {
                 localPairs.append((fig, img, candidate.confidence))
                 continue
             }
-            // No local reference image — keep as a color-only candidate.
-            // Phase 2 will inject the top few alongside the visually-
-            // refined ones so the user can still see strong color matches
-            // even when the bundled set lacks that figure.
+            // No local image yet. If the figure has an HTTP(S) image
+            // URL we can try to fetch it opportunistically below;
+            // otherwise it stays color-only.
+            if let url = fig.imageURL, !url.isFileURL {
+                missingForFetch.append((fig, url, candidate.confidence))
+            }
             colorOnly.append(candidate)
+        }
+
+        // ── Opportunistic on-demand reference fetch ──
+        //
+        // Phase 2 can only torso-band-rerank candidates whose reference
+        // image is already on-device. The bundled curated set covers
+        // ~3,000 popular figures, but the catalog has ~16,000 — so for
+        // many real-world scans the actual figure isn't in the bundle
+        // and the visual pipeline can't verify it at all.
+        //
+        // To fix this without ballooning the bundle, we download the
+        // top-K candidate thumbnails in parallel here. Each download is
+        // tiny (~10–30 KB JPEG from rebrickable's CDN) and gets written
+        // to MinifigureImageCache's disk tier via .store() — so the
+        // FIRST scan of a given figure pays the network cost, and every
+        // scan after that uses the cached image with zero latency.
+        //
+        // Budget: max 8 parallel downloads with a 4s overall timeout.
+        // If the network is slow / offline we silently fall back to the
+        // existing color-only behavior.
+        let MAX_FETCH = 8
+        let FETCH_TIMEOUT: TimeInterval = 4.0
+        if !missingForFetch.isEmpty {
+            // Prefer the highest-confidence color matches first — those
+            // are the ones most worth fetching to confirm visually.
+            let toFetch = missingForFetch
+                .sorted { $0.colorConfidence > $1.colorConfidence }
+                .prefix(MAX_FETCH)
+            let fetchedImages = await fetchReferenceImages(
+                Array(toFetch),
+                overallTimeout: FETCH_TIMEOUT
+            )
+            if !fetchedImages.isEmpty {
+                Self.logger.info("Opportunistically fetched \(fetchedImages.count) reference image(s)")
+            }
+            // Promote any successfully-fetched figures from colorOnly
+            // into localPairs so they get torso-band-reranked.
+            for (figId, image, colorConf) in fetchedImages {
+                if let fig = fastCandidates.first(where: { $0.figure?.id == figId })?.figure {
+                    localPairs.append((fig, image, colorConf))
+                }
+            }
+            // Drop fetched figures from the colorOnly fallback list so we
+            // don't double-count them when the visual scoring falls
+            // through to the color-only injection branch below.
+            let fetchedIds = Set(fetchedImages.map { $0.0 })
+            colorOnly = colorOnly.filter { ($0.figure?.id).map { !fetchedIds.contains($0) } ?? true }
         }
 
         guard !localPairs.isEmpty else {
@@ -446,21 +810,72 @@ final class MinifigureIdentificationService {
 
         Self.logger.info("Refining with \(localPairs.count) locally-available reference images")
 
-        // Score off the main actor.
+        // Score off the main actor. For each reference, compute BOTH a
+        // full-figure feature-print distance AND a torso-band feature-
+        // print distance, then blend them. The torso-band component is
+        // weighted higher (0.65) because the torso print IS the figure's
+        // primary key (see docs/MINIFIGURE_ANATOMY.md). Reference
+        // images on the catalog CDN are usually centered, white-
+        // background renders so the band crop lines up cleanly with the
+        // captured torso band.
         let pairsCopy = localPairs
         let scored: [(Minifigure, Float, Double)] = await Task.detached(priority: .userInitiated) { [self] in
             var results: [(Minifigure, Float, Double)] = []
             for (fig, img, colorConf) in pairsCopy {
                 if Task.isCancelled { break }
-                guard let refCG = img.cgImage,
-                      let refPrint = self.generateFeaturePrint(from: refCG) else { continue }
-                var distance: Float = 0
+                guard let refCG = img.cgImage else { continue }
+                let refSubjectCG = self.cropToSalientSubject(refCG) ?? refCG
+                guard let refFullPrint = self.generateFeaturePrint(from: refSubjectCG) else { continue }
+                var fullDist: Float = 0
                 do {
-                    try capturedPrint.computeDistance(&distance, to: refPrint)
+                    try capturedFullPrint.computeDistance(&fullDist, to: refFullPrint)
                 } catch {
                     continue
                 }
-                results.append((fig, distance, colorConf))
+                // Torso-band distance, when both sides have a print.
+                var torsoDist: Float? = nil
+                var sigDist: Float? = nil
+                if let capturedTorsoPrint = capturedTorsoPrint {
+                    let refTorsoCG = self.cropVerticalBand(refSubjectCG, top: 0.30, bottom: 0.70)
+                    if let refTorsoPrint = self.generateFeaturePrint(from: refTorsoCG) {
+                        var d: Float = 0
+                        if (try? capturedTorsoPrint.computeDistance(&d, to: refTorsoPrint)) != nil {
+                            torsoDist = d
+                        }
+                    }
+                    // Structural torso signature distance (training-free
+                    // spatial-color + edge layout). Computed on the same
+                    // band crop as the print so they're directly
+                    // comparable. Roughly 0.0 (identical) → 1.0+
+                    // (very different).
+                    if let capturedSig = capturedTorsoSignature,
+                       let refSig = TorsoVisualSignatureExtractor.signature(for: refTorsoCG) {
+                        sigDist = capturedSig.distance(to: refSig)
+                    }
+                }
+                // Blend three signals when all are available:
+                //   • torso-band feature print (embedding similarity) — 0.45
+                //   • torso visual signature (spatial layout)         — 0.30
+                //   • full-figure feature print                       — 0.25
+                // The structural signature is what disambiguates
+                // figures with similar color palettes but different
+                // print layouts (astronaut vs Star Wars officer, etc.).
+                // Falls back gracefully to the previous 0.65/0.35
+                // blend when the signature isn't available, and to
+                // full-figure-only when neither torso signal is
+                // available.
+                let combined: Float
+                switch (torsoDist, sigDist) {
+                case let (td?, sd?):
+                    combined = 0.45 * td + 0.30 * sd + 0.25 * fullDist
+                case let (td?, nil):
+                    combined = 0.65 * td + 0.35 * fullDist
+                case let (nil, sd?):
+                    combined = 0.55 * sd + 0.45 * fullDist
+                default:
+                    combined = fullDist
+                }
+                results.append((fig, combined, colorConf))
             }
             return results
         }.value
@@ -537,6 +952,81 @@ final class MinifigureIdentificationService {
             .sorted { $0.confidence > $1.confidence }
             .prefix(8)
             .map { $0 }
+    }
+
+    // MARK: - On-demand reference image fetch
+
+    /// Download up to `requests.count` reference images in parallel
+    /// against an overall wall-clock budget. Each successful download is
+    /// also written to `MinifigureImageCache`'s disk tier so the next
+    /// scan of any of these figures finds the image locally without
+    /// hitting the network.
+    ///
+    /// Returns `(figureId, image, colorConfidence)` for each successful
+    /// fetch. Failures and timeouts are silently dropped — the caller
+    /// falls back to color-only matching for those figures.
+    private func fetchReferenceImages(
+        _ requests: [(figure: Minifigure, url: URL, colorConfidence: Double)],
+        overallTimeout: TimeInterval
+    ) async -> [(String, UIImage, Double)] {
+        guard !requests.isEmpty else { return [] }
+
+        // Each per-image request has its own short timeout. URLSession's
+        // shared instance is fine — these are tiny GETs against a CDN.
+        let perRequestTimeout: TimeInterval = min(overallTimeout, 3.0)
+        let session = URLSession.shared
+
+        // Race the parallel downloads against an overall wall-clock
+        // timeout. If the timeout fires first, we cancel any inflight
+        // tasks and return whatever has completed so far.
+        return await withTaskGroup(of: (String, UIImage, Double)?.self) { group in
+            for req in requests {
+                group.addTask {
+                    var urlRequest = URLRequest(url: req.url)
+                    urlRequest.cachePolicy = .returnCacheDataElseLoad
+                    urlRequest.timeoutInterval = perRequestTimeout
+                    do {
+                        let (data, response) = try await session.data(for: urlRequest)
+                        guard let http = response as? HTTPURLResponse,
+                              (200..<300).contains(http.statusCode),
+                              let image = UIImage(data: data) else {
+                            return nil
+                        }
+                        // Write through to the disk-backed cache so the
+                        // next scan of this figure finds it offline.
+                        await MainActor.run {
+                            MinifigureImageCache.shared.store(
+                                image, for: req.url, bytes: data.count
+                            )
+                        }
+                        return (req.figure.id, image, req.colorConfidence)
+                    } catch {
+                        return nil
+                    }
+                }
+            }
+
+            // Add a sentinel timeout task. The first task to finish that
+            // is the timeout sentinel will short-circuit the wait.
+            group.addTask { [overallTimeout] in
+                let nanos = UInt64(overallTimeout * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: nanos)
+                return nil
+            }
+
+            var results: [(String, UIImage, Double)] = []
+            let deadline = Date().addingTimeInterval(overallTimeout)
+            for await result in group {
+                if let result {
+                    results.append(result)
+                }
+                if Date() >= deadline {
+                    group.cancelAll()
+                    break
+                }
+            }
+            return results
+        }
     }
 
     // MARK: - Pre-scan Probe
@@ -713,6 +1203,53 @@ final class MinifigureIdentificationService {
         let r: UInt8, g: UInt8, b: UInt8
     }
 
+    /// Per-part normalized scores (each 0.0–1.0) used by the torso-first
+    /// cascade. See `fastColorBasedCandidates(...)` for how these combine:
+    /// when `torso >= 0.80` the cascade uses torso as the primary
+    /// classifier with the others as small consistency-check bonuses;
+    /// otherwise it falls back to weighted joint inference using the
+    /// priors documented in `docs/MINIFIGURE_ANATOMY.md`.
+    private struct PartScores {
+        var torso: Double = 0
+        var head: Double = 0
+        var hair: Double = 0
+        var legs: Double = 0
+    }
+
+    /// Captured-torso pattern signature, derived from the torso band
+    /// crop. Distinguishes a printed torso (zipper, badge, insignia,
+    /// faction emblem) from a plain solid-color torso WITHOUT requiring
+    /// a trained classifier. Used by the cascade gate: a torso color
+    /// match against a *common* base color (black, white, blue, red,
+    /// grey…) is not enough on its own to claim the torso has been
+    /// identified — there has to be either a rare base color OR
+    /// detectable print to enter cascade mode.
+    private struct TorsoSignature {
+        /// LEGO colors observed in the torso band after generic-head
+        /// filtering. Patterned torsos have ≥2 entries.
+        let bandColors: Set<LegoColor>
+        /// Fraction of torso-band pixels that deviate substantially
+        /// from the dominant cluster (i.e., "print pixels": zipper
+        /// stripes, badges, insignia, faction emblems). 0.0 = perfectly
+        /// solid color; >0.15 = clearly printed.
+        let printPixelRatio: Double
+        /// Convenience: `bandColors.count >= 2 || printPixelRatio >= 0.12`.
+        let isPatterned: Bool
+    }
+
+    /// LEGO colors that show up on hundreds of distinct figure torsos
+    /// across the catalog. A torso color match against one of these is
+    /// NOT enough on its own to claim the figure has been identified —
+    /// "the torso is black" matches Ninjago, modern Police, SWAT,
+    /// Imperial officers, Batman villains, ninjas, and more. The
+    /// cascade gate requires print evidence on top of these. Long-tail
+    /// colors (purple, pink, lime, orange, dark red/green, light blue)
+    /// are rare enough that a base-color match alone is informative.
+    nonisolated private static let commonTorsoColors: Set<LegoColor> = [
+        .black, .white, .blue, .red, .gray, .darkGray, .darkBlue,
+        .green, .brown, .tan, .yellow
+    ]
+
     /// Extract dominant colors from an image, optionally excluding
     /// near-white/near-black pixels (background noise).
     nonisolated private func extractDominantColors(
@@ -806,6 +1343,113 @@ final class MinifigureIdentificationService {
     /// sites in this file don't have to change.
     nonisolated private func closestLegoColor(r: UInt8, g: UInt8, b: UInt8) -> (color: LegoColor, distance: Double)? {
         LegoColor.closest(r: r, g: g, b: b)
+    }
+
+    // MARK: - Torso Pattern Analysis
+
+    /// Analyze a torso-band crop for *print* — the part of the torso
+    /// signal that catalog-side `LegoColor` doesn't capture. Returns the
+    /// set of distinct LEGO colors found AND the fraction of pixels
+    /// that deviate substantially from the dominant cluster.
+    ///
+    /// `printPixelRatio` is what lets us tell a printed Police torso
+    /// (zipper + badge → ~20% deviating pixels) from a solid Ninjago
+    /// torso (~3% deviating pixels) when both are catalogued as Black.
+    /// Without this, the cascade gate would happily declare "torso
+    /// confidently identified" against any common base color and
+    /// collapse the candidate space onto whatever modern figure
+    /// happens to share that base color.
+    nonisolated private func analyzeTorsoSignature(
+        torsoBandImage cgImage: CGImage,
+        hasGenericHead: Bool
+    ) -> TorsoSignature {
+        // Sample the torso band into a small RGB buffer. Reuse the same
+        // pixel-fetch path as `extractDominantColors` for consistency
+        // (24×24 pixels — sufficient to detect zipper stripes / badges
+        // at typical capture resolution; extremely cheap to process).
+        let size = 24
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false)
+        }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        // Build the "kept" pixel list with the same background-filter
+        // rules used elsewhere (skip near-black shadows and mid-bright
+        // low-saturation greys, but keep bright whites — white is a
+        // real LEGO color).
+        var kept: [RGB] = []
+        kept.reserveCapacity(size * size)
+        for y in 0..<size {
+            for x in 0..<size {
+                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
+                let r = pixelData[offset]
+                let g = pixelData[offset + 1]
+                let b = pixelData[offset + 2]
+                let brightness = (Int(r) + Int(g) + Int(b)) / 3
+                if brightness < 25 { continue }
+                let maxC = max(r, g, b)
+                let minC = min(r, g, b)
+                let saturation = Int(maxC) - Int(minC)
+                if saturation < 15 && brightness >= 60 && brightness <= 235 { continue }
+                kept.append(RGB(r: r, g: g, b: b))
+            }
+        }
+        guard !kept.isEmpty else {
+            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false)
+        }
+
+        // Distinct LEGO colors in the band (existing patterned-torso
+        // signal — strong but coarse).
+        let dominant = findDominantColors(kept, count: 4)
+        var bandColors: Set<LegoColor> = []
+        for c in dominant {
+            guard let lc = closestLegoColor(r: c.r, g: c.g, b: c.b)?.color else { continue }
+            if hasGenericHead && lc == .yellow { continue }
+            bandColors.insert(lc)
+        }
+
+        // Print-pixel ratio: take the dominant pixel cluster (the
+        // torso's base color) and count how many kept pixels fall
+        // FAR from it in perceptual-RGB distance. This captures
+        // zipper stripes, badges, faction insignia, dual-tone
+        // printing — all the things that make a torso a primary key
+        // even when the catalog only records a single base color.
+        let baseRGB = dominant.first ?? kept.first!
+        let baseR = Double(baseRGB.r)
+        let baseG = Double(baseRGB.g)
+        let baseB = Double(baseRGB.b)
+        // Threshold tuned so jpeg/lighting noise (~20–40 distance)
+        // doesn't register, but legible print details do (~80+).
+        // Same weighted-RGB metric as `LegoColor.closest`.
+        let threshold: Double = 70
+        let thresholdSq = threshold * threshold
+        var printPixels = 0
+        for px in kept {
+            let dr = Double(px.r) - baseR
+            let dg = Double(px.g) - baseG
+            let db = Double(px.b) - baseB
+            let distSq = 2.0 * dr * dr + 4.0 * dg * dg + 3.0 * db * db
+            if distSq > thresholdSq { printPixels += 1 }
+        }
+        let ratio = Double(printPixels) / Double(kept.count)
+        let patterned = bandColors.count >= 2 || ratio >= 0.12
+        return TorsoSignature(
+            bandColors: bandColors,
+            printPixelRatio: ratio,
+            isPatterned: patterned
+        )
     }
 
     // MARK: - Utilities

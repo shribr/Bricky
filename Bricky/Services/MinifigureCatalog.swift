@@ -178,7 +178,36 @@ final class MinifigureCatalog: ObservableObject {
         }
     }
 
-    // MARK: - Search / Filter
+    // MARK: - Aliases
+
+    /// Colloquial / community / BrickLink names for figures whose Rebrickable
+    /// catalog name is purely descriptive ("Policeman, Black Jacket with
+    /// Zipper and Badge, Black Cap, Sunglasses") and therefore unlikely to
+    /// surface for natural search terms a kid or adult collector would type
+    /// ("classic town police officer", "cop031").
+    ///
+    /// Keep entries focused on widely-recognized names. The map is small on
+    /// purpose — it's an escape hatch for high-traffic figures, NOT a place
+    /// to put every collector nickname. Add entries when a figure that's
+    /// clearly in the catalog isn't being found via search.
+    nonisolated static let figureAliases: [String: [String]] = [
+        // Classic Town Police Officer (BrickLink cop031): the iconic
+        // black-jacket / zipper / sheriff-star / black-cap / sunglasses
+        // figure shipped in many late-90s / early-2000s Town Police sets.
+        "fig-000697": [
+            "Classic Town Police Officer",
+            "Town Police Officer",
+            "cop031",
+            "Sheriff",
+            "Police Sheriff"
+        ]
+    ]
+
+    /// Aliases for a specific figure id (empty array if none).
+    nonisolated static func aliases(for figureID: String) -> [String] {
+        figureAliases[figureID] ?? []
+    }
+
 
     enum OwnershipFilter: String, CaseIterable {
         case all = "All"
@@ -187,7 +216,6 @@ final class MinifigureCatalog: ObservableObject {
         case complete = "Complete"
         case notStarted = "Not Started"
     }
-
     enum ImageFilter: String, CaseIterable {
         case all = "All"
         case withImages = "With Images"
@@ -218,10 +246,17 @@ final class MinifigureCatalog: ObservableObject {
             results = results.filter { $0.year == 0 || yearRange.contains($0.year) }
         }
         if !q.isEmpty {
-            results = results.filter {
-                $0.name.lowercased().contains(q) ||
-                $0.theme.lowercased().contains(q) ||
-                $0.id.lowercased().contains(q)
+            results = results.filter { fig in
+                if fig.name.lowercased().contains(q) { return true }
+                if fig.theme.lowercased().contains(q) { return true }
+                if fig.id.lowercased().contains(q) { return true }
+                // Alias match: lets natural search terms ("classic town
+                // police officer", "cop031") find figures whose catalog
+                // name is purely descriptive.
+                for alias in Self.aliases(for: fig.id) {
+                    if alias.lowercased().contains(q) { return true }
+                }
+                return false
             }
         }
 

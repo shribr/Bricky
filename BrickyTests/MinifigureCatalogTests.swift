@@ -37,4 +37,23 @@ final class MinifigureCatalogTests: XCTestCase {
         let fetched = catalog.figure(id: first.id)
         XCTAssertEqual(fetched?.id, first.id)
     }
+
+    /// fig-000697 is the iconic Classic Town Police Officer (black cap,
+    /// sunglasses, zipper-jacket-with-sheriff-star torso, black legs).
+    /// The Rebrickable name is purely descriptive, so the alias map is
+    /// what lets users find it via the colloquial name.
+    func testSearchByAliasFindsClassicTownPoliceOfficer() async {
+        let catalog = MinifigureCatalog.shared
+        await catalog.load()
+        let results = catalog.search(
+            query: "classic town police officer",
+            themes: [],
+            yearRange: nil,
+            sort: .nameAsc
+        )
+        XCTAssertTrue(
+            results.contains(where: { $0.id == "fig-000697" }),
+            "Expected fig-000697 to be returned for the alias 'classic town police officer'."
+        )
+    }
 }

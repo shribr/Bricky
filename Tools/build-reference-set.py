@@ -176,6 +176,24 @@ CLASSIC_ERA_THEMES = [
 CURRENT_YEAR = 2026
 
 
+# ── High-value pinned figure IDs ───────────────────────────────────────
+#
+# These figures MUST be included in the bundled set regardless of the
+# scoring heuristic, because they have distinctive printed torsos that
+# the visual-similarity pipeline can rely on for offline identification
+# of common vintage scans (Classic Town Police, Castle factions, Pirates,
+# Space subthemes, etc.). Without explicit pins, scoring sometimes
+# drops them in favor of higher-recency-but-less-distinctive figures.
+#
+# Add new IDs here whenever a real-world scan misses a figure that has
+# an unmistakable torso print. One scan ≈ one new pin.
+PINNED_FIGURE_IDS = {
+    # Classic Town Police — black jacket with white zipper + star badge
+    "fig-000697",  # cop031 — Policeman, Black Jacket with Zipper and Badge (Town, 2000)
+    # Add more high-value distinctive-torso pins below as scans surface them.
+}
+
+
 # ── Catalog loading ────────────────────────────────────────────────────
 
 
@@ -327,20 +345,37 @@ def select_figures(all_figures: list[dict]) -> list[dict]:
     ]
     print(f"After excluding Duplo/polybag/promo: {len(candidates)} figures")
 
+    # Pinned figures always go in first, regardless of scoring or theme.
+    # These are figures with distinctive printed torsos that the visual
+    # pipeline relies on for offline ID of common vintage scans.
+    pinned = [f for f in candidates if f.get("id") in PINNED_FIGURE_IDS]
+    pinned_ids = {f["id"] for f in pinned}
+    if pinned:
+        print(f"Pinned: {len(pinned)} high-value distinctive-torso figures")
+    missing_pins = PINNED_FIGURE_IDS - pinned_ids
+    if missing_pins:
+        print(
+            f"WARNING: {len(missing_pins)} pinned figures not found in catalog "
+            f"(or have no image URL): {sorted(missing_pins)}"
+        )
+
+    remaining = [f for f in candidates if f["id"] not in pinned_ids]
+
     # Always-include first (CMF), then top by score
-    cmf = [f for f in candidates if is_always_included(f)]
-    others = [f for f in candidates if not is_always_included(f)]
+    cmf = [f for f in remaining if is_always_included(f)]
+    others = [f for f in remaining if not is_always_included(f)]
 
     others_sorted = sorted(others, key=score_figure, reverse=True)
-    remaining_slots = max(0, TARGET_FIGURE_COUNT - len(cmf))
-    selected = cmf + others_sorted[:remaining_slots]
+    remaining_slots = max(0, TARGET_FIGURE_COUNT - len(pinned) - len(cmf))
+    selected = pinned + cmf + others_sorted[:remaining_slots]
 
-    # Cap at target (in case CMF alone exceeds it)
+    # Cap at target (in case pinned + CMF alone exceeds it)
     selected = selected[:TARGET_FIGURE_COUNT]
 
     print(
         f"Selected {len(selected)} figures "
-        f"({len(cmf)} CMF, {len(selected) - len(cmf)} popular)"
+        f"({len(pinned)} pinned, {len(cmf)} CMF, "
+        f"{len(selected) - len(pinned) - len(cmf)} popular)"
     )
     return selected
 

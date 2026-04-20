@@ -17,6 +17,7 @@
 		0A1045951C46F88007550076 /* NaturalLanguageSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22FABFA3E44FCE643ABCB87 /* NaturalLanguageSearchService.swift */; };
 		0B4BEED98C9ECD68C41BAD31 /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F80702B03C212E2C4FC9F11 /* ScanSession.swift */; };
 		0B54274FD754DEB2EAC1CD3B /* SprintHFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */; };
+		0C7D3214D53EFAA6814CF678 /* TorsoEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */; };
 		0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */; };
 		0D494F0879D5C9E7DB730720 /* AllScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */; };
 		11281C7B158EF2DCA81E6FF8 /* FavoritesStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */; };
@@ -172,6 +173,7 @@
 		CBABE111290D8895AD52A11A /* ScanMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34F62C4664682E64D816799 /* ScanMapView.swift */; };
 		CC45C8546897DBA00FFE73FA /* PuzzleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FD8EF2530B8F31277D8279 /* PuzzleEngine.swift */; };
 		CD5AA670AF8EEB1046DEC964 /* GeometryUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2CA9EC539356E82EA2EE4D /* GeometryUtils.swift */; };
+		CFD1204784694CADDE4EE36A /* TorsoVisualSignature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B25B8819718427E5CFF4386 /* TorsoVisualSignature.swift */; };
 		CFE0338FD0406EE392C5A882 /* PieceCatalogViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */; };
 		D092FD0C3491C4DDE7DDDD5A /* TipManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 686081141A769871976AC3BC /* TipManager.swift */; };
 		D18E94E7FD0A18F36922B7DD /* ScanCoverageOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */; };
@@ -203,6 +205,7 @@
 		ED133DF6663F69C047A0AC48 /* PileGeometryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */; };
 		EEB953F03E44137D95277D6B /* ScanLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB86A3EFB207E0117757F00D /* ScanLocationService.swift */; };
 		EEF879275171D8C287B416E1 /* LegoPartsCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */; };
+		F07E1F1A2C5A2D5024262204 /* TorsoEmbeddingIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */; };
 		F116571048A46356A15AB0A0 /* LegoProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3F043020FE5C5E9432A511 /* LegoProject.swift */; };
 		F265650A3AD65D4CF4DBD38B /* BuildStepViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */; };
 		F2E648B8FA73E8843368A64A /* DepthBoundaryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73609C0C3AF7791CFE6F171C /* DepthBoundaryStrategy.swift */; };
@@ -248,6 +251,7 @@
 		1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreTests.swift; sourceTree = "<group>"; };
 		183A4BC94CC9800F3236BFDE /* EnvironmentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentMonitor.swift; sourceTree = "<group>"; };
 		186F14B76D4796166E069B13 /* ScanSessionAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionAssetStore.swift; sourceTree = "<group>"; };
+		1B25B8819718427E5CFF4386 /* TorsoVisualSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorsoVisualSignature.swift; sourceTree = "<group>"; };
 		1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
 		1EA5295D9ADE9E473502C551 /* ARCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraPreview.swift; sourceTree = "<group>"; };
 		1F1B8B3848144EBE953A1103 /* MinifigureCorrectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCorrectionPicker.swift; sourceTree = "<group>"; };
@@ -379,6 +383,7 @@
 		B5172D06746279C57684B691 /* FindInSavedScanPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindInSavedScanPickerView.swift; sourceTree = "<group>"; };
 		BAC6BCC2E625333E59FFB6CE /* LegoProjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoProjectTests.swift; sourceTree = "<group>"; };
 		BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorCalibrationStore.swift; sourceTree = "<group>"; };
+		C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorsoEmbeddingIndex.swift; sourceTree = "<group>"; };
 		C1AA631EAC9DCAA62EF95165 /* BrickyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C22FABFA3E44FCE643ABCB87 /* NaturalLanguageSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaturalLanguageSearchService.swift; sourceTree = "<group>"; };
 		C34F62C4664682E64D816799 /* ScanMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMapView.swift; sourceTree = "<group>"; };
@@ -411,6 +416,7 @@
 		D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableRoundTripTests.swift; sourceTree = "<group>"; };
 		DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopographicMeshRenderer.swift; sourceTree = "<group>"; };
 		DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoverageOverlayView.swift; sourceTree = "<group>"; };
+		E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorsoEmbeddingService.swift; sourceTree = "<group>"; };
 		E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBoundaryStrategy.swift; sourceTree = "<group>"; };
 		E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryExporter.swift; sourceTree = "<group>"; };
 		E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintHFeatureTests.swift; sourceTree = "<group>"; };
@@ -550,6 +556,9 @@
 				07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */,
 				99695881DBDD8B0B9F983E7F /* ThemeManager.swift */,
 				686081141A769871976AC3BC /* TipManager.swift */,
+				C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */,
+				E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */,
+				1B25B8819718427E5CFF4386 /* TorsoVisualSignature.swift */,
 				8DEC8B9D627AC7883789D989 /* UserCorrectionReranker.swift */,
 				CE2D8454F143148278DCEAF8 /* UserFigureImageStorage.swift */,
 				6474CD34FB5DAD9EBBEAD02D /* VisionUtilities.swift */,
@@ -1046,6 +1055,9 @@
 				E104BAB8FB74108365A8F9F0 /* ThemeManager.swift in Sources */,
 				D092FD0C3491C4DDE7DDDD5A /* TipManager.swift in Sources */,
 				2032055BD21AC987D2909A61 /* TopographicMeshRenderer.swift in Sources */,
+				F07E1F1A2C5A2D5024262204 /* TorsoEmbeddingIndex.swift in Sources */,
+				0C7D3214D53EFAA6814CF678 /* TorsoEmbeddingService.swift in Sources */,
+				CFD1204784694CADDE4EE36A /* TorsoVisualSignature.swift in Sources */,
 				D3DF56FF4989EB410B41B9D7 /* UIImage+Orientation.swift in Sources */,
 				88FB7C217814121301D6FB88 /* UserCorrectionReranker.swift in Sources */,
 				4B46370758AA9E32E0BE09BD /* UserDefaultsKey.swift in Sources */,

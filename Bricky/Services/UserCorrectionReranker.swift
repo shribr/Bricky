@@ -174,36 +174,41 @@ final class UserCorrectionReranker {
             )
         }
 
-        // INJECTION DELIBERATELY DISABLED.
+        // INJECTION DISABLED (again).
         //
-        // Earlier versions of the reranker injected one "strong match"
-        // figure from history into the result list when the captured
-        // image's feature print landed near a past correction — even
-        // if the visual pipeline (Phase 1 colors + Phase 2 visual
-        // refinement) didn't surface that figure on its own.
+        // We re-enabled bounded injection (strong feature-print match
+        // ≤ 3.5, capped at 0.78 confidence, max 2 figures) to make
+        // manual corrections actually surface on subsequent scans.
         //
-        // In practice this single behavior caused the worst recurring
-        // identification bug in the app: a single mistaken "this is
-        // figure X" correction by the user would cause X to appear at
-        // the top of EVERY future scan with ~78% confidence, regardless
-        // of whether the scanned figure even remotely resembled X. The
-        // failure mode was deterministic because:
-        //   1. Vision feature prints on minifig-sized photos cluster
-        //      tightly — many unrelated subjects land within the
-        //      "strong match" distance just from shared lighting,
-        //      background, or roughly-portrait silhouette.
-        //   2. The cap (0.78) was higher than typical visual-pipeline
-        //      confidences (~0.50–0.65), so injected figures
-        //      automatically dominated the sort.
-        //   3. Color/palette gating still allowed too many false
-        //      positives because LEGO figures share a small color
-        //      palette (yellow head, black hair, etc. trivially
-        //      overlap with most figures).
+        // In practice it still over-fired: the top two results on
+        // EVERY scan became the two most-recently-corrected figures
+        // at 78% confidence, even when the new scan subject was
+        // visually unrelated (e.g. a white astronaut torso scan
+        // returning Classic Town Police + Islander King at 78%).
         //
-        // The reranker now ONLY boosts figures the visual pipeline
-        // already returned. Past corrections act as a tiebreaker
-        // among visually-plausible candidates — they cannot override
-        // visual evidence by injecting net-new figures.
+        // Root cause: VNFeaturePrintObservation distances on minifig-
+        // sized photos cluster very tightly across unrelated subjects
+        // (shared background, lighting, and roughly-portrait silhouette
+        // dominate the embedding). The 3.5 threshold isn't actually
+        // selective enough — many unrelated scans land inside it.
+        //
+        // TODO: Replace this nearest-neighbor approach with something
+        // that cares about *what's on the figure*, not just overall
+        // image similarity. Options:
+        //   - Compare torso-band feature prints only (we already crop
+        //     this in MinifigureIdentificationService Phase 2) instead
+        //     of full-image prints. Distance distributions on torso
+        //     bands are more discriminative than on whole figures.
+        //   - Require palette agreement (captured palette ⊇ corrected
+        //     figure's torso color) before allowing injection.
+        //   - Train a tiny CoreML embedding model on torso prints so
+        //     the embedding space is actually about minifig identity,
+        //     not photographic background noise.
+        //
+        // Until one of those is in place, the reranker only BOOSTS
+        // figures the visual pipeline already surfaced; it does not
+        // inject new ones.
+        _ = strongMatches  // silence unused-warning while injection is disabled
 
         // Re-sort by confidence.
         boostedList.sort { $0.confidence > $1.confidence }
