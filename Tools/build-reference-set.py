@@ -26,6 +26,7 @@ Targets:
 
 from __future__ import annotations
 
+import argparse
 import gzip
 import json
 import os
@@ -337,13 +338,22 @@ def score_figure(figure: dict) -> float:
     return score
 
 
-def select_figures(all_figures: list[dict]) -> list[dict]:
+def select_figures(all_figures: list[dict], include_all: bool = False) -> list[dict]:
     # Must have an image URL
     candidates = [
         f for f in all_figures
         if (f.get("imgURL") or "").strip() and not is_excluded(f)
     ]
     print(f"After excluding Duplo/polybag/promo: {len(candidates)} figures")
+
+    if include_all:
+        # --all mode: bundle EVERY figure that survived the exclude
+        # filter. Used when we want maximum coverage for the visual
+        # matcher at the cost of a larger bundle (~165 MB at default
+        # JPEG settings). Pinned/CMF/score logic doesn't matter here —
+        # everything's included.
+        print(f"--all: including all {len(candidates)} non-excluded figures")
+        return candidates
 
     # Pinned figures always go in first, regardless of scoring or theme.
     # These are figures with distinctive printed torsos that the visual
@@ -499,24 +509,46 @@ def report_total_size() -> None:
         file_count += 1
     mb = total / (1024 * 1024)
     print(f"\n✓ Final: {file_count} images, {mb:.1f} MB on disk")
-    if mb > 50:
-        print("  Note: bundle is over 50 MB — consider lowering JPEG_QUALITY or MAX_DIMENSION")
+    if mb > 200:
+        print("  Note: bundle is over 200 MB — confirm you actually want "
+              "the full --all set bundled with the app.")
 
 
 # ── Main ───────────────────────────────────────────────────────────────
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Build the bundled minifigure reference image set."
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Include EVERY non-excluded catalog figure (~16K images, "
+             "~165 MB bundle) instead of the curated ~3K subset. Use this "
+             "when you want full visual-verification coverage in Phase 2 "
+             "and don't mind the bundle-size hit.",
+    )
+    parser.add_argument(
+        "--keep-stale",
+        action="store_true",
+        help="Skip the post-download cleanup pass that deletes images "
+             "no longer referenced by the index. Safe to use alongside "
+             "incremental builds.",
+    )
+    args = parser.parse_args()
+
     print("Bricky reference image set builder")
     print("==================================")
     figures = load_catalog()
-    selected = select_figures(figures)
+    selected = select_figures(figures, include_all=args.all)
     if not selected:
         print("No figures selected — aborting.")
         return 1
     index = download_all(selected)
     write_index(index)
-    cleanup_stale_files(index)
+    if not args.keep_stale:
+        cleanup_stale_files(index)
     report_total_size()
     print("\nDone. Remember to:")
     print("  1. Verify project.yml includes Bricky/Resources/MinifigImages")

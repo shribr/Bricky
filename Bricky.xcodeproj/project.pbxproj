@@ -151,6 +151,7 @@
 		B3E8AE3A9647E286C420E40D /* AddCustomFigureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5FBCA96D5048523251CF69 /* AddCustomFigureView.swift */; };
 		B4C89046439354DBD1934C9C /* ScanLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */; };
 		B6F42166FB1A517BAAD51A2D /* ScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */; };
+		B800A875E3447B5FFF0B2C16 /* TorsoEmbeddings in Resources */ = {isa = PBXBuildFile; fileRef = 123F995AA8F75504CFC230AD /* TorsoEmbeddings */; };
 		B9C9531C2C57CC18EB92A21C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */; };
 		BA6D44DF5EACC4608E48F82C /* SprintFFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */; };
 		BB98A24621905435A037361B /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61338725147C0143FDFD72F5 /* UserProfileView.swift */; };
@@ -247,6 +248,7 @@
 		0CBB702DF4BD9264251C72D1 /* LDrawTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawTests.swift; sourceTree = "<group>"; };
 		10DCC98BF2ADC75548CD3C0F /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		11A52E74B4552366C5A59D95 /* PieceLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceLocationView.swift; sourceTree = "<group>"; };
+		123F995AA8F75504CFC230AD /* TorsoEmbeddings */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TorsoEmbeddings; path = Bricky/Resources/TorsoEmbeddings; sourceTree = SOURCE_ROOT; };
 		153709824478E08403412691 /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
 		1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreTests.swift; sourceTree = "<group>"; };
 		183A4BC94CC9800F3236BFDE /* EnvironmentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentMonitor.swift; sourceTree = "<group>"; };
@@ -775,6 +777,7 @@
 				9B800996B61BE39D58475E9D /* BrickyUITests */,
 				2E2375924C87F31026F188BC /* LDraw */,
 				21E8CE05EE2EE49A13C94740 /* MinifigImages */,
+				123F995AA8F75504CFC230AD /* TorsoEmbeddings */,
 				0CE1E19F0B3165DA297EB54B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -898,6 +901,7 @@
 				84FD24D86AE74B0278D6A8D9 /* MinifigImages in Resources */,
 				E38B834A2CA583E76569107B /* MinifigureCatalog.json.gz in Resources */,
 				596B31199D8F6C0CFBE08C7D /* PrivacyInfo.xcprivacy in Resources */,
+				B800A875E3447B5FFF0B2C16 /* TorsoEmbeddings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

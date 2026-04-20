@@ -113,15 +113,33 @@ enum HybridFigureAnalyzer {
             let anchorRefCG = anchorCandidate.referenceImage.cgImage
         else { return nil }
 
-        let capturedBands = sampleBands(cgImage: capturedCG)
-        let anchorBands = sampleBands(cgImage: anchorRefCG)
+        // Estimate the background color from the four corners of each
+        // image. The fixed brightness/saturation rule that BandData
+        // used to apply only catches near-white backgrounds (CDN
+        // renders); on real-world phone scans where the figure sits on
+        // a dark wood table, brushed aluminum, a desk pad, etc. the
+        // background pixels were being misclassified as foreground.
+        // That caused the analyzer to attribute background-tinted
+        // "hair regions" to candidate hair pieces (e.g. a brushed-
+        // aluminum laptop palm rest reading as Catwoman's grey cowl
+        // because aluminum LAB happens to land near light bluish
+        // grey). Sampling the actual corners and excluding anything
+        // within ΔE 12 of that color fixes both directions: white
+        // CDN backgrounds AND any non-white user backdrop are
+        // correctly dropped, so the missing-part path can fire.
+        let capturedBackground = estimateBackgroundColor(cgImage: capturedCG)
+        let anchorRefBackground = estimateBackgroundColor(cgImage: anchorRefCG)
+
+        let capturedBands = sampleBands(cgImage: capturedCG, background: capturedBackground)
+        let anchorBands = sampleBands(cgImage: anchorRefCG, background: anchorRefBackground)
 
         // Pre-compute band data for every other candidate so we can attribute
         // mismatched regions to specific figures.
         let otherCandidates: [(figure: Minifigure, bands: [Analysis.Region: BandData])] =
             candidates.dropFirst().compactMap { c in
                 guard let cg = c.referenceImage.cgImage else { return nil }
-                return (c.figure, sampleBands(cgImage: cg))
+                let bg = estimateBackgroundColor(cgImage: cg)
+                return (c.figure, sampleBands(cgImage: cg, background: bg))
             }
 
         let matchThreshold: Double = 28
@@ -299,7 +317,8 @@ enum HybridFigureAnalyzer {
     }
 
     nonisolated private static func sampleBands(
-        cgImage: CGImage
+        cgImage: CGImage,
+        background: LAB?
     ) -> [Analysis.Region: BandData] {
         let w = cgImage.width
         let h = cgImage.height
@@ -328,7 +347,7 @@ enum HybridFigureAnalyzer {
 
         var out: [Analysis.Region: BandData] = [:]
         for (region, rect) in regions {
-            out[region] = bandData(cgImage: cgImage, rect: rect)
+            out[region] = bandData(cgImage: cgImage, rect: rect, background: background)
         }
         return out
     }
@@ -355,7 +374,8 @@ enum HybridFigureAnalyzer {
     /// Dominant LAB color (foreground only) AND coverage ratio for a rect.
     nonisolated private static func bandData(
         cgImage: CGImage,
-        rect: CGRect
+        rect: CGRect,
+        background: LAB?
     ) -> BandData {
         guard let cropped = cgImage.cropping(to: rect),
               let pixels = rgbaPixels(for: cropped) else {
@@ -370,9 +390,8 @@ enum HybridFigureAnalyzer {
             let a = Double(pixels[i + 3]) / 255.0
             guard a > 0.5 else { continue }
             total += 1
-            // Background heuristic: very bright + very low saturation.
-            // Captures both white reference-image background and most
-            // light user-photo backgrounds.
+            // Background heuristic A (legacy): very bright + very low
+            // saturation. Captures white CDN reference backgrounds.
             let maxC = max(r, g, b)
             let minC = min(r, g, b)
             let brightness = (maxC + minC) / 2.0
@@ -380,7 +399,12 @@ enum HybridFigureAnalyzer {
             if brightness > 0.92 && saturation < 0.10 { continue }
             // Skip near-black shadows that would dilute the dominant color.
             if brightness < 0.05 { continue }
+            // Background heuristic B (sampled): if we have a corner-
+            // estimated background color, drop anything within ΔE 12
+            // of it. This catches non-white backgrounds (wood, fabric,
+            // brushed aluminum) that heuristic A misses entirely.
             let lab = rgbToLAB(r: r, g: g, b: b)
+            if let bg = background, labDistance(lab, bg) < 12 { continue }
             sumL += lab.L; sumA += lab.a; sumB += lab.b
             fgCount += 1
         }
@@ -391,6 +415,56 @@ enum HybridFigureAnalyzer {
             color: LAB(L: sumL / fgCount, a: sumA / fgCount, b: sumB / fgCount),
             coverage: coverage
         )
+    }
+
+    /// Estimate the background color of an image by sampling small
+    /// patches at all four corners and returning the LAB centroid.
+    /// Returns nil if the corners disagree wildly (i.e. the image
+    /// likely doesn't have a clean uniform background).
+    nonisolated private static func estimateBackgroundColor(
+        cgImage: CGImage
+    ) -> LAB? {
+        let w = cgImage.width
+        let h = cgImage.height
+        let patch = max(8, min(w, h) / 16)  // ~6% of the smaller side
+        let rects: [CGRect] = [
+            CGRect(x: 0, y: 0, width: patch, height: patch),
+            CGRect(x: w - patch, y: 0, width: patch, height: patch),
+            CGRect(x: 0, y: h - patch, width: patch, height: patch),
+            CGRect(x: w - patch, y: h - patch, width: patch, height: patch),
+        ]
+        var labs: [LAB] = []
+        for rect in rects {
+            guard let cropped = cgImage.cropping(to: rect),
+                  let pixels = rgbaPixels(for: cropped) else { continue }
+            var sumL = 0.0, sumA = 0.0, sumB = 0.0, n = 0.0
+            for i in stride(from: 0, to: pixels.count - 3, by: 4) {
+                let r = Double(pixels[i])     / 255.0
+                let g = Double(pixels[i + 1]) / 255.0
+                let b = Double(pixels[i + 2]) / 255.0
+                let a = Double(pixels[i + 3]) / 255.0
+                guard a > 0.5 else { continue }
+                let lab = rgbToLAB(r: r, g: g, b: b)
+                sumL += lab.L; sumA += lab.a; sumB += lab.b; n += 1
+            }
+            guard n > 0 else { continue }
+            labs.append(LAB(L: sumL / n, a: sumA / n, b: sumB / n))
+        }
+        guard !labs.isEmpty else { return nil }
+        // Centroid of the corner samples.
+        let centroid = LAB(
+            L: labs.reduce(0) { $0 + $1.L } / Double(labs.count),
+            a: labs.reduce(0) { $0 + $1.a } / Double(labs.count),
+            b: labs.reduce(0) { $0 + $1.b } / Double(labs.count)
+        )
+        // Sanity check: if any corner is more than ΔE 25 from the
+        // centroid, the corners disagree (figure probably extends to
+        // the edge of the frame or the lighting is wildly uneven). In
+        // that case the centroid isn't a trustworthy background
+        // estimate — fall back to the legacy white-only heuristic by
+        // returning nil.
+        let maxDev = labs.map { labDistance($0, centroid) }.max() ?? 0
+        return maxDev < 25 ? centroid : nil
     }
 
     nonisolated private static func isYellowDominant(

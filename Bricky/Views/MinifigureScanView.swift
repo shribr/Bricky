@@ -393,14 +393,31 @@ struct MinifigureScanView: View {
                     )
                 }
             if !analyzerCandidates.isEmpty {
-                let captured = oriented
-                let analysis = await Task.detached(priority: .userInitiated) {
-                    HybridFigureAnalyzer.analyze(
-                        captured: captured,
-                        candidates: analyzerCandidates
-                    )
-                }.value
-                hybridAnalysis = analysis
+                // Low-confidence guard: when the top candidate's
+                // confidence is below ~0.65 (≈ "weak visual match" or
+                // worse), the result list is essentially noise — every
+                // distance is in the same poor band. Running the
+                // hybrid analyzer in that regime just produces
+                // confidently-stated nonsense like "the hair piece
+                // matches Catwoman" on a bald figure, because every
+                // region's colors are equally close to every
+                // candidate's. Skip the analyzer entirely in that
+                // case so the user just sees the (admittedly weak)
+                // result list without misleading hybrid commentary.
+                let topConfidence = result.first?.confidence ?? 0
+                let shouldAnalyzeHybrid = topConfidence >= 0.65
+                if shouldAnalyzeHybrid {
+                    let captured = oriented
+                    let analysis = await Task.detached(priority: .userInitiated) {
+                        HybridFigureAnalyzer.analyze(
+                            captured: captured,
+                            candidates: analyzerCandidates
+                        )
+                    }.value
+                    hybridAnalysis = analysis
+                } else {
+                    hybridAnalysis = nil
+                }
             } else {
                 hybridAnalysis = nil
             }
