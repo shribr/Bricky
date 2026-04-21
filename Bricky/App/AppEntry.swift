@@ -38,7 +38,6 @@ struct AppEntry: App {
                         _ = LDrawLibrary.shared.isAvailable
                     }
                     Task { await MinifigureCatalog.shared.load() }
-                    Task { await MinifigureClassificationService.shared.loadModel() }
                 }
         }
     }

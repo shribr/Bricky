@@ -1,6 +1,7 @@
 import ARKit
 import UIKit
 import Combine
+import os
 
 /// ARKit-based camera manager that provides world tracking alongside frame capture.
 /// Drop-in replacement for CameraManager when tracking mode is `.arWorldTracking`.
@@ -22,12 +23,29 @@ final class ARCameraManager: NSObject, ObservableObject {
     /// Updated each frame the mesh changes. Empty array on non-LiDAR devices.
     @Published var meshAnchors: [ARMeshAnchor] = []
 
+    // MARK: - Thread-safe depth state (written from ARKit delegate, read from MainActor)
+
+    private let _depthLock = OSAllocatedUnfairLock<DepthState>(initialState: DepthState())
+
+    private struct DepthState: Sendable {
+        var sceneDepth: ARDepthData?
+        var cameraIntrinsics: simd_float3x3 = matrix_identity_float3x3
+        var imageResolution: CGSize = .zero
+    }
+
     /// Latest AR scene depth data (LiDAR or compatible TrueDepth-style devices).
     /// Nil on devices without `.sceneDepth` frame semantics support.
-    nonisolated(unsafe) private(set) var latestSceneDepth: ARDepthData?
-    /// Latest camera intrinsics + image resolution (for depth → world unprojection).
-    nonisolated(unsafe) private(set) var latestCameraIntrinsics: simd_float3x3 = matrix_identity_float3x3
-    nonisolated(unsafe) private(set) var latestImageResolution: CGSize = .zero
+    var latestSceneDepth: ARDepthData? {
+        _depthLock.withLock { $0.sceneDepth }
+    }
+    /// Latest camera intrinsics (for depth → world unprojection).
+    var latestCameraIntrinsics: simd_float3x3 {
+        _depthLock.withLock { $0.cameraIntrinsics }
+    }
+    /// Latest camera image resolution.
+    var latestImageResolution: CGSize {
+        _depthLock.withLock { $0.imageResolution }
+    }
 
     let session = ARSession()
     private let delegateQueue = DispatchQueue(label: AppConfig.keychainPrefix + ".ar.delegate")
@@ -317,10 +335,12 @@ extension ARCameraManager: ARSessionDelegate {
                               height: frame.camera.imageResolution.height)
         let depth = frame.sceneDepth ?? frame.smoothedSceneDepth
 
-        // Cache nonisolated state synchronously (safe — only ARKit thread writes these).
-        self.latestSceneDepth = depth
-        self.latestCameraIntrinsics = intrinsics
-        self.latestImageResolution = imageRes
+        // Cache depth state under lock (safe from any thread).
+        _depthLock.withLock { state in
+            state.sceneDepth = depth
+            state.cameraIntrinsics = intrinsics
+            state.imageResolution = imageRes
+        }
 
         Task { @MainActor [weak self] in
             self?.onFrameCaptured?(pixelBuffer)

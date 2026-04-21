@@ -39,7 +39,7 @@ final class AnalyticsService: ObservableObject {
         providers.append(LocalAnalyticsProvider())
     }
 
-    /// Add an analytics provider (e.g., Azure Application Insights, Firebase).
+    /// Add an analytics provider (e.g., Firebase, local logging).
     func addProvider(_ provider: AnalyticsProvider) {
         providers.append(provider)
     }
