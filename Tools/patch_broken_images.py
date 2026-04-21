@@ -40,8 +40,11 @@ def main():
     with gzip.open(CATALOG, "rt", encoding="utf-8") as f:
         catalog = json.load(f)
 
+    # Support both top-level list and {"figures": [...]} wrapper
+    figures = catalog["figures"] if isinstance(catalog, dict) and "figures" in catalog else catalog
+
     patched = 0
-    for fig in catalog:
+    for fig in figures:
         if fig.get("id") in broken_ids and fig.get("imgURL"):
             fig["imgURL"] = None
             patched += 1
