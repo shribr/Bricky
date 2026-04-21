@@ -145,7 +145,7 @@ final class MinifigureImageCache {
     private let _failedURLs = OSAllocatedUnfairLock(initialState: Set<URL>())
 
     func recordFailure(for url: URL) {
-        _failedURLs.withLock { $0.insert(url) }
+        _failedURLs.withLock { _ = $0.insert(url) }
     }
 
     func hasFailed(_ url: URL) -> Bool {
