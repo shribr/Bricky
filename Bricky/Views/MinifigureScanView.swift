@@ -30,6 +30,7 @@ struct MinifigureScanView: View {
     /// has visual proof the step ran.
     @State private var enhanceWasApplied = false
     @State private var hybridAnalysis: HybridFigureAnalyzer.Analysis?
+    @State private var showSubjectFullScreen = false
 
     var body: some View {
         ZStack {
@@ -401,9 +402,8 @@ struct MinifigureScanView: View {
                 // confidently-stated nonsense like "the hair piece
                 // matches Catwoman" on a bald figure, because every
                 // region's colors are equally close to every
-                // candidate's. Skip the analyzer entirely in that
-                // case so the user just sees the (admittedly weak)
-                // result list without misleading hybrid commentary.
+                // candidate's. Skip the detailed analyzer in that
+                // case but still provide a basic observation.
                 let topConfidence = result.first?.confidence ?? 0
                 let shouldAnalyzeHybrid = topConfidence >= 0.65
                 if shouldAnalyzeHybrid {
@@ -416,6 +416,16 @@ struct MinifigureScanView: View {
                         candidates: analyzerCandidates
                     )
                     hybridAnalysis = analysis
+                } else if let topFig = analyzerCandidates.first?.figure {
+                    // Low-confidence fallback — still show what the model observed.
+                    hybridAnalysis = HybridFigureAnalyzer.Analysis(
+                        isLikelyHybrid: false,
+                        anchorFigure: topFig,
+                        findings: [],
+                        unexpectedYellowHands: false,
+                        summary: "Low confidence match",
+                        detail: "The closest match is \(topFig.name) (\(topFig.theme)), but the confidence is low. Try scanning with better lighting or a closer crop."
+                    )
                 } else {
                     hybridAnalysis = nil
                 }
@@ -457,8 +467,36 @@ struct MinifigureScanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
+                    // Enhanced subject photo — tap for full-screen view.
+                    if let img = capturedImage {
+                        Button {
+                            showSubjectFullScreen = true
+                        } label: {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 180)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .cornerRadius(14)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                                )
+                                .overlay(alignment: .bottomLeading) {
+                                    Text("Your scan")
+                                        .font(.caption2.weight(.semibold))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(.ultraThinMaterial, in: Capsule())
+                                        .padding(8)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     if let hybrid = hybridAnalysis {
-                        hybridBanner(hybrid)
+                        analysisBanner(hybrid)
                     }
 
                     if resolvedCandidates.isEmpty {
@@ -512,6 +550,9 @@ struct MinifigureScanView: View {
             }
         }
         .presentationDetents([.large])
+        .fullScreenCover(isPresented: $showSubjectFullScreen) {
+            SubjectFullScreenView(image: capturedImage)
+        }
         // Confirmation + add-to-catalog sheets are attached HERE, on the
         // results sheet — not on the underlying scan view. iOS won't
         // present a sheet from a view that's already presenting one.
@@ -603,13 +644,16 @@ struct MinifigureScanView: View {
         }
     }
 
-    // MARK: - Hybrid banner
+    // MARK: - Analysis banner
 
-    private func hybridBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func analysisBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {
+        let isHybrid = analysis.isLikelyHybrid
+        let tintColor: Color = isHybrid ? .orange : .blue
+        let icon = isHybrid ? "exclamationmark.triangle.fill" : "eye.fill"
+        return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                Image(systemName: icon)
+                    .foregroundStyle(tintColor)
                 Text(analysis.summary)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -623,11 +667,11 @@ struct MinifigureScanView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.12))
+                .fill(tintColor.opacity(0.12))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+                .strokeBorder(tintColor.opacity(0.35), lineWidth: 1)
         )
     }
 
@@ -750,6 +794,34 @@ private struct AddToCatalogCornerButton: View {
 
     private var foregroundColor: Color {
         colorScheme == .dark ? Color.black : Color.white
+    }
+}
+
+// MARK: - Subject full-screen viewer
+
+private struct SubjectFullScreenView: View {
+    let image: UIImage?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+                    .padding()
+            }
+        }
     }
 }
 

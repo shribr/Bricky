@@ -651,12 +651,20 @@ final class MinifigureIdentificationService {
 
         let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
         var merged = fastResults
-        let injectionThreshold: Float = 0.70
+        let injectionThreshold: Float = 0.50
 
         // Torso embedding hits.
         if torsoService.isAvailable {
             let hits = await torsoService.nearestFigures(for: torsoCG, topK: 16)
+            if let top = hits.first {
+                print("[TorsoEmbed] top-1 cosine=\(top.cosine) id=\(top.figureId)  |  threshold=\(injectionThreshold)")
+            }
+            if hits.count >= 5 {
+                let top5 = hits.prefix(5).map { String(format: "%.3f", $0.cosine) }.joined(separator: ", ")
+                print("[TorsoEmbed] top-5 cosines: \(top5)")
+            }
             let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
+            print("[TorsoEmbed] \(usefulHits.count)/\(hits.count) hits pass threshold \(injectionThreshold)")
             for hit in usefulHits where !existingIds.contains(hit.figureId) {
                 guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }
                 let normalized = Double((hit.cosine - injectionThreshold) / (1.0 - injectionThreshold))
@@ -675,10 +683,14 @@ final class MinifigureIdentificationService {
         // scanning a distinctive face like a unique licensed character).
         // Face hits get a lower weight than torso because many faces are
         // generic; the threshold is slightly higher to reduce noise.
-        let faceInjectionThreshold: Float = 0.72
+        let faceInjectionThreshold: Float = 0.50
         if faceService.isAvailable, let faceCG {
             let hits = await faceService.nearestFigures(for: faceCG, topK: 8)
+            if let top = hits.first {
+                print("[FaceEmbed] top-1 cosine=\(top.cosine) id=\(top.figureId)  |  threshold=\(faceInjectionThreshold)")
+            }
             let usefulHits = hits.filter { $0.cosine >= faceInjectionThreshold }
+            print("[FaceEmbed] \(usefulHits.count)/\(hits.count) hits pass threshold \(faceInjectionThreshold)")
             let mergedIds = Set(merged.compactMap { $0.figure?.id })
             for hit in usefulHits where !mergedIds.contains(hit.figureId) {
                 guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }

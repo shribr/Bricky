@@ -503,23 +503,36 @@ enum HybridFigureAnalyzer {
         let matchedCount = findings.filter { $0.kind == .matchesAnchor }.count
         let anomalyCount = findings.filter { $0.kind != .matchesAnchor }.count
         let handMismatchOnly = unexpectedYellowHands && matchedCount >= 2 && anomalyCount == 0
-        guard (matchedCount > 0 && anomalyCount > 0) || handMismatchOnly else {
-            return nil
+        let isHybrid = (matchedCount > 0 && anomalyCount > 0) || handMismatchOnly
+
+        if isHybrid {
+            let (summary, detail) = messageFor(
+                anchor: anchorCandidate.figure,
+                findings: findings,
+                unexpectedYellowHands: unexpectedYellowHands
+            )
+            return Analysis(
+                isLikelyHybrid: true,
+                anchorFigure: anchorCandidate.figure,
+                findings: findings,
+                unexpectedYellowHands: unexpectedYellowHands,
+                summary: summary,
+                detail: detail
+            )
         }
 
-        let (summary, detail) = messageFor(
+        // Clean match — all regions consistent with the anchor figure.
+        let (cleanSummary, cleanDetail) = cleanMatchMessage(
             anchor: anchorCandidate.figure,
-            findings: findings,
-            unexpectedYellowHands: unexpectedYellowHands
+            findings: findings
         )
-
         return Analysis(
-            isLikelyHybrid: true,
+            isLikelyHybrid: false,
             anchorFigure: anchorCandidate.figure,
             findings: findings,
-            unexpectedYellowHands: unexpectedYellowHands,
-            summary: summary,
-            detail: detail
+            unexpectedYellowHands: false,
+            summary: cleanSummary,
+            detail: cleanDetail
         )
     }
 
@@ -877,6 +890,29 @@ enum HybridFigureAnalyzer {
         let detail = "\(anchorPhrase) (\(anchor.theme)\(yearSuffix)). " +
             issuesSentence +
             mixedSuffix
+        return (summary, detail)
+    }
+
+    /// Build summary + detail for a clean (non-hybrid) match.
+    private static func cleanMatchMessage(
+        anchor: Minifigure,
+        findings: [Analysis.RegionFinding]
+    ) -> (summary: String, detail: String) {
+        let matchedRegions = findings
+            .filter { $0.kind == .matchesAnchor }
+            .map { $0.region.displayName }
+        let yearSuffix = anchor.year > 0 ? ", \(anchor.year)" : ""
+        let regionList: String
+        switch matchedRegions.count {
+        case 0: regionList = "overall appearance"
+        case 1: regionList = matchedRegions[0]
+        case 2: regionList = "\(matchedRegions[0]) and \(matchedRegions[1])"
+        default:
+            let head = matchedRegions.dropLast().joined(separator: ", ")
+            regionList = "\(head), and \(matchedRegions.last!)"
+        }
+        let summary = "Consistent match — \(anchor.name)"
+        let detail = "The \(regionList) all appear consistent with \(anchor.name) (\(anchor.theme)\(yearSuffix))."
         return (summary, detail)
     }
 
