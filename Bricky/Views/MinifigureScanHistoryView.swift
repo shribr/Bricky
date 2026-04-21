@@ -276,24 +276,37 @@ private struct MinifigureScanHistoryDetailSheet: View {
     let entry: MinifigureScanHistoryStore.ScanEntry
     var onRescan: ((MinifigureScanHistoryStore.ScanEntry) -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @State private var showFullScreenImage = false
 
     private var hasCapturedImage: Bool {
         MinifigureScanHistoryStore.shared.capturedImage(for: entry) != nil
+    }
+
+    private var capturedImage: UIImage? {
+        MinifigureScanHistoryStore.shared.capturedImage(for: entry)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Analysis-style banner with embedded scan photo
+                    analysisBanner
+
                     // Side-by-side images
                     HStack(alignment: .top, spacing: 12) {
                         imageTile(title: "Your Scan") {
-                            if let image = MinifigureScanHistoryStore.shared.capturedImage(for: entry) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .clipped()
+                            if let image = capturedImage {
+                                Button {
+                                    showFullScreenImage = true
+                                } label: {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .clipped()
+                                }
+                                .buttonStyle(.plain)
                             } else {
                                 Image(systemName: "camera")
                                     .font(.title)
@@ -349,12 +362,7 @@ private struct MinifigureScanHistoryDetailSheet: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
 
-                        if !entry.reasoning.isEmpty {
-                            Text(entry.reasoning)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 2)
-                        }
+
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
@@ -393,6 +401,60 @@ private struct MinifigureScanHistoryDetailSheet: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Color(.systemGroupedBackground))
+        .fullScreenCover(isPresented: $showFullScreenImage) {
+            SubjectFullScreenView(image: capturedImage)
+        }
+    }
+
+    // MARK: - Analysis banner
+
+    private var analysisBanner: some View {
+        Button {
+            if capturedImage != nil {
+                showFullScreenImage = true
+            }
+        } label: {
+            HStack(spacing: 12) {
+                if let img = capturedImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 70, height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                        )
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(entry.minifigureName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                    }
+                    if !entry.reasoning.isEmpty {
+                        Text(entry.reasoning)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.orange.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func imageTile<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {

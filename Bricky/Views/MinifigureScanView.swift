@@ -786,7 +786,7 @@ private struct AddToCatalogCornerButton: View {
 
 // MARK: - Subject full-screen viewer
 
-private struct SubjectFullScreenView: View {
+struct SubjectFullScreenView: View {
     let image: UIImage?
     @Environment(\.dismiss) private var dismiss
 
