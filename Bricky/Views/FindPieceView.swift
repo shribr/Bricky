@@ -103,8 +103,9 @@ struct FindPieceView: View {
             // is in AR World Tracking mode, `viewModel.setupCamera()` would
             // configure the AR session and the regular preview would stay
             // black).
-            viewModel.cameraManager.checkPermissions()
-            viewModel.startFindPiece(piece)
+            viewModel.cameraManager.configureAndStart { [weak viewModel] in
+                viewModel?.startFindPiece(piece)
+            }
         }
         .onDisappear {
             viewModel.stopFindPiece()
