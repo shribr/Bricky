@@ -534,6 +534,7 @@ struct MinifigureScanView: View {
                     figure: fig,
                     candidate: candidate,
                     capturedImage: capturedImage,
+                    analysisDetail: hybridAnalysis,
                     onConfirm: {
                         MinifigureCollectionStore.shared.markScanned(fig.id)
                         MinifigureScanHistoryStore.shared.record(

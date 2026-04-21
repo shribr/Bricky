@@ -8,6 +8,7 @@ struct MinifigureConfirmationSheet: View {
     let figure: Minifigure
     let candidate: MinifigureIdentificationService.ResolvedCandidate
     let capturedImage: UIImage?
+    var analysisDetail: HybridFigureAnalyzer.Analysis?
     let onConfirm: () -> Void
     let onReject: () -> Void
 
@@ -21,6 +22,7 @@ struct MinifigureConfirmationSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
+                    analysisBanner
                     headerRow
                     catalogHeroCard
                     detailsCard
@@ -172,6 +174,52 @@ struct MinifigureConfirmationSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+    }
+
+    private var analysisBanner: some View {
+        Group {
+            if let analysis = analysisDetail {
+                Button { showZoomCaptured = true } label: {
+                    HStack(spacing: 12) {
+                        if let img = capturedImage {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 70, height: 90)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                                )
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text(analysis.summary)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                            }
+                            Text(analysis.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.12))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private var actionsRow: some View {
