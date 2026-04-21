@@ -59,6 +59,11 @@ struct HomeView: View {
                 // Minifigures
                 minifiguresSection
 
+                // Minifigure scan history
+                if !MinifigureScanHistoryStore.shared.entries.isEmpty {
+                    minifigureScanHistorySection
+                }
+
                 // How it works
                 howItWorks
             }
@@ -887,6 +892,105 @@ struct HomeView: View {
         .frame(width: 100)
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(.regularMaterial))
+    }
+
+    // MARK: - Minifigure Scan History
+
+    @ViewBuilder
+    private var minifigureScanHistorySection: some View {
+        let historyStore = MinifigureScanHistoryStore.shared
+        let recentEntries = Array(historyStore.entries.prefix(4))
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Minifigure Scans")
+                    .font(.headline)
+                Spacer()
+                NavigationLink {
+                    MinifigureScanHistoryView()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "list.bullet")
+                        Text("View All (\(historyStore.entries.count))")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(themeManager.colorTheme.primary)
+                }
+            }
+
+            ForEach(recentEntries) { entry in
+                NavigationLink {
+                    MinifigureScanHistoryView()
+                } label: {
+                    minifigureScanEntryRow(entry)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func minifigureScanEntryRow(_ entry: MinifigureScanHistoryStore.ScanEntry) -> some View {
+        HStack(spacing: 12) {
+            if let img = MinifigureScanHistoryStore.shared.capturedImage(for: entry) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 56, height: 64)
+                    .overlay {
+                        Image(systemName: "camera")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.minifigureName)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if !entry.theme.isEmpty {
+                        Text(entry.theme)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(entry.date, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                if !entry.reasoning.isEmpty {
+                    Text(entry.reasoning)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 2) {
+                Text("\(Int(entry.confidence * 100))%")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(entry.confidence >= 0.75 ? .green : entry.confidence >= 0.5 ? .orange : .red)
+                Text("match")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
     }
 
     // MARK: - How It Works
