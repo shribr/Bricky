@@ -66,7 +66,7 @@ final class CameraViewModel: ObservableObject {
     /// Minimum confidence for auto-captured pieces
     private static let autoCaptureMinConfidence: Float = 0.5
     /// How often to snapshot the frame for location mapping
-    private static let frameSnapshotInterval: TimeInterval = 0.5
+    nonisolated private static let frameSnapshotInterval: TimeInterval = 0.5
     /// Throttle auto-save to avoid excessive writes
     private var lastAutoSaveTime: Date = .distantPast
 

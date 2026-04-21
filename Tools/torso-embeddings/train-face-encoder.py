@@ -127,6 +127,11 @@ def main() -> int:
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--checkpoint-dir", type=Path, default=None,
+                        help="Directory for periodic checkpoints (e.g. Google Drive path). "
+                             "Saves every 5 epochs so training survives disconnects.")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume from the latest checkpoint in --checkpoint-dir.")
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -142,10 +147,30 @@ def main() -> int:
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=args.epochs)
 
-    print(f"Training FACE encoder on {len(dataset)} face crops, {args.epochs} epochs, batch={args.batch_size}", flush=True)
-
+    # ── Resume from checkpoint if requested ──
+    start_epoch = 0
     history = []
-    for epoch in range(args.epochs):
+    if args.resume and args.checkpoint_dir:
+        ckpts = sorted(args.checkpoint_dir.glob("face_checkpoint_epoch*.pt"))
+        if ckpts:
+            latest = ckpts[-1]
+            print(f"Resuming from {latest}", flush=True)
+            ckpt = torch.load(latest, map_location=args.device)
+            model.load_state_dict(ckpt["model_state_dict"])
+            optim.load_state_dict(ckpt["optim_state_dict"])
+            sched.load_state_dict(ckpt["sched_state_dict"])
+            start_epoch = ckpt["epoch"] + 1
+            history = ckpt.get("history", [])
+            print(f"  Resumed at epoch {start_epoch}, loss was {history[-1]['loss']:.4f}", flush=True)
+        else:
+            print("--resume set but no checkpoints found, starting fresh", flush=True)
+
+    if args.checkpoint_dir:
+        args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Training FACE encoder on {len(dataset)} face crops, epochs {start_epoch+1}..{args.epochs}, batch={args.batch_size}", flush=True)
+
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         t0 = time.time()
         running = 0.0
@@ -194,6 +219,19 @@ def main() -> int:
 
         history.append({"epoch": epoch, "loss": avg_loss, "secs": time.time() - t0})
         print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}{cos_stats}  ({history[-1]['secs']:.1f}s)", flush=True)
+
+        # Save checkpoint every 5 epochs (and the final epoch) to survive disconnects.
+        if args.checkpoint_dir and ((epoch + 1) % 5 == 0 or epoch == args.epochs - 1):
+            ckpt_path = args.checkpoint_dir / f"face_checkpoint_epoch{epoch:03d}.pt"
+            torch.save({
+                "epoch": epoch,
+                "model_state_dict": model.state_dict(),
+                "optim_state_dict": optim.state_dict(),
+                "sched_state_dict": sched.state_dict(),
+                "embed_dim": EMBED_DIM,
+                "history": history,
+            }, ckpt_path)
+            print(f"  ✔ Checkpoint saved to {ckpt_path}", flush=True)
 
     out_pt = args.output / "face_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "embed_dim": EMBED_DIM}, out_pt)

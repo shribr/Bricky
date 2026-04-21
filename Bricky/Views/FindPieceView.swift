@@ -104,7 +104,9 @@ struct FindPieceView: View {
             // configure the AR session and the regular preview would stay
             // black).
             viewModel.cameraManager.configureAndStart { [weak viewModel] in
-                viewModel?.startFindPiece(piece)
+                Task { @MainActor in
+                    viewModel?.startFindPiece(piece)
+                }
             }
         }
         .onDisappear {
