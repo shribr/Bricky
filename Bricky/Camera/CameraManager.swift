@@ -39,13 +39,19 @@ final class CameraManager: NSObject, ObservableObject {
     }
 
     func checkPermissions() {
+        checkPermissions(completion: nil)
+    }
+
+    /// Check camera permissions, configure the session if authorized,
+    /// and call `completion` on the main queue once the session is running.
+    private func checkPermissions(completion: (@Sendable () -> Void)?) {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            configureSession()
+            configureSession(completion: completion)
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 if granted {
-                    self?.configureSession()
+                    self?.configureSession(completion: completion)
                 } else {
                     DispatchQueue.main.async {
                         self?.error = .permissionDenied
@@ -61,7 +67,7 @@ final class CameraManager: NSObject, ObservableObject {
         }
     }
 
-    private func configureSession() {
+    private func configureSession(completion: (@Sendable () -> Void)? = nil) {
         sessionQueue.async { [weak self] in
             guard let self else { return }
 
@@ -70,9 +76,10 @@ final class CameraManager: NSObject, ObservableObject {
                 // Already configured — just ensure it's running
                 if !self.session.isRunning {
                     self.session.startRunning()
-                    DispatchQueue.main.async {
-                        self.isSessionRunning = self.session.isRunning
-                    }
+                }
+                DispatchQueue.main.async {
+                    self.isSessionRunning = self.session.isRunning
+                    completion?()
                 }
                 return
             }
@@ -142,6 +149,7 @@ final class CameraManager: NSObject, ObservableObject {
             self.session.startRunning()
             DispatchQueue.main.async {
                 self.isSessionRunning = self.session.isRunning
+                completion?()
             }
         }
     }
@@ -159,12 +167,7 @@ final class CameraManager: NSObject, ObservableObject {
     /// Configure the camera (if needed) and start the session, then call
     /// `completion` on the main queue once frames are flowing.
     func configureAndStart(completion: @escaping @Sendable () -> Void) {
-        checkPermissions()
-        sessionQueue.async {
-            DispatchQueue.main.async {
-                completion()
-            }
-        }
+        checkPermissions(completion: completion)
     }
 
     func stopSession() {

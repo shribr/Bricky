@@ -18,6 +18,7 @@ struct MinifigureCorrectionPicker: View {
     @State private var selectedTheme: String?
     @State private var showAddCustomFigure = false
     @State private var showTagsSheet = false
+    @State private var profileFigure: Minifigure?
     @FocusState private var searchFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -340,12 +341,26 @@ struct MinifigureCorrectionPicker: View {
             }
         }
         .listStyle(.plain)
+        .navigationDestination(item: $profileFigure) { fig in
+            CorrectionFigureProfileView(
+                figure: fig,
+                isSelected: selectedIds.contains(fig.id),
+                onConfirm: {
+                    selectedIds.insert(fig.id)
+                    profileFigure = nil
+                },
+                onRemove: {
+                    selectedIds.remove(fig.id)
+                    profileFigure = nil
+                }
+            )
+        }
     }
 
     @ViewBuilder
     private func figureRow(_ fig: Minifigure) -> some View {
         Button {
-            toggleSelection(fig.id)
+            profileFigure = fig
         } label: {
             HStack(spacing: 12) {
                 ZStack(alignment: .bottomTrailing) {
@@ -379,6 +394,10 @@ struct MinifigureCorrectionPicker: View {
                             .font(.body.weight(.semibold))
                             .foregroundStyle(.green)
                     }
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)
@@ -432,5 +451,152 @@ struct MinifigureCorrectionPicker: View {
         isSaving = false
         onDone()
         dismiss()
+    }
+}
+
+// MARK: - Figure Profile for Correction Flow
+
+/// Full-screen profile shown when the user taps a figure in the correction
+/// picker. Shows a large tappable image, figure details, and a Confirm /
+/// Remove button so the user can inspect before committing.
+struct CorrectionFigureProfileView: View {
+    let figure: Minifigure
+    let isSelected: Bool
+    let onConfirm: () -> Void
+    let onRemove: () -> Void
+
+    @State private var showZoomImage = false
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Tappable image
+                Button {
+                    showZoomImage = true
+                } label: {
+                    ZStack(alignment: .bottomTrailing) {
+                        MinifigureImageView(url: figure.imageURL)
+                            .frame(maxHeight: 280)
+                            .frame(maxWidth: .infinity)
+                        Image(systemName: "magnifyingglass.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white, .black.opacity(0.55))
+                            .padding(10)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View \(figure.name) full size")
+
+                // Name + metadata
+                VStack(spacing: 8) {
+                    Text(figure.name)
+                        .font(.title2.weight(.semibold))
+                        .multilineTextAlignment(.center)
+
+                    HStack(spacing: 12) {
+                        Label(figure.theme, systemImage: "tag.fill")
+                        if figure.year > 0 {
+                            Label("\(figure.year)", systemImage: "calendar")
+                        }
+                        Label("\(figure.partCount) parts", systemImage: "cube.fill")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    Text(figure.id)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+
+                // Parts list
+                if !figure.requiredParts.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Parts")
+                            .font(.headline)
+                            .padding(.horizontal)
+
+                        ForEach(figure.requiredParts, id: \.self) { part in
+                            HStack(spacing: 12) {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.legoColor(part.legoColor))
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        Image(systemName: part.slot.systemImage)
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundStyle(
+                                                Color.bestForegroundOn(Color.legoColor(part.legoColor))
+                                            )
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(part.displayName)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                    Text("\(part.color) · \(part.partNumber)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.regularMaterial)
+                    )
+                }
+
+                // External links
+                VStack(spacing: 10) {
+                    Button {
+                        if let url = BrickLinkService.rebrickableMinifigureURL(figure.id) {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label("View on Rebrickable", systemImage: "link")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.regularMaterial)
+                            )
+                    }
+                }
+            }
+            .padding()
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Confirm / Remove button pinned to bottom
+            Button {
+                if isSelected {
+                    onRemove()
+                } else {
+                    onConfirm()
+                }
+            } label: {
+                Label(
+                    isSelected ? "Remove Match" : "Confirm Match",
+                    systemImage: isSelected ? "xmark.circle.fill" : "checkmark.circle.fill"
+                )
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(isSelected ? Color.red : Color.blue)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+            .background(.ultraThinMaterial)
+        }
+        .navigationTitle(figure.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showZoomImage) {
+            ZoomableImageView(url: figure.imageURL, title: figure.name)
+        }
     }
 }
