@@ -54,14 +54,23 @@ def load_catalog() -> list[dict]:
     return [f for f in figs if (f.get("imgURL") or "").strip()]
 
 
-def download(url: str, timeout: float = 15) -> bytes | None:
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.read()
-    except Exception as e:
-        print(f"  ! download failed: {url} ({e})", file=sys.stderr)
-        return None
+def download(url: str, timeout: float = 10, retries: int = 2) -> bytes | None:
+    import socket
+    for attempt in range(1, retries + 1):
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(timeout)
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except Exception as e:
+            print(f"  ! download failed (attempt {attempt}): {url} ({e})",
+                  file=sys.stderr, flush=True)
+            if attempt < retries:
+                time.sleep(2 * attempt)  # back off before retry
+        finally:
+            socket.setdefaulttimeout(old_timeout)
+    return None
 
 
 def crop_torso(raw: bytes) -> Image.Image | None:
@@ -122,7 +131,7 @@ def main() -> int:
         crop.save(out_path, "JPEG", quality=85)
         manifest.append({"id": fig_id, "name": fig.get("name", "")})
         if (i + 1) % 100 == 0:
-            print(f"  {i + 1}/{len(figures)} processed ({skipped} skipped)")
+            print(f"  {i + 1}/{len(figures)} processed ({skipped} skipped)", flush=True)
         time.sleep(args.sleep)
 
     manifest_path = out_root / "manifest.json"
