@@ -140,7 +140,7 @@ def main() -> int:
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=args.epochs)
 
-    print(f"Training FACE encoder on {len(dataset)} face crops, {args.epochs} epochs, batch={args.batch_size}")
+    print(f"Training FACE encoder on {len(dataset)} face crops, {args.epochs} epochs, batch={args.batch_size}", flush=True)
 
     history = []
     for epoch in range(args.epochs):
@@ -162,7 +162,7 @@ def main() -> int:
         sched.step()
         avg_loss = running / max(n, 1)
         history.append({"epoch": epoch, "loss": avg_loss, "secs": time.time() - t0})
-        print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}  ({history[-1]['secs']:.1f}s)")
+        print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}  ({history[-1]['secs']:.1f}s)", flush=True)
 
     out_pt = args.output / "face_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "embed_dim": EMBED_DIM}, out_pt)
@@ -174,7 +174,7 @@ def main() -> int:
         "history": history,
     }
     (args.output / "training_metadata.json").write_text(json.dumps(meta, indent=2))
-    print(f"Wrote face encoder to {out_pt}")
+    print(f"Wrote face encoder to {out_pt}", flush=True)
     return 0
 
 
