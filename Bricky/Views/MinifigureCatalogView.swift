@@ -277,9 +277,15 @@ struct MinifigureCatalogView: View {
         switch imageFilter {
         case .all: break
         case .withImages:
-            results = results.filter { $0.imageURL != nil }
+            results = results.filter { fig in
+                guard let url = fig.imageURL else { return false }
+                return !MinifigureImageCache.shared.hasFailed(url)
+            }
         case .missingImages:
-            results = results.filter { $0.imageURL == nil }
+            results = results.filter { fig in
+                guard let url = fig.imageURL else { return true }
+                return MinifigureImageCache.shared.hasFailed(url)
+            }
         }
 
         if sort == .completionDesc {

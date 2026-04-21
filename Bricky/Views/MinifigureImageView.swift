@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 import UIKit
 
@@ -72,10 +73,12 @@ struct MinifigureImageView: View {
             req.timeoutInterval = 20
             let (data, response) = try await URLSession.shared.data(for: req)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                MinifigureImageCache.shared.recordFailure(for: url)
                 self.failed = true
                 return
             }
             guard let img = UIImage(data: data) else {
+                MinifigureImageCache.shared.recordFailure(for: url)
                 self.failed = true
                 return
             }
@@ -83,6 +86,7 @@ struct MinifigureImageView: View {
             self.image = img
         } catch {
             if Task.isCancelled { return }
+            MinifigureImageCache.shared.recordFailure(for: url)
             self.failed = true
         }
     }
@@ -133,6 +137,24 @@ final class MinifigureImageCache {
     private let cache = NSCache<NSURL, UIImage>()
     private let diskQueue = DispatchQueue(label: "com.bricky.minifigImageCache.disk", qos: .utility)
     private let diskDirectory: URL
+
+    /// URLs that returned non-200, threw an error, or produced non-decodable
+    /// data during the current session.  Used by the "Missing Images" catalog
+    /// filter so it can catch dead CDN links that still have a non-nil URL in
+    /// the catalog JSON.  Thread-safe via `OSAllocatedUnfairLock`.
+    private let _failedURLs = OSAllocatedUnfairLock(initialState: Set<URL>())
+
+    func recordFailure(for url: URL) {
+        _failedURLs.withLock { $0.insert(url) }
+    }
+
+    func hasFailed(_ url: URL) -> Bool {
+        _failedURLs.withLock { $0.contains(url) }
+    }
+
+    var failedURLCount: Int {
+        _failedURLs.withLock { $0.count }
+    }
 
     private init() {
         cache.countLimit = 500              // ~500 figures in memory
