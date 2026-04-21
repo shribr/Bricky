@@ -651,7 +651,7 @@ final class MinifigureIdentificationService {
 
         let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
         var merged = fastResults
-        let injectionThreshold: Float = 0.55
+        let injectionThreshold: Float = 0.70
 
         // Torso embedding hits.
         if torsoService.isAvailable {
@@ -675,7 +675,7 @@ final class MinifigureIdentificationService {
         // scanning a distinctive face like a unique licensed character).
         // Face hits get a lower weight than torso because many faces are
         // generic; the threshold is slightly higher to reduce noise.
-        let faceInjectionThreshold: Float = 0.60
+        let faceInjectionThreshold: Float = 0.72
         if faceService.isAvailable, let faceCG {
             let hits = await faceService.nearestFigures(for: faceCG, topK: 8)
             let usefulHits = hits.filter { $0.cosine >= faceInjectionThreshold }

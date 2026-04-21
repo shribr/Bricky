@@ -90,10 +90,18 @@ def main() -> int:
     matrix = np.concatenate(embeddings, axis=0).astype(np.float32)
     print(f"Encoded {matrix.shape[0]} faces → embedding dim {matrix.shape[1]}", flush=True)
 
-    # ── Mean-centering ──
-    # Subtract the mean embedding and re-normalize to spread the
-    # cosine similarity distribution (same approach as torso pipeline).
-    mean_vec = matrix.mean(axis=0, keepdims=True)
+    # ── Norm-capped mean-centering ──
+    # Same approach as torso pipeline: cap the mean vector's norm to
+    # avoid over-compressing the embedding space.
+    MAX_MEAN_NORM = 0.25
+    raw_mean = matrix.mean(axis=0, keepdims=True)
+    raw_norm = float(np.linalg.norm(raw_mean))
+    if raw_norm > MAX_MEAN_NORM:
+        mean_vec = raw_mean * (MAX_MEAN_NORM / raw_norm)
+        print(f"Mean vector norm {raw_norm:.4f} → capped to {MAX_MEAN_NORM}", flush=True)
+    else:
+        mean_vec = raw_mean
+        print(f"Mean vector norm {raw_norm:.4f} (within cap {MAX_MEAN_NORM})", flush=True)
     matrix -= mean_vec
     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
     norms = np.maximum(norms, 1e-8)
@@ -105,7 +113,7 @@ def main() -> int:
     sims = np.array([np.dot(matrix[a], matrix[b]) for a, b in idx])
     print(f"Post-centering random-pair cosine: mean={sims.mean():.4f} std={sims.std():.4f}", flush=True)
 
-    # Save the mean vector for the iOS runtime.
+    # Save the (capped) mean vector for the iOS runtime.
     mean_path = args.output / "face_embeddings_mean.bin"
     mean_vec.astype(np.float32).tofile(mean_path)
     print(f"Wrote mean vector to {mean_path}", flush=True)

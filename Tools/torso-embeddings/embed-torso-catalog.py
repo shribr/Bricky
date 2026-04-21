@@ -109,13 +109,25 @@ def main() -> int:
     matrix = np.concatenate(embeddings, axis=0).astype(np.float32)  # N × D
     print(f"Encoded {matrix.shape[0]} torsos → embedding dim {matrix.shape[1]}", flush=True)
 
-    # ── Mean-centering ──
-    # The backbone's L2-normalized output often has a large common
-    # component (the "mean direction") that compresses the cosine
-    # similarity range of all pairs toward a high baseline (~0.6).
-    # Subtracting the mean vector and re-normalizing spreads the
-    # distribution and makes cosine-NN far more discriminative.
-    mean_vec = matrix.mean(axis=0, keepdims=True)
+    # ── Norm-capped mean-centering ──
+    # The backbone's L2-normalized output has a large common component
+    # (the "mean direction") that compresses cosine similarity range.
+    # However, subtracting the FULL mean (norm often ~0.7) is too
+    # aggressive — it collapses the space and causes 1000+ figures to
+    # pass any reasonable threshold for any query.
+    #
+    # Instead we cap the mean vector's norm to MAX_MEAN_NORM. This
+    # removes just the dominant shared direction while preserving the
+    # discriminative structure of the embedding space.
+    MAX_MEAN_NORM = 0.25
+    raw_mean = matrix.mean(axis=0, keepdims=True)
+    raw_norm = float(np.linalg.norm(raw_mean))
+    if raw_norm > MAX_MEAN_NORM:
+        mean_vec = raw_mean * (MAX_MEAN_NORM / raw_norm)
+        print(f"Mean vector norm {raw_norm:.4f} → capped to {MAX_MEAN_NORM}", flush=True)
+    else:
+        mean_vec = raw_mean
+        print(f"Mean vector norm {raw_norm:.4f} (within cap {MAX_MEAN_NORM})", flush=True)
     matrix -= mean_vec
     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
     norms = np.maximum(norms, 1e-8)
@@ -127,8 +139,8 @@ def main() -> int:
     sims = np.array([np.dot(matrix[a], matrix[b]) for a, b in idx])
     print(f"Post-centering random-pair cosine: mean={sims.mean():.4f} std={sims.std():.4f}", flush=True)
 
-    # Save the mean vector so the iOS runtime can apply the same
-    # transform to query embeddings at scan time.
+    # Save the (capped) mean vector so the iOS runtime can apply the
+    # same transform to query embeddings at scan time.
     mean_path = args.output / "torso_embeddings_mean.bin"
     mean_vec.astype(np.float32).tofile(mean_path)
     print(f"Wrote mean vector to {mean_path}", flush=True)
