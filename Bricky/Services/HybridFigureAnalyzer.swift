@@ -96,10 +96,10 @@ enum HybridFigureAnalyzer {
 
     // MARK: - Public API
 
-    /// Embedding-enhanced analysis. When the trained head encoder is
-    /// available, uses it for precise per-region attribution — the head
-    /// embedding can tell you *which specific figure* a swapped head
-    /// belongs to, not just "the head doesn't match." Falls back to
+    /// Embedding-enhanced analysis. When the trained face encoder is
+    /// available, uses it for precise per-region attribution — the face
+    /// embedding can tell you *which specific figure* a swapped face
+    /// belongs to, not just "the face doesn't match." Falls back to
     /// the color-only path when the encoder isn't bundled.
     ///
     /// Also adds legs attribution when the torso embedding is available,
@@ -122,9 +122,9 @@ enum HybridFigureAnalyzer {
         }
 
         // If no embedding services are available, return color-only.
-        let headService = HeadEmbeddingService.shared
+        let faceService = FaceEmbeddingService.shared
         let torsoService = TorsoEmbeddingService.shared
-        guard headService.isAvailable || torsoService.isAvailable else {
+        guard faceService.isAvailable || torsoService.isAvailable else {
             return colorAnalysis
         }
 
@@ -139,10 +139,10 @@ enum HybridFigureAnalyzer {
         for (idx, finding) in enhanced.enumerated() {
             guard finding.kind == .unknownMismatch else { continue }
 
-            if finding.region == .head, headService.isAvailable {
+            if finding.region == .head, faceService.isAvailable {
                 let headCG = cropRegion(.head, from: capturedCG)
                 if let headCG,
-                   let match = await attributeViaHeadEmbedding(
+                   let match = await attributeViaFaceEmbedding(
                        regionCG: headCG,
                        anchor: anchorCandidate.figure,
                        candidates: candidates
@@ -185,18 +185,18 @@ enum HybridFigureAnalyzer {
         captured: UIImage,
         candidates: [Candidate]
     ) async -> Analysis? {
-        let headService = HeadEmbeddingService.shared
+        let faceService = FaceEmbeddingService.shared
         let torsoService = TorsoEmbeddingService.shared
-        guard (headService.isAvailable || torsoService.isAvailable),
+        guard (faceService.isAvailable || torsoService.isAvailable),
               let capturedCG = captured.cgImage,
               let anchorCandidate = candidates.first else { return nil }
 
         var findings: [Analysis.RegionFinding] = []
 
-        // Head embedding check: does the captured head match a
+        // Face embedding check: does the captured face match a
         // different figure than the anchor?
-        if headService.isAvailable, let headCG = cropRegion(.head, from: capturedCG) {
-            let hits = await headService.nearestFigures(for: headCG, topK: 8)
+        if faceService.isAvailable, let headCG = cropRegion(.head, from: capturedCG) {
+            let hits = await faceService.nearestFigures(for: headCG, topK: 8)
             let anchorId = anchorCandidate.figure.id
             // If the top hit isn't the anchor, the head likely belongs
             // to someone else.
@@ -251,14 +251,14 @@ enum HybridFigureAnalyzer {
         )
     }
 
-    /// Use the head embedding index to find which candidate's head
-    /// is the closest match for a captured head region.
-    private static func attributeViaHeadEmbedding(
+    /// Use the face embedding index to find which candidate's face
+    /// is the closest match for a captured face region.
+    private static func attributeViaFaceEmbedding(
         regionCG: CGImage,
         anchor: Minifigure,
         candidates: [Candidate]
     ) async -> Minifigure? {
-        let hits = await HeadEmbeddingService.shared.nearestFigures(
+        let hits = await FaceEmbeddingService.shared.nearestFigures(
             for: regionCG, topK: 16
         )
         let candidateIds = Set(candidates.map(\.figure.id))
@@ -294,8 +294,8 @@ enum HybridFigureAnalyzer {
             )
         case .head:
             rect = CGRect(
-                x: Int(Double(w) * 0.25), y: Int(Double(h) * 0.05),
-                width: Int(Double(w) * 0.50), height: Int(Double(h) * 0.30)
+                x: Int(Double(w) * 0.25), y: Int(Double(h) * 0.17),
+                width: Int(Double(w) * 0.50), height: Int(Double(h) * 0.18)
             )
         case .torso:
             rect = CGRect(

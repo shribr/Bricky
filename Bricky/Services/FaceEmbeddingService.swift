@@ -4,21 +4,22 @@ import OSLog
 import UIKit
 import Vision
 
-/// Runtime entry point for the trained head-region embedding model.
+/// Runtime entry point for the trained face-region embedding model.
 ///
-/// Parallel to `TorsoEmbeddingService` but operates on the head/helmet
-/// band (top 5–35% of the figure image). Used by the identification
-/// cascade to boost candidates with matching head prints and by the
-/// `HybridFigureAnalyzer` to detect head-swapped figures.
+/// Parallel to `TorsoEmbeddingService` but operates on the face
+/// band (17–35% of the figure image — below the hairline, above the
+/// neck). Used by the identification cascade to boost candidates with
+/// matching face prints and by the `HybridFigureAnalyzer` to detect
+/// face-swapped figures.
 ///
 /// Graceful no-op (returns `[]`) when artifacts aren't bundled.
-final class HeadEmbeddingService {
+final class FaceEmbeddingService {
 
-    static let shared = HeadEmbeddingService()
+    static let shared = FaceEmbeddingService()
 
     private static let logger = Logger(
         subsystem: "com.bricky.app",
-        category: "HeadEmbeddingService"
+        category: "FaceEmbeddingService"
     )
 
     private let visionModel: VNCoreMLModel?
@@ -27,29 +28,29 @@ final class HeadEmbeddingService {
     private init() {
         let model: VNCoreMLModel?
         if let url = Bundle.main.url(
-                forResource: "HeadEncoder",
+                forResource: "FaceEncoder",
                 withExtension: "mlmodelc",
-                subdirectory: "HeadEmbeddings"
-            ) ?? Bundle.main.url(forResource: "HeadEncoder", withExtension: "mlmodelc") {
+                subdirectory: "FaceEmbeddings"
+            ) ?? Bundle.main.url(forResource: "FaceEncoder", withExtension: "mlmodelc") {
             do {
                 let config = MLModelConfiguration()
                 config.computeUnits = .all
                 let coreModel = try MLModel(contentsOf: url, configuration: config)
                 model = try VNCoreMLModel(for: coreModel)
-                Self.logger.info("Loaded HeadEncoder.mlmodelc")
+                Self.logger.info("Loaded FaceEncoder.mlmodelc")
             } catch {
-                Self.logger.error("Failed to load HeadEncoder: \(error.localizedDescription)")
+                Self.logger.error("Failed to load FaceEncoder: \(error.localizedDescription)")
                 model = nil
             }
         } else {
-            Self.logger.info("HeadEncoder.mlmodelc not bundled — feature disabled")
+            Self.logger.info("FaceEncoder.mlmodelc not bundled — feature disabled")
             model = nil
         }
         self.visionModel = model
-        self.isAvailable = (model != nil) && HeadEmbeddingIndex.shared.isAvailable
+        self.isAvailable = (model != nil) && FaceEmbeddingIndex.shared.isAvailable
     }
 
-    func nearestFigures(for cgImage: CGImage, topK: Int = 16) async -> [HeadEmbeddingIndex.Hit] {
+    func nearestFigures(for cgImage: CGImage, topK: Int = 16) async -> [FaceEmbeddingIndex.Hit] {
         guard isAvailable, let visionModel else { return [] }
 
         let embedding: [Float]? = await Task.detached(priority: .userInitiated) {
@@ -57,7 +58,7 @@ final class HeadEmbeddingService {
         }.value
         guard let embedding else { return [] }
 
-        return HeadEmbeddingIndex.shared.nearestNeighbors(of: embedding, topK: topK)
+        return FaceEmbeddingIndex.shared.nearestNeighbors(of: embedding, topK: topK)
     }
 
     /// Encode a head crop and return the raw embedding vector.

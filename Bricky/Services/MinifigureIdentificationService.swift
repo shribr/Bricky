@@ -634,19 +634,19 @@ final class MinifigureIdentificationService {
         fastResults: [ResolvedCandidate]
     ) async -> [ResolvedCandidate] {
         let torsoService = TorsoEmbeddingService.shared
-        let headService = HeadEmbeddingService.shared
-        guard torsoService.isAvailable || headService.isAvailable else {
+        let faceService = FaceEmbeddingService.shared
+        guard torsoService.isAvailable || faceService.isAvailable else {
             return fastResults
         }
 
         // Crop regions in parallel.
-        let (torsoCG, headCG): (CGImage, CGImage?) = await Task.detached(priority: .userInitiated) { [self] in
+        let (torsoCG, faceCG): (CGImage, CGImage?) = await Task.detached(priority: .userInitiated) { [self] in
             let subject = self.cropToSalientSubject(cgImage) ?? cgImage
             let torso = self.cropVerticalBand(subject, top: 0.30, bottom: 0.70)
-            let head: CGImage? = headService.isAvailable
-                ? self.cropVerticalBand(subject, top: 0.05, bottom: 0.35)
+            let face: CGImage? = faceService.isAvailable
+                ? self.cropVerticalBand(subject, top: 0.17, bottom: 0.35)
                 : nil
-            return (torso, head)
+            return (torso, face)
         }.value
 
         let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
@@ -670,41 +670,41 @@ final class MinifigureIdentificationService {
             }
         }
 
-        // Head embedding hits — boost candidates with matching heads
+        // Face embedding hits — boost candidates with matching faces
         // or inject new candidates the torso pass missed (e.g. when
-        // scanning a distinctive helmet like Darth Vader's). Head
-        // hits get a lower weight than torso because many heads are
+        // scanning a distinctive face like a unique licensed character).
+        // Face hits get a lower weight than torso because many faces are
         // generic; the threshold is slightly higher to reduce noise.
-        let headInjectionThreshold: Float = 0.60
-        if headService.isAvailable, let headCG {
-            let hits = await headService.nearestFigures(for: headCG, topK: 8)
-            let usefulHits = hits.filter { $0.cosine >= headInjectionThreshold }
+        let faceInjectionThreshold: Float = 0.60
+        if faceService.isAvailable, let faceCG {
+            let hits = await faceService.nearestFigures(for: faceCG, topK: 8)
+            let usefulHits = hits.filter { $0.cosine >= faceInjectionThreshold }
             let mergedIds = Set(merged.compactMap { $0.figure?.id })
             for hit in usefulHits where !mergedIds.contains(hit.figureId) {
                 guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }
-                let normalized = Double((hit.cosine - headInjectionThreshold) / (1.0 - headInjectionThreshold))
+                let normalized = Double((hit.cosine - faceInjectionThreshold) / (1.0 - faceInjectionThreshold))
                 let confidence = 0.35 + max(0.0, min(1.0, normalized)) * 0.35
                 merged.append(ResolvedCandidate(
                     figure: figure,
                     modelName: figure.name,
                     confidence: confidence,
-                    reasoning: "Trained head-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
+                    reasoning: "Trained face-embedding match (cosine \(String(format: "%.2f", hit.cosine)))."
                 ))
             }
-            // Boost existing candidates that also appear in head hits.
-            // A figure matching both torso AND head is much more likely
+            // Boost existing candidates that also appear in face hits.
+            // A figure matching both torso AND face is much more likely
             // to be correct.
-            let headHitIds = Set(usefulHits.map(\.figureId))
+            let faceHitIds = Set(usefulHits.map(\.figureId))
             for i in merged.indices {
                 guard let figId = merged[i].figure?.id,
-                      headHitIds.contains(figId),
-                      !merged[i].reasoning.contains("head-embedding") else { continue }
+                      faceHitIds.contains(figId),
+                      !merged[i].reasoning.contains("face-embedding") else { continue }
                 let boosted = min(merged[i].confidence + 0.10, 0.98)
                 merged[i] = ResolvedCandidate(
                     figure: merged[i].figure,
                     modelName: merged[i].modelName,
                     confidence: boosted,
-                    reasoning: merged[i].reasoning + " Boosted by head-embedding agreement."
+                    reasoning: merged[i].reasoning + " Boosted by face-embedding agreement."
                 )
             }
         }

@@ -1,9 +1,9 @@
-"""Embed every catalog head crop using the trained head encoder and write
+"""Embed every catalog face crop using the trained face encoder and write
 the bundled vector index that ships with the iOS app.
 
-Output (under Bricky/Resources/HeadEmbeddings/):
-    head_embeddings.bin         # raw Float16 row-major matrix (N × D)
-    head_embeddings_index.json  # { "dim": D, "count": N, "ids": [...] }
+Output (under Bricky/Resources/FaceEmbeddings/):
+    face_embeddings.bin         # raw Float16 row-major matrix (N × D)
+    face_embeddings_index.json  # { "dim": D, "count": N, "ids": [...] }
 """
 
 from __future__ import annotations
@@ -25,10 +25,10 @@ except ImportError:  # pragma: no cover
 
 from importlib.machinery import SourceFileLoader  # noqa: E402
 _TRAINER = SourceFileLoader(
-    "train_head_encoder",
-    str(Path(__file__).resolve().parent / "train-head-encoder.py"),
+    "train_face_encoder",
+    str(Path(__file__).resolve().parent / "train-face-encoder.py"),
 ).load_module()
-HeadEncoder = _TRAINER.HeadEncoder
+FaceEncoder = _TRAINER.FaceEncoder
 
 
 class CropDataset(Dataset):
@@ -52,11 +52,11 @@ class CropDataset(Dataset):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path,
-                        default=Path(__file__).resolve().parent / "data-head")
+                        default=Path(__file__).resolve().parent / "data-face")
     parser.add_argument("--checkpoint", type=Path,
-                        default=Path(__file__).resolve().parent / "out-head" / "head_encoder.pt")
+                        default=Path(__file__).resolve().parent / "out-face" / "face_encoder.pt")
     parser.add_argument("--output", type=Path,
-                        default=Path(__file__).resolve().parents[2] / "Bricky" / "Resources" / "HeadEmbeddings")
+                        default=Path(__file__).resolve().parents[2] / "Bricky" / "Resources" / "FaceEmbeddings")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--device",
                         default="cuda" if torch.cuda.is_available() else "cpu")
@@ -72,10 +72,10 @@ def main() -> int:
             paths.append(p)
             ids.append(f["id"])
     if not paths:
-        sys.exit("No head crops found — run build-head-dataset.py first.")
+        sys.exit("No face crops found — run build-face-dataset.py first.")
 
     ckpt = torch.load(args.checkpoint, map_location=args.device)
-    model = HeadEncoder(embed_dim=ckpt.get("embed_dim", 256)).to(args.device)
+    model = FaceEncoder(embed_dim=ckpt.get("embed_dim", 256)).to(args.device)
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
 
@@ -88,12 +88,12 @@ def main() -> int:
             z = model.encode(xb)
             embeddings.append(z.cpu().numpy().astype(np.float16))
     matrix = np.concatenate(embeddings, axis=0)
-    print(f"Encoded {matrix.shape[0]} heads → embedding dim {matrix.shape[1]}")
+    print(f"Encoded {matrix.shape[0]} faces → embedding dim {matrix.shape[1]}")
 
     args.output.mkdir(parents=True, exist_ok=True)
-    bin_path = args.output / "head_embeddings.bin"
+    bin_path = args.output / "face_embeddings.bin"
     matrix.tofile(bin_path)
-    index_path = args.output / "head_embeddings_index.json"
+    index_path = args.output / "face_embeddings_index.json"
     index_path.write_text(json.dumps({
         "dim": int(matrix.shape[1]),
         "count": int(matrix.shape[0]),

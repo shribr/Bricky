@@ -61,28 +61,29 @@ embed-torso-catalog.py           # apply trained encoder → bin + index json
 convert-torso-encoder-coreml.py  # PyTorch → CoreML for on-device inference
 ```
 
-### Head Encoder Pipeline
+### Face Encoder Pipeline
 
-Identical architecture, trained on the head/helmet region (top 5–35%
-of the figure image). Catches distinctive headgear that the torso
-pass misses (e.g. Darth Vader's helmet, Boba Fett's T-visor).
+Identical architecture, trained on the face region (17–35%
+of the figure image, below the hairline). Captures printed
+expressions, skin tone, glasses, and facial hair — excludes
+hair pieces, helmets, and hats.
 
 ```
-build-head-dataset.py            # download / cache head-band crops
+build-face-dataset.py            # download / cache face-band crops
         │
         ▼
-train-head-encoder.py            # SimCLR contrastive training on head crops
+train-face-encoder.py            # SimCLR contrastive training on face crops
         │
         ▼
-embed-head-catalog.py            # apply trained encoder → bin + index json
+embed-face-catalog.py            # apply trained encoder → bin + index json
         │
         ▼
-convert-head-encoder-coreml.py   # PyTorch → CoreML for on-device inference
+convert-face-encoder-coreml.py   # PyTorch → CoreML for on-device inference
 ```
 
-Head artifacts land in `Bricky/Resources/HeadEmbeddings/`.
+Face artifacts land in `Bricky/Resources/FaceEmbeddings/`.
 
 After running either pipeline, regenerate the Xcode project (`xcodegen
 generate`) and rebuild — the runtime paths in
-`TorsoEmbeddingIndex.swift` and `HeadEmbeddingIndex.swift` will pick
+`TorsoEmbeddingIndex.swift` and `FaceEmbeddingIndex.swift` will pick
 up the new artifacts automatically.

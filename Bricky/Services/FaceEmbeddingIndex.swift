@@ -1,27 +1,27 @@
 import Foundation
 import OSLog
 
-/// In-memory cosine-nearest-neighbor index over the bundled head
+/// In-memory cosine-nearest-neighbor index over the bundled face
 /// embedding matrix produced by
-/// `Tools/torso-embeddings/embed-head-catalog.py`.
+/// `Tools/torso-embeddings/embed-face-catalog.py`.
 ///
-/// File layout (under `Bricky/Resources/HeadEmbeddings/`):
-///   • `head_embeddings.bin`          — Float16 matrix, row-major,
+/// File layout (under `Bricky/Resources/FaceEmbeddings/`):
+///   • `face_embeddings.bin`          — Float16 matrix, row-major,
 ///                                       `count` rows × `dim` cols.
 ///                                       Each row is L2-normalized.
-///   • `head_embeddings_index.json`   — `{ dim, count, dtype, ids[] }`.
+///   • `face_embeddings_index.json`   — `{ dim, count, dtype, ids[] }`.
 ///
 /// Both files are OPTIONAL. Until the offline training pipeline runs
 /// for the first time they won't exist in the bundle, in which case
-/// `HeadEmbeddingIndex.shared.isAvailable == false` and every lookup
+/// `FaceEmbeddingIndex.shared.isAvailable == false` and every lookup
 /// returns an empty array.
-final class HeadEmbeddingIndex {
+final class FaceEmbeddingIndex {
 
-    static let shared = HeadEmbeddingIndex()
+    static let shared = FaceEmbeddingIndex()
 
     private static let logger = Logger(
         subsystem: "com.bricky.app",
-        category: "HeadEmbeddingIndex"
+        category: "FaceEmbeddingIndex"
     )
 
     struct Hit: Sendable {
@@ -38,19 +38,19 @@ final class HeadEmbeddingIndex {
     private init() {
         let bundle = Bundle.main
         guard let jsonURL = bundle.url(
-                forResource: "head_embeddings_index",
+                forResource: "face_embeddings_index",
                 withExtension: "json",
-                subdirectory: "HeadEmbeddings"
+                subdirectory: "FaceEmbeddings"
               ) ?? bundle.url(
-                forResource: "head_embeddings_index",
+                forResource: "face_embeddings_index",
                 withExtension: "json"
               ),
               let binURL = bundle.url(
-                forResource: "head_embeddings",
+                forResource: "face_embeddings",
                 withExtension: "bin",
-                subdirectory: "HeadEmbeddings"
+                subdirectory: "FaceEmbeddings"
               ) ?? bundle.url(
-                forResource: "head_embeddings",
+                forResource: "face_embeddings",
                 withExtension: "bin"
               ),
               let jsonData = try? Data(contentsOf: jsonURL),
@@ -59,7 +59,7 @@ final class HeadEmbeddingIndex {
               let count = parsed["count"] as? Int,
               let ids = parsed["ids"] as? [String]
         else {
-            Self.logger.info("Head embedding index not bundled — feature disabled")
+            Self.logger.info("Face embedding index not bundled — feature disabled")
             self.isAvailable = false
             self.dim = 0
             self.ids = []
@@ -68,7 +68,7 @@ final class HeadEmbeddingIndex {
         }
 
         guard ids.count == count else {
-            Self.logger.error("Head index id count mismatch: ids=\(ids.count) declared=\(count)")
+            Self.logger.error("Face index id count mismatch: ids=\(ids.count) declared=\(count)")
             self.isAvailable = false
             self.dim = 0
             self.ids = []
@@ -80,7 +80,7 @@ final class HeadEmbeddingIndex {
         do {
             rawData = try Data(contentsOf: binURL, options: [.mappedIfSafe])
         } catch {
-            Self.logger.error("Failed to load head embedding matrix: \(error.localizedDescription)")
+            Self.logger.error("Failed to load face embedding matrix: \(error.localizedDescription)")
             self.isAvailable = false
             self.dim = 0
             self.ids = []
@@ -90,7 +90,7 @@ final class HeadEmbeddingIndex {
 
         let expectedBytes = count * dim * MemoryLayout<UInt16>.size
         guard rawData.count == expectedBytes else {
-            Self.logger.error("Head matrix size mismatch: bytes=\(rawData.count) expected=\(expectedBytes)")
+            Self.logger.error("Face matrix size mismatch: bytes=\(rawData.count) expected=\(expectedBytes)")
             self.isAvailable = false
             self.dim = 0
             self.ids = []
@@ -110,7 +110,7 @@ final class HeadEmbeddingIndex {
         self.dim = dim
         self.ids = ids
         self.matrix = floats
-        Self.logger.info("Loaded head embedding index: \(count) figures × \(dim)D")
+        Self.logger.info("Loaded face embedding index: \(count) figures × \(dim)D")
     }
 
     func nearestNeighbors(of query: [Float], topK: Int = 16) -> [Hit] {

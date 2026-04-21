@@ -1,8 +1,12 @@
-"""Build the head-region training dataset.
+"""Build the face-region training dataset.
 
 Downloads (or re-uses cached) Rebrickable figure renders and crops the
-head band (rows 0.05..0.35 of the centered subject), one image per
-figure. Output layout:
+face band (rows 0.17..0.35 of the centered subject), one image per
+figure. This captures the printed face cylinder — expressions, skin
+tone, glasses, facial hair — while excluding hair pieces, helmets,
+and hats which sit above the face.
+
+Output layout:
 
     {OUTPUT_DIR}/
         figures/
@@ -11,11 +15,11 @@ figure. Output layout:
             ...
         manifest.json   # { "figures": [{ "id": "fig-000001", ... }] }
 
-Mirrors build-torso-dataset.py but targets the head/helmet region.
-Figures with generic yellow heads still get included — the contrastive
+Mirrors build-torso-dataset.py but targets the face region.
+Figures with generic yellow faces still get included — the contrastive
 trainer will learn that they're all similar (which is the correct
 embedding behavior), and the runtime can gate on how distinctive
-a head is before trusting the head encoder's vote.
+a face is before trusting the face encoder's vote.
 """
 
 from __future__ import annotations
@@ -37,11 +41,11 @@ except ImportError:  # pragma: no cover
 
 
 CATALOG_PATH = Path(__file__).resolve().parents[2] / "Bricky" / "Resources" / "MinifigureCatalog.json.gz"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "data-head"
-HEAD_TOP = 0.05
-HEAD_BOTTOM = 0.35
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "data-face"
+FACE_TOP = 0.17
+FACE_BOTTOM = 0.35
 TARGET_SIZE = 224
-USER_AGENT = "BrickyHeadDatasetBuilder/1.0 (+https://github.com/shribr/Bricky)"
+USER_AGENT = "BrickyFaceDatasetBuilder/1.0 (+https://github.com/shribr/Bricky)"
 
 
 def load_catalog() -> list[dict]:
@@ -61,7 +65,7 @@ def download(url: str, timeout: float = 15) -> bytes | None:
         return None
 
 
-def crop_head(raw: bytes) -> Image.Image | None:
+def crop_face(raw: bytes) -> Image.Image | None:
     try:
         img = Image.open(io.BytesIO(raw)).convert("RGB")
     except Exception:
@@ -69,8 +73,8 @@ def crop_head(raw: bytes) -> Image.Image | None:
     w, h = img.size
     if w < 32 or h < 64:
         return None
-    top = int(h * HEAD_TOP)
-    bottom = int(h * HEAD_BOTTOM)
+    top = int(h * FACE_TOP)
+    bottom = int(h * FACE_BOTTOM)
     band = img.crop((0, top, w, bottom))
     band.thumbnail((TARGET_SIZE, TARGET_SIZE), Image.LANCZOS)
     sq = Image.new("RGB", (TARGET_SIZE, TARGET_SIZE), (244, 244, 244))
@@ -92,6 +96,7 @@ def main() -> int:
                              "we can re-crop the head from it instead of "
                              "re-downloading from Rebrickable.")
     args = parser.parse_args()
+    print(f"Face crop region: {FACE_TOP*100:.0f}%–{FACE_BOTTOM*100:.0f}% (excluding hair/helmets/hats)")
 
     figures = load_catalog()
     if args.limit:
@@ -119,7 +124,7 @@ def main() -> int:
         if not raw:
             skipped += 1
             continue
-        crop = crop_head(raw)
+        crop = crop_face(raw)
         if crop is None:
             skipped += 1
             continue
@@ -131,7 +136,7 @@ def main() -> int:
 
     manifest_path = out_root / "manifest.json"
     manifest_path.write_text(json.dumps({"figures": manifest}, separators=(",", ":")))
-    print(f"Wrote {len(manifest)} head crops to {figs_dir}")
+    print(f"Wrote {len(manifest)} face crops to {figs_dir}")
     print(f"Manifest: {manifest_path}")
     return 0
 

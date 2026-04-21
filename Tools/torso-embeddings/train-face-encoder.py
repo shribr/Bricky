@@ -1,18 +1,20 @@
-"""Train a head-region encoder via self-supervised contrastive learning.
+"""Train a face-region encoder via self-supervised contrastive learning.
 
 Same architecture and approach as train-torso-encoder.py, but applied
-to the head/helmet band (top 5–35% of the figure image). The encoder
-learns to distinguish:
-  - generic yellow LEGO heads (boring, but it learns they're all similar)
-  - printed/colored helmets (Darth Vader, Clone Trooper variants)
-  - unique head prints (alien faces, flesh-tone characters)
-  - hair pieces (color + shape silhouette signal)
+to the face band (17–35% of the figure image, below the hairline).
+The encoder learns to distinguish:
+  - generic yellow LEGO faces (boring, but it learns they're all similar)
+  - unique face prints (alien faces, flesh-tone characters, glasses)
+  - facial hair, scars, tattoos, and other printed detail
+
+Excludes hair pieces, helmets, and hats (those sit above the face
+region and are a separate signal).
 
 Architecture: ResNet18 backbone + 2-layer MLP projection head → 256-D
 L2-normalized embeddings. NT-Xent loss with temperature 0.1.
 
 Outputs:
-    {OUTPUT_DIR}/head_encoder.pt           (state_dict)
+    {OUTPUT_DIR}/face_encoder.pt           (state_dict)
     {OUTPUT_DIR}/training_metadata.json    (hparams)
 """
 
@@ -39,17 +41,17 @@ except ImportError:  # pragma: no cover
 
 EMBED_DIM = 256
 TARGET_SIZE = 224
-DEFAULT_DATA = Path(__file__).resolve().parent / "data-head"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "out-head"
+DEFAULT_DATA = Path(__file__).resolve().parent / "data-face"
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "out-face"
 
 
-class HeadPairDataset(Dataset):
-    """Returns (view1, view2, fig_idx) for every head crop on disk."""
+class FacePairDataset(Dataset):
+    """Returns (view1, view2, fig_idx) for every face crop on disk."""
 
     def __init__(self, root: Path):
         self.paths = sorted((root / "figures").glob("*.jpg"))
         if not self.paths:
-            raise RuntimeError(f"No .jpg head crops in {root / 'figures'}")
+            raise RuntimeError(f"No .jpg face crops in {root / 'figures'}")
         self.augment = transforms.Compose([
             transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.7, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
@@ -74,7 +76,7 @@ class HeadPairDataset(Dataset):
         return v1, v2, idx
 
 
-class HeadEncoder(nn.Module):
+class FaceEncoder(nn.Module):
     """ResNet18 backbone + 2-layer MLP projection head."""
 
     def __init__(self, embed_dim: int = EMBED_DIM):
@@ -129,16 +131,16 @@ def main() -> int:
     torch.manual_seed(args.seed)
 
     args.output.mkdir(parents=True, exist_ok=True)
-    dataset = HeadPairDataset(args.data)
+    dataset = FacePairDataset(args.data)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
                         num_workers=args.num_workers, drop_last=True,
                         pin_memory=(args.device == "cuda"))
 
-    model = HeadEncoder().to(args.device)
+    model = FaceEncoder().to(args.device)
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=args.epochs)
 
-    print(f"Training HEAD encoder on {len(dataset)} head crops, {args.epochs} epochs, batch={args.batch_size}")
+    print(f"Training FACE encoder on {len(dataset)} face crops, {args.epochs} epochs, batch={args.batch_size}")
 
     history = []
     for epoch in range(args.epochs):
@@ -162,7 +164,7 @@ def main() -> int:
         history.append({"epoch": epoch, "loss": avg_loss, "secs": time.time() - t0})
         print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}  ({history[-1]['secs']:.1f}s)")
 
-    out_pt = args.output / "head_encoder.pt"
+    out_pt = args.output / "face_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "embed_dim": EMBED_DIM}, out_pt)
     meta = {
         "epochs": args.epochs,
@@ -172,7 +174,7 @@ def main() -> int:
         "history": history,
     }
     (args.output / "training_metadata.json").write_text(json.dumps(meta, indent=2))
-    print(f"Wrote head encoder to {out_pt}")
+    print(f"Wrote face encoder to {out_pt}")
     return 0
 
 

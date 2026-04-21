@@ -1,6 +1,6 @@
-"""Convert the trained PyTorch head encoder to CoreML.
+"""Convert the trained PyTorch face encoder to CoreML.
 
-Output: Bricky/Resources/HeadEmbeddings/HeadEncoder.mlmodel
+Output: Bricky/Resources/FaceEmbeddings/FaceEncoder.mlmodel
 """
 
 from __future__ import annotations
@@ -19,16 +19,16 @@ except ImportError:  # pragma: no cover
 
 from importlib.machinery import SourceFileLoader  # noqa: E402
 _TRAINER = SourceFileLoader(
-    "train_head_encoder",
-    str(Path(__file__).resolve().parent / "train-head-encoder.py"),
+    "train_face_encoder",
+    str(Path(__file__).resolve().parent / "train-face-encoder.py"),
 ).load_module()
-HeadEncoder = _TRAINER.HeadEncoder
+FaceEncoder = _TRAINER.FaceEncoder
 
 
 class InferenceWrapper(nn.Module):
     """Backbone embeddings only (512-D, L2-normalized)."""
 
-    def __init__(self, encoder: HeadEncoder):
+    def __init__(self, encoder: FaceEncoder):
         super().__init__()
         self.encoder = encoder
 
@@ -39,13 +39,13 @@ class InferenceWrapper(nn.Module):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path,
-                        default=Path(__file__).resolve().parent / "out-head" / "head_encoder.pt")
+                        default=Path(__file__).resolve().parent / "out-face" / "face_encoder.pt")
     parser.add_argument("--output", type=Path,
-                        default=Path(__file__).resolve().parents[2] / "Bricky" / "Resources" / "HeadEmbeddings" / "HeadEncoder.mlmodel")
+                        default=Path(__file__).resolve().parents[2] / "Bricky" / "Resources" / "FaceEmbeddings" / "FaceEncoder.mlmodel")
     args = parser.parse_args()
 
     ckpt = torch.load(args.checkpoint, map_location="cpu")
-    model = HeadEncoder(embed_dim=ckpt.get("embed_dim", 256))
+    model = FaceEncoder(embed_dim=ckpt.get("embed_dim", 256))
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
     wrapped = InferenceWrapper(model).eval()
@@ -64,10 +64,9 @@ def main() -> int:
         traced,
         inputs=[image_input],
         outputs=[ct.TensorType(name="embedding")],
-        convert_to="mlprogram",
-        minimum_deployment_target=ct.target.iOS17,
+        convert_to="neuralnetwork",
     )
-    mlmodel.short_description = "Bricky head-region encoder (ResNet18, 512-D, L2-normalized)"
+    mlmodel.short_description = "Bricky face-region encoder (ResNet18, 512-D, L2-normalized)"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     mlmodel.save(str(args.output))
     print(f"Wrote {args.output}")
