@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import ARKit
+import os
 
 /// ViewModel for the camera scanning view
 @MainActor
@@ -50,8 +51,16 @@ final class CameraViewModel: ObservableObject {
     private var latestFrameImage: UIImage?
     /// Tracks which frame image was last recorded to avoid duplicate source images
     private var lastRecordedFrameImage: UIImage?
-    /// Timestamp of last frame image capture (throttled to avoid performance impact)
-    private nonisolated(unsafe) var lastFrameImageTime: Date = .distantPast
+    /// Thread-safe scan state readable from camera callbacks without hopping to MainActor.
+    private let _callbackState = OSAllocatedUnfairLock<CallbackState>(initialState: CallbackState())
+
+    private struct CallbackState: Sendable {
+        var isActive = false        // isScanning && !isPaused
+        var isAR = false            // isARMode
+        var hasFindTarget = false   // targetPiece != nil
+        var lastFrameTime: Date = .distantPast
+    }
+
     /// CIContext for converting pixel buffers to UIImages (thread-safe)
     private let frameImageCIContext = CIContext()
     /// Minimum confidence for auto-captured pieces
@@ -64,6 +73,19 @@ final class CameraViewModel: ObservableObject {
     init() {
         scanCoordinator.geometry.arCameraManager = arCameraManager
         setupFrameProcessing()
+        syncCallbackState()
+    }
+
+    /// Push current scan flags into the lock-protected callback state.
+    private func syncCallbackState() {
+        let active = isScanning && !isPaused
+        let ar = isARMode
+        let find = targetPiece != nil
+        _callbackState.withLock { s in
+            s.isActive = active
+            s.isAR = ar
+            s.hasFindTarget = find
+        }
     }
 
     func setupCamera() {
@@ -77,6 +99,7 @@ final class CameraViewModel: ObservableObject {
     func startScanning() {
         isScanning = true
         isPaused = false
+        syncCallbackState()
         scanSession.isScanning = true
 
         // Apply configured coverage detail level
@@ -124,6 +147,7 @@ final class CameraViewModel: ObservableObject {
 
     func pauseScanning() {
         isPaused = true
+        syncCallbackState()
         scanSession.isScanning = false
         statusMessage = "Scan paused"
         if isARMode {
@@ -135,6 +159,7 @@ final class CameraViewModel: ObservableObject {
 
     func resumeScanning() {
         isPaused = false
+        syncCallbackState()
         scanSession.isScanning = true
         statusMessage = "Scanning... Hold steady"
         if isARMode {
@@ -159,6 +184,7 @@ final class CameraViewModel: ObservableObject {
     func stopScanning() {
         isScanning = false
         isPaused = false
+        syncCallbackState()
         scanSession.isScanning = false
         liveDetections = []
         statusMessage = "Scan stopped"
@@ -187,6 +213,7 @@ final class CameraViewModel: ObservableObject {
         targetPieceFound = false
         isScanning = true
         isPaused = false
+        syncCallbackState()
         statusMessage = "Looking for \(piece.name)..."
         cameraManager.startSession()
     }
@@ -195,6 +222,7 @@ final class CameraViewModel: ObservableObject {
     func stopFindPiece() {
         targetPiece = nil
         targetPieceFound = false
+        syncCallbackState()
         stopScanning()
     }
 
@@ -475,13 +503,19 @@ final class CameraViewModel: ObservableObject {
         // "find piece" mode (which always uses the regular camera regardless
         // of the user's tracking-mode setting).
         cameraManager.onFrameCaptured = { [weak self] pixelBuffer in
-            guard let self, self.isScanning, !self.isPaused else { return }
-            guard !self.isARMode || self.targetPiece != nil else { return }
+            guard let self else { return }
+            let state = self._callbackState.withLock { $0 }
+            guard state.isActive else { return }
+            guard !state.isAR || state.hasFindTarget else { return }
 
             // Periodically snapshot frame as UIImage for auto-capture location mapping
-            let now = Date()
-            if now.timeIntervalSince(self.lastFrameImageTime) >= Self.frameSnapshotInterval {
-                self.lastFrameImageTime = now
+            let shouldSnapshot = self._callbackState.withLock { s -> Bool in
+                let now = Date()
+                guard now.timeIntervalSince(s.lastFrameTime) >= Self.frameSnapshotInterval else { return false }
+                s.lastFrameTime = now
+                return true
+            }
+            if shouldSnapshot {
                 let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
                 if let cgImage = self.frameImageCIContext.createCGImage(ciImage, from: ciImage.extent) {
                     let image = UIImage(cgImage: cgImage)
@@ -496,12 +530,18 @@ final class CameraViewModel: ObservableObject {
 
         // AR frame processing — feeds pixel buffer to Vision and tracks AR state
         arCameraManager.onFrameCaptured = { [weak self] pixelBuffer in
-            guard let self, self.isScanning, !self.isPaused, self.isARMode else { return }
+            guard let self else { return }
+            let state = self._callbackState.withLock { $0 }
+            guard state.isActive, state.isAR else { return }
 
             // Snapshot frame for location mapping
-            let now = Date()
-            if now.timeIntervalSince(self.lastFrameImageTime) >= Self.frameSnapshotInterval {
-                self.lastFrameImageTime = now
+            let shouldSnapshot = self._callbackState.withLock { s -> Bool in
+                let now = Date()
+                guard now.timeIntervalSince(s.lastFrameTime) >= Self.frameSnapshotInterval else { return false }
+                s.lastFrameTime = now
+                return true
+            }
+            if shouldSnapshot {
                 let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
                 if let cgImage = self.frameImageCIContext.createCGImage(ciImage, from: ciImage.extent) {
                     let image = UIImage(cgImage: cgImage)
@@ -517,7 +557,9 @@ final class CameraViewModel: ObservableObject {
 
         // AR frame updates — triggers PileGeometryService rebuilds (mesh/depth tiers)
         arCameraManager.onARFrameUpdated = { [weak self] _ in
-            guard let self, self.isScanning, !self.isPaused, self.isARMode else { return }
+            guard let self else { return }
+            let state = self._callbackState.withLock { $0 }
+            guard state.isActive, state.isAR else { return }
             self.scanCoordinator.geometry.onARFrameUpdated()
         }
 
