@@ -467,34 +467,6 @@ struct MinifigureScanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
-                    // Enhanced subject photo — tap for full-screen view.
-                    if let img = capturedImage {
-                        Button {
-                            showSubjectFullScreen = true
-                        } label: {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(height: 180)
-                                .frame(maxWidth: .infinity)
-                                .clipped()
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
-                                )
-                                .overlay(alignment: .bottomLeading) {
-                                    Text("Your scan")
-                                        .font(.caption2.weight(.semibold))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(.ultraThinMaterial, in: Capsule())
-                                        .padding(8)
-                                }
-                        }
-                        .buttonStyle(.plain)
-                    }
-
                     if let hybrid = hybridAnalysis {
                         analysisBanner(hybrid)
                     }
@@ -647,32 +619,47 @@ struct MinifigureScanView: View {
     // MARK: - Analysis banner
 
     private func analysisBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {
-        let isHybrid = analysis.isLikelyHybrid
-        let tintColor: Color = isHybrid ? .orange : .blue
-        let icon = isHybrid ? "exclamationmark.triangle.fill" : "eye.fill"
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .foregroundStyle(tintColor)
-                Text(analysis.summary)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+        Button {
+            showSubjectFullScreen = true
+        } label: {
+            HStack(spacing: 12) {
+                if let img = capturedImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 70, height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                        )
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(analysis.summary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+                    Text(analysis.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            Text(analysis.detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.orange.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(tintColor.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(tintColor.opacity(0.35), lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
 
     private func candidateRow(_ candidate: MinifigureIdentificationService.ResolvedCandidate) -> some View {
