@@ -1,11 +1,21 @@
 import SwiftUI
 
 /// Displays the user's minifigure scan history with the original captured images.
+///
+/// Features:
+/// - Enhanced subject photo thumbnail per row
+/// - Multi-select edit mode with select all / deselect all + bulk delete
+/// - Swipe-to-delete individual entries
+/// - Re-scan: re-run identification from a saved image
 struct MinifigureScanHistoryView: View {
     @StateObject private var store = MinifigureScanHistoryStore.shared
     @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var selectedEntry: MinifigureScanHistoryStore.ScanEntry?
+    @State private var isEditing = false
+    @State private var selectedIds: Set<UUID> = []
+    @State private var rescanEntry: MinifigureScanHistoryStore.ScanEntry?
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         Group {
@@ -19,6 +29,14 @@ struct MinifigureScanHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !store.entries.isEmpty {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(isEditing ? "Done" : "Edit") {
+                        withAnimation {
+                            isEditing.toggle()
+                            if !isEditing { selectedIds.removeAll() }
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(role: .destructive) {
@@ -33,7 +51,28 @@ struct MinifigureScanHistoryView: View {
             }
         }
         .sheet(item: $selectedEntry) { entry in
-            MinifigureScanHistoryDetailSheet(entry: entry)
+            MinifigureScanHistoryDetailSheet(
+                entry: entry,
+                onRescan: { rescanEntry = $0 }
+            )
+        }
+        .fullScreenCover(item: $rescanEntry) { entry in
+            if let image = store.capturedImage(for: entry) {
+                NavigationStack {
+                    MinifigureScanView(preCapturedImage: image)
+                }
+            }
+        }
+        .confirmationDialog(
+            "Delete \(selectedIds.count) scan\(selectedIds.count == 1 ? "" : "s")?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                store.delete(selectedIds)
+                selectedIds.removeAll()
+                if store.entries.isEmpty { isEditing = false }
+            }
         }
     }
 
@@ -50,29 +89,100 @@ struct MinifigureScanHistoryView: View {
     // MARK: - List
 
     private var historyList: some View {
-        List {
-            ForEach(store.entries) { entry in
-                Button {
-                    selectedEntry = entry
-                } label: {
-                    scanEntryRow(entry)
-                }
-                .buttonStyle(.plain)
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        store.delete(entry)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+        VStack(spacing: 0) {
+            if isEditing {
+                editBar
+            }
+            List {
+                ForEach(store.entries) { entry in
+                    HStack(spacing: 10) {
+                        if isEditing {
+                            Image(systemName: selectedIds.contains(entry.id)
+                                  ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(selectedIds.contains(entry.id) ? .blue : .secondary)
+                                .font(.title3)
+                                .onTapGesture { toggleSelection(entry.id) }
+                        }
+                        Button {
+                            if isEditing {
+                                toggleSelection(entry.id)
+                            } else {
+                                selectedEntry = entry
+                            }
+                        } label: {
+                            scanEntryRow(entry)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if !isEditing {
+                            Button(role: .destructive) {
+                                store.delete(entry)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                    .swipeActions(edge: .leading) {
+                        if !isEditing {
+                            Button {
+                                rescanEntry = entry
+                            } label: {
+                                Label("Re-scan", systemImage: "arrow.trianglehead.2.counterclockwise.rotate.90")
+                            }
+                            .tint(.blue)
+                        }
                     }
                 }
             }
+            .listStyle(.plain)
         }
-        .listStyle(.plain)
     }
+
+    // MARK: - Edit bar (select all / delete selected)
+
+    private var editBar: some View {
+        HStack {
+            Button {
+                if selectedIds.count == store.entries.count {
+                    selectedIds.removeAll()
+                } else {
+                    selectedIds = Set(store.entries.map(\.id))
+                }
+            } label: {
+                let allSelected = selectedIds.count == store.entries.count
+                Text(allSelected ? "Deselect All" : "Select All")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            Spacer()
+
+            if !selectedIds.isEmpty {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Delete (\(selectedIds.count))", systemImage: "trash")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemGroupedBackground))
+    }
+
+    private func toggleSelection(_ id: UUID) {
+        if selectedIds.contains(id) {
+            selectedIds.remove(id)
+        } else {
+            selectedIds.insert(id)
+        }
+    }
+
+    // MARK: - Row
 
     private func scanEntryRow(_ entry: MinifigureScanHistoryStore.ScanEntry) -> some View {
         HStack(spacing: 12) {
-            // Captured scan thumbnail
             scanThumbnail(for: entry)
                 .frame(width: 56, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -126,9 +236,11 @@ struct MinifigureScanHistoryView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Image(systemName: "chevron.right")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            if !isEditing {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, 4)
     }
@@ -162,7 +274,12 @@ struct MinifigureScanHistoryView: View {
 /// Shows the full captured image alongside the catalog match for a past scan.
 private struct MinifigureScanHistoryDetailSheet: View {
     let entry: MinifigureScanHistoryStore.ScanEntry
+    var onRescan: ((MinifigureScanHistoryStore.ScanEntry) -> Void)?
     @Environment(\.dismiss) private var dismiss
+
+    private var hasCapturedImage: Bool {
+        MinifigureScanHistoryStore.shared.capturedImage(for: entry) != nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -242,6 +359,26 @@ private struct MinifigureScanHistoryDetailSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+
+                    // Re-scan button
+                    if hasCapturedImage {
+                        Button {
+                            dismiss()
+                            // Small delay so the sheet dismisses before the
+                            // fullScreenCover is presented.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                onRescan?(entry)
+                            }
+                        } label: {
+                            Label("Re-scan This Image", systemImage: "arrow.trianglehead.2.counterclockwise.rotate.90")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding()
             }

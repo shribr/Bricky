@@ -109,6 +109,14 @@ final class MinifigureScanHistoryStore: ObservableObject {
         save()
     }
 
+    /// Delete multiple entries at once.
+    func delete(_ ids: Set<UUID>) {
+        let toRemove = entries.filter { ids.contains($0.id) }
+        for entry in toRemove { deleteCapturedImage(for: entry) }
+        entries.removeAll { ids.contains($0.id) }
+        save()
+    }
+
     /// Delete all history.
     func deleteAll() {
         for entry in entries { deleteCapturedImage(for: entry) }
