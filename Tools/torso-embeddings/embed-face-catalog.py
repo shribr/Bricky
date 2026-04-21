@@ -80,7 +80,7 @@ def main() -> int:
     model.eval()
 
     loader = DataLoader(CropDataset(paths), batch_size=args.batch_size,
-                        num_workers=4, shuffle=False)
+                        num_workers=0, shuffle=False)
     embeddings: list[np.ndarray] = []
     with torch.no_grad():
         for xb, _ in loader:
@@ -88,7 +88,7 @@ def main() -> int:
             z = model.encode(xb)
             embeddings.append(z.cpu().numpy().astype(np.float16))
     matrix = np.concatenate(embeddings, axis=0)
-    print(f"Encoded {matrix.shape[0]} faces → embedding dim {matrix.shape[1]}")
+    print(f"Encoded {matrix.shape[0]} faces → embedding dim {matrix.shape[1]}", flush=True)
 
     args.output.mkdir(parents=True, exist_ok=True)
     bin_path = args.output / "face_embeddings.bin"
@@ -100,8 +100,8 @@ def main() -> int:
         "dtype": "float16",
         "ids": ids,
     }, separators=(",", ":")))
-    print(f"Wrote {bin_path} ({bin_path.stat().st_size / (1024*1024):.1f} MB)")
-    print(f"Wrote {index_path}")
+    print(f"Wrote {bin_path} ({bin_path.stat().st_size / (1024*1024):.1f} MB)", flush=True)
+    print(f"Wrote {index_path}", flush=True)
     return 0
 
 
