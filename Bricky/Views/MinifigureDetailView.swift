@@ -419,12 +419,11 @@ struct MinifigureDetailView: View {
 
                 VStack(spacing: 10) {
                     Button {
-                        if let url = BrickLinkService.partURL(status.requirement.partNumber,
-                                                              color: status.requirement.legoColor) {
+                        if let url = BrickLinkService.partSearchURL(status.requirement.partNumber) {
                             openURL(url)
                         }
                     } label: {
-                        Label("View on BrickLink", systemImage: "link")
+                        Label("Find on BrickLink", systemImage: "link")
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(
@@ -438,8 +437,7 @@ struct MinifigureDetailView: View {
                     }
 
                     Button {
-                        if let url = BrickLinkService.priceGuideURL(part: status.requirement.partNumber,
-                                                                    color: status.requirement.legoColor) {
+                        if let url = BrickLinkService.partSearchURL(status.requirement.partNumber) {
                             openURL(url)
                         }
                     } label: {
