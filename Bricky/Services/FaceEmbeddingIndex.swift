@@ -34,6 +34,7 @@ final class FaceEmbeddingIndex {
     private let dim: Int
     private let ids: [String]
     private let matrix: [Float]
+    private let meanVec: [Float]?
 
     private init() {
         let bundle = Bundle.main
@@ -64,6 +65,7 @@ final class FaceEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -73,6 +75,7 @@ final class FaceEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -85,6 +88,7 @@ final class FaceEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -95,6 +99,7 @@ final class FaceEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -110,11 +115,46 @@ final class FaceEmbeddingIndex {
         self.dim = dim
         self.ids = ids
         self.matrix = floats
+
+        // Load the mean vector for query centering (optional —
+        // older bundles without it still work, just less accurate).
+        if let meanURL = bundle.url(
+                forResource: "face_embeddings_mean",
+                withExtension: "bin",
+                subdirectory: "FaceEmbeddings"
+            ) ?? bundle.url(
+                forResource: "face_embeddings_mean",
+                withExtension: "bin"
+            ),
+           let meanData = try? Data(contentsOf: meanURL),
+           meanData.count == dim * MemoryLayout<Float>.size {
+            self.meanVec = meanData.withUnsafeBytes { raw in
+                Array(raw.bindMemory(to: Float.self))
+            }
+            Self.logger.info("Loaded mean-centering vector (\(dim)D)")
+        } else {
+            self.meanVec = nil
+        }
+
         Self.logger.info("Loaded face embedding index: \(count) figures × \(dim)D")
     }
 
-    func nearestNeighbors(of query: [Float], topK: Int = 16) -> [Hit] {
-        guard isAvailable, query.count == dim, topK > 0 else { return [] }
+    func nearestNeighbors(of rawQuery: [Float], topK: Int = 16) -> [Hit] {
+        guard isAvailable, rawQuery.count == dim, topK > 0 else { return [] }
+
+        // Mean-center the query to match the catalog's post-processing.
+        let query: [Float]
+        if let mv = meanVec {
+            var centered = [Float](repeating: 0, count: dim)
+            for d in 0..<dim { centered[d] = rawQuery[d] - mv[d] }
+            var norm: Float = 0
+            for d in 0..<dim { norm += centered[d] * centered[d] }
+            norm = max(sqrt(norm), 1e-8)
+            for d in 0..<dim { centered[d] /= norm }
+            query = centered
+        } else {
+            query = rawQuery
+        }
 
         let count = ids.count
         var best: [(Int, Float)] = []

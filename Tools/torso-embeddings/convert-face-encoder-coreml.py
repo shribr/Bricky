@@ -26,13 +26,22 @@ FaceEncoder = _TRAINER.FaceEncoder
 
 
 class InferenceWrapper(nn.Module):
-    """Backbone embeddings only (512-D, L2-normalized)."""
+    """Backbone embeddings only (512-D, L2-normalized).
+
+    ImageNet normalization is baked into the graph so the CoreML
+    ``ImageType`` input only needs [0, 255] → [0, 1] scaling."""
+
+    _MEAN = [0.485, 0.456, 0.406]
+    _STD  = [0.229, 0.224, 0.225]
 
     def __init__(self, encoder: FaceEncoder):
         super().__init__()
         self.encoder = encoder
+        self.register_buffer("mean", torch.tensor(self._MEAN).view(1, 3, 1, 1))
+        self.register_buffer("std",  torch.tensor(self._STD).view(1, 3, 1, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = (x - self.mean) / self.std
         return self.encoder.encode(x)
 
 
@@ -56,8 +65,8 @@ def main() -> int:
     image_input = ct.ImageType(
         name="image",
         shape=(1, 3, 224, 224),
-        scale=1.0 / 255.0 / 0.226,
-        bias=[-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+        scale=1.0 / 255.0,
+        bias=[0.0, 0.0, 0.0],
         color_layout=ct.colorlayout.RGB,
     )
     mlmodel = ct.convert(

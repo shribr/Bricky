@@ -67,18 +67,19 @@ class TorsoPairDataset(Dataset):
         if not self.paths:
             raise RuntimeError(f"No .jpg torso crops in {root / 'figures'}")
         self.augment = transforms.Compose([
-            transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.7, 1.0)),
+            transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.6, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply([transforms.ColorJitter(
                 brightness=0.4, contrast=0.4, saturation=0.3, hue=0.05)], p=0.8),
             transforms.RandomApply([transforms.GaussianBlur(
                 kernel_size=5, sigma=(0.1, 2.0))], p=0.4),
-            transforms.RandomApply([transforms.RandomRotation(degrees=12)], p=0.5),
+            transforms.RandomApply([transforms.RandomRotation(degrees=15)], p=0.5),
             transforms.RandomGrayscale(p=0.05),
             transforms.ToTensor(),
             # ImageNet stats — backbone is initialized from ImageNet.
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.25, scale=(0.02, 0.15)),
         ])
 
     def __len__(self) -> int:
@@ -137,9 +138,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--epochs", type=int, default=60)
+    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--lr", type=float, default=5e-4)
+    parser.add_argument("--warmup-epochs", type=int, default=5)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -166,6 +168,13 @@ def main() -> int:
         t0 = time.time()
         running = 0.0
         n = 0
+
+        # Linear warmup: scale lr from 0 → target over warmup epochs.
+        if epoch < args.warmup_epochs:
+            warmup_factor = (epoch + 1) / args.warmup_epochs
+            for pg in optim.param_groups:
+                pg["lr"] = args.lr * warmup_factor
+
         for v1, v2, _ in loader:
             v1 = v1.to(args.device, non_blocking=True)
             v2 = v2.to(args.device, non_blocking=True)
@@ -177,10 +186,35 @@ def main() -> int:
             optim.step()
             running += loss.item() * v1.size(0)
             n += v1.size(0)
-        sched.step()
+
+        if epoch >= args.warmup_epochs:
+            sched.step()
+
         avg_loss = running / max(n, 1)
+
+        # Measure embedding quality: average cosine similarity of
+        # random pairs using backbone encoder. A well-separated space
+        # should show random-pair cosine close to 0.
+        cos_stats = ""
+        if (epoch + 1) % 5 == 0 or epoch == args.epochs - 1:
+            model.eval()
+            with torch.no_grad():
+                sample = []
+                for v1b, _, _ in loader:
+                    sample.append(v1b)
+                    if len(sample) * args.batch_size >= 512:
+                        break
+                sample = torch.cat(sample, dim=0)[:512].to(args.device)
+                emb = model.encode(sample)  # backbone, L2-normalized
+                sim_matrix = emb @ emb.T
+                # Zero out diagonal (self-similarity)
+                sim_matrix.fill_diagonal_(0)
+                off_diag = sim_matrix.sum() / (sim_matrix.numel() - sim_matrix.size(0))
+                cos_stats = f"  avg_cos={off_diag.item():.4f}"
+            model.train()
+
         history.append({"epoch": epoch, "loss": avg_loss, "secs": time.time() - t0})
-        print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}  ({history[-1]['secs']:.1f}s)", flush=True)
+        print(f"  epoch {epoch + 1:>2}/{args.epochs}  loss={avg_loss:.4f}{cos_stats}  ({history[-1]['secs']:.1f}s)", flush=True)
 
     out_pt = args.output / "torso_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "embed_dim": EMBED_DIM}, out_pt)

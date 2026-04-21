@@ -90,6 +90,16 @@ final class FaceEmbeddingService {
         var out = [Float](repeating: 0, count: count)
         let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: count)
         for i in 0..<count { out[i] = ptr[i] }
+
+        // Safety re-normalization: if the CoreML output isn't quite
+        // unit-length (float precision, neuralnetwork-format rounding),
+        // force it back to the unit sphere so dot-product == cosine.
+        var norm: Float = 0
+        for v in out { norm += v * v }
+        norm = max(sqrt(norm), 1e-8)
+        if abs(norm - 1.0) > 1e-3 {
+            for i in 0..<count { out[i] /= norm }
+        }
         return out
     }
 }

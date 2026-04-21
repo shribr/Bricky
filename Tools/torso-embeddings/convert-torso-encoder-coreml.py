@@ -35,13 +35,26 @@ class InferenceWrapper(nn.Module):
     """Wrap the encoder so the exported graph returns *backbone*
     embeddings (512-D, L2-normalized) — matching what the bundled
     index stores. The projection head used during training is dropped
-    because it isn't needed for retrieval and adds latency."""
+    because it isn't needed for retrieval and adds latency.
+
+    ImageNet normalization is baked into the graph so the CoreML
+    ``ImageType`` input only needs to do [0, 255] → [0, 1] scaling.
+    This avoids the single-scale approximation that ``ct.ImageType``
+    forces (one ``scale`` value for all three channels)."""
+
+    # ImageNet channel stats
+    _MEAN = [0.485, 0.456, 0.406]
+    _STD  = [0.229, 0.224, 0.225]
 
     def __init__(self, encoder: TorsoEncoder):
         super().__init__()
         self.encoder = encoder
+        self.register_buffer("mean", torch.tensor(self._MEAN).view(1, 3, 1, 1))
+        self.register_buffer("std",  torch.tensor(self._STD).view(1, 3, 1, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x arrives as [0, 1] from CoreML's scale=1/255 preprocessing.
+        x = (x - self.mean) / self.std
         return self.encoder.encode(x)
 
 
@@ -64,19 +77,23 @@ def main() -> int:
 
     # Image input: lets CoreML feed a CVPixelBuffer / CIImage directly
     # without the Swift caller building a tensor manually.
+    # Only scale to [0, 1] here — per-channel ImageNet normalization
+    # is baked into InferenceWrapper so we don't need the single-scale
+    # approximation that ct.ImageType's bias/scale forces.
     image_input = ct.ImageType(
         name="image",
         shape=(1, 3, 224, 224),
-        scale=1.0 / 255.0 / 0.226,  # approximate ImageNet std
-        bias=[-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+        scale=1.0 / 255.0,
+        bias=[0.0, 0.0, 0.0],
         color_layout=ct.colorlayout.RGB,
     )
     mlmodel = ct.convert(
         traced,
         inputs=[image_input],
         outputs=[ct.TensorType(name="embedding")],
-        convert_to="mlprogram",
-        minimum_deployment_target=ct.target.iOS17,
+        # Use neuralnetwork format: avoids the BlobWriter bug on Colab
+        # and works identically on iOS 17+.
+        convert_to="neuralnetwork",
     )
     mlmodel.short_description = "Bricky torso-band encoder (ResNet18, 512-D, L2-normalized)"
     args.output.parent.mkdir(parents=True, exist_ok=True)

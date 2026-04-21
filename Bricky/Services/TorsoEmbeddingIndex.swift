@@ -51,6 +51,11 @@ final class TorsoEmbeddingIndex {
     /// without code changes — the size delta (16 MB → 32 MB) is still
     /// well under the iOS budget for a foreground app.
     private let matrix: [Float]
+    /// Mean vector used for post-hoc centering. When the embed
+    /// pipeline writes `torso_embeddings_mean.bin` (512 Float32s),
+    /// we subtract this from query embeddings before cosine-NN to
+    /// match the offline centering applied to the catalog matrix.
+    private let meanVec: [Float]?
 
     private init() {
         // Lazy-load the artifacts. Both files must exist or we're off.
@@ -82,6 +87,7 @@ final class TorsoEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -91,6 +97,7 @@ final class TorsoEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -103,6 +110,7 @@ final class TorsoEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -113,6 +121,7 @@ final class TorsoEmbeddingIndex {
             self.dim = 0
             self.ids = []
             self.matrix = []
+            self.meanVec = nil
             return
         }
 
@@ -131,14 +140,54 @@ final class TorsoEmbeddingIndex {
         self.dim = dim
         self.ids = ids
         self.matrix = floats
+
+        // Load the mean vector for query centering (optional —
+        // older bundles without it still work, just less accurate).
+        if let meanURL = bundle.url(
+                forResource: "torso_embeddings_mean",
+                withExtension: "bin",
+                subdirectory: "TorsoEmbeddings"
+            ) ?? bundle.url(
+                forResource: "torso_embeddings_mean",
+                withExtension: "bin"
+            ),
+           let meanData = try? Data(contentsOf: meanURL),
+           meanData.count == dim * MemoryLayout<Float>.size {
+            self.meanVec = meanData.withUnsafeBytes { raw in
+                Array(raw.bindMemory(to: Float.self))
+            }
+            Self.logger.info("Loaded mean-centering vector (\(dim)D)")
+        } else {
+            self.meanVec = nil
+        }
+
         Self.logger.info("Loaded torso embedding index: \(count) figures × \(dim)D")
     }
 
     /// Top-K nearest neighbors of a query embedding, by cosine
     /// similarity. The query MUST be L2-normalized and have the same
     /// dimensionality as the index — anything else returns `[]`.
-    func nearestNeighbors(of query: [Float], topK: Int = 16) -> [Hit] {
-        guard isAvailable, query.count == dim, topK > 0 else { return [] }
+    ///
+    /// If a mean vector was bundled, the query is mean-centered and
+    /// re-normalized before comparison — matching the offline
+    /// centering applied to the catalog matrix.
+    func nearestNeighbors(of rawQuery: [Float], topK: Int = 16) -> [Hit] {
+        guard isAvailable, rawQuery.count == dim, topK > 0 else { return [] }
+
+        // Mean-center the query to match the catalog's post-processing.
+        let query: [Float]
+        if let mv = meanVec {
+            var centered = [Float](repeating: 0, count: dim)
+            for d in 0..<dim { centered[d] = rawQuery[d] - mv[d] }
+            // Re-normalize to unit length.
+            var norm: Float = 0
+            for d in 0..<dim { norm += centered[d] * centered[d] }
+            norm = max(sqrt(norm), 1e-8)
+            for d in 0..<dim { centered[d] /= norm }
+            query = centered
+        } else {
+            query = rawQuery
+        }
 
         let count = ids.count
         // Maintain a simple bounded min-heap as a fixed-size array.

@@ -105,13 +105,40 @@ def main() -> int:
             # bundled index — backbone features are what the runtime
             # CoreML model exports and what cosine-NN runs against.
             z = model.encode(xb)
-            embeddings.append(z.cpu().numpy().astype(np.float16))
-    matrix = np.concatenate(embeddings, axis=0)  # N × D
+            embeddings.append(z.cpu().numpy())
+    matrix = np.concatenate(embeddings, axis=0).astype(np.float32)  # N × D
+    print(f"Encoded {matrix.shape[0]} torsos → embedding dim {matrix.shape[1]}", flush=True)
+
+    # ── Mean-centering ──
+    # The backbone's L2-normalized output often has a large common
+    # component (the "mean direction") that compresses the cosine
+    # similarity range of all pairs toward a high baseline (~0.6).
+    # Subtracting the mean vector and re-normalizing spreads the
+    # distribution and makes cosine-NN far more discriminative.
+    mean_vec = matrix.mean(axis=0, keepdims=True)
+    matrix -= mean_vec
+    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+    norms = np.maximum(norms, 1e-8)
+    matrix /= norms
+
+    # Spot-check: random-pair cosine should be near 0 after centering.
+    rng = np.random.default_rng(42)
+    idx = rng.integers(0, len(matrix), size=(200, 2))
+    sims = np.array([np.dot(matrix[a], matrix[b]) for a, b in idx])
+    print(f"Post-centering random-pair cosine: mean={sims.mean():.4f} std={sims.std():.4f}", flush=True)
+
+    # Save the mean vector so the iOS runtime can apply the same
+    # transform to query embeddings at scan time.
+    mean_path = args.output / "torso_embeddings_mean.bin"
+    mean_vec.astype(np.float32).tofile(mean_path)
+    print(f"Wrote mean vector to {mean_path}", flush=True)
+
+    matrix_f16 = matrix.astype(np.float16)
     print(f"Encoded {matrix.shape[0]} torsos → embedding dim {matrix.shape[1]}", flush=True)
 
     args.output.mkdir(parents=True, exist_ok=True)
     bin_path = args.output / "torso_embeddings.bin"
-    matrix.tofile(bin_path)
+    matrix_f16.tofile(bin_path)
     index_path = args.output / "torso_embeddings_index.json"
     index_path.write_text(json.dumps({
         "dim": int(matrix.shape[1]),
