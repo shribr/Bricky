@@ -59,7 +59,7 @@ struct MinifigureScanHistoryView: View {
         .fullScreenCover(item: $rescanEntry) { entry in
             if let image = store.capturedImage(for: entry) {
                 NavigationStack {
-                    MinifigureScanView(preCapturedImage: image)
+                    MinifigureScanView(preCapturedImage: image, skipEnhancement: true)
                 }
             }
         }

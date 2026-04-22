@@ -20,6 +20,8 @@ final class BrickClassificationPipeline {
         let dimensions: PieceDimensions
         let confidence: Float
         let colorHistogram: [LegoColor: Float]
+        /// Normalized contour points (0-1, Vision coords) tracing the brick perimeter.
+        var contourPoints: [CGPoint]?
     }
 
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
@@ -45,7 +47,7 @@ final class BrickClassificationPipeline {
             var allDetections: [BrickDetection] = []
 
             // Stage 1: Object proposals via rectangle + contour detection
-            let proposals = self.generateObjectProposals(cgImage: cgImage)
+            let (proposals, contourPaths) = self.generateObjectProposals(cgImage: cgImage)
 
             // Stage 2: For each proposal, classify
             for proposal in proposals {
@@ -65,7 +67,8 @@ final class BrickClassificationPipeline {
             }
 
             // Stage 4: Deduplicate overlapping detections
-            let deduped = self.nonMaximumSuppression(allDetections, iouThreshold: 0.5)
+            var deduped = self.nonMaximumSuppression(allDetections, iouThreshold: 0.5)
+            self.assignContours(to: &deduped, contourPaths: contourPaths)
 
             completion(deduped)
         }
@@ -99,12 +102,13 @@ final class BrickClassificationPipeline {
         guard (try? handler.perform([rectRequest, contourRequest])) != nil else { return [] }
 
         var proposals: [CGRect] = []
+        var contourPaths: [(box: CGRect, points: [CGPoint])] = []
         if let rects = rectRequest.results {
             proposals.append(contentsOf: rects.map(\.boundingBox))
         }
         if let contours = contourRequest.results?.first {
-            let contourBoxes = extractBoundingBoxes(from: contours, maxContours: 20)
-            proposals.append(contentsOf: contourBoxes)
+            contourPaths = extractContourPaths(from: contours, maxContours: 20)
+            proposals.append(contentsOf: contourPaths.map(\.box))
         }
 
         // Filter by reasonable size
@@ -123,14 +127,17 @@ final class BrickClassificationPipeline {
                 detections.append(detection)
             }
         }
-        return nonMaximumSuppression(detections, iouThreshold: 0.45)
+        var deduped = nonMaximumSuppression(detections, iouThreshold: 0.45)
+        assignContours(to: &deduped, contourPaths: contourPaths)
+        return deduped
     }
 
     // MARK: - Stage 1: Object Proposals
 
-    private func generateObjectProposals(cgImage: CGImage) -> [CGRect] {
+    private func generateObjectProposals(cgImage: CGImage) -> (proposals: [CGRect], contourPaths: [(box: CGRect, points: [CGPoint])]) {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up)
         var proposals: [CGRect] = []
+        var contourPaths: [(box: CGRect, points: [CGPoint])] = []
 
         // Rectangle detection
         let rectRequest = VNDetectRectanglesRequest()
@@ -156,10 +163,10 @@ final class BrickClassificationPipeline {
                 proposals.append(contentsOf: rects.map(\.boundingBox))
             }
 
-            // Collect contour-derived proposals
+            // Collect contour-derived proposals with their paths
             if let contours = contourRequest.results?.first {
-                let contourBoxes = extractBoundingBoxes(from: contours, maxContours: 60)
-                proposals.append(contentsOf: contourBoxes)
+                contourPaths = extractContourPaths(from: contours, maxContours: 60)
+                proposals.append(contentsOf: contourPaths.map(\.box))
             }
 
             // Collect saliency-derived proposals
@@ -171,10 +178,11 @@ final class BrickClassificationPipeline {
         } catch { }
 
         // Filter proposals by reasonable size
-        return proposals.filter { box in
+        let filtered = proposals.filter { box in
             box.width > 0.005 && box.height > 0.005 &&
             box.width < 0.85 && box.height < 0.85
         }
+        return (proposals: filtered, contourPaths: contourPaths)
     }
 
     private func extractBoundingBoxes(from contourObservation: VNContoursObservation, maxContours: Int) -> [CGRect] {
@@ -199,6 +207,99 @@ final class BrickClassificationPipeline {
                                 width: CGFloat(width), height: CGFloat(height)))
         }
         return boxes
+    }
+
+    /// Extract contour paths as arrays of normalized CGPoints alongside their bounding boxes.
+    private func extractContourPaths(from contourObservation: VNContoursObservation, maxContours: Int) -> [(box: CGRect, points: [CGPoint])] {
+        var results: [(box: CGRect, points: [CGPoint])] = []
+        let contourCount = contourObservation.contourCount
+
+        for i in 0..<min(contourCount, maxContours) {
+            guard let contour = try? contourObservation.contour(at: i) else { continue }
+            let rawPoints = contour.normalizedPoints
+            guard rawPoints.count > 4 && rawPoints.count < 800 else { continue }
+
+            let xs = rawPoints.map(\.x)
+            let ys = rawPoints.map(\.y)
+            guard let minX = xs.min(), let maxX = xs.max(),
+                  let minY = ys.min(), let maxY = ys.max() else { continue }
+
+            let width = maxX - minX
+            let height = maxY - minY
+            guard width > 0.008 && height > 0.008 && width < 0.6 && height < 0.6 else { continue }
+
+            let box = CGRect(x: CGFloat(minX), y: CGFloat(minY),
+                             width: CGFloat(width), height: CGFloat(height))
+            // Simplify contour to reduce point count for rendering
+            let simplified = simplifyContour(rawPoints.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) },
+                                             tolerance: 0.002)
+            results.append((box: box, points: simplified))
+        }
+        return results
+    }
+
+    /// Assign the best-matching contour path to each detection based on bounding box IoU.
+    private func assignContours(to detections: inout [BrickDetection],
+                                contourPaths: [(box: CGRect, points: [CGPoint])]) {
+        for i in detections.indices {
+            let detBox = detections[i].boundingBox
+            var bestIoU: CGFloat = 0
+            var bestContour: [CGPoint]?
+            for cp in contourPaths {
+                let iou = Self.computeIoU(detBox, cp.box)
+                if iou > bestIoU {
+                    bestIoU = iou
+                    bestContour = cp.points
+                }
+            }
+            // Require a reasonable overlap to associate the contour
+            if bestIoU > 0.25 {
+                detections[i].contourPoints = bestContour
+            }
+        }
+    }
+
+    /// Ramer-Douglas-Peucker simplification to reduce contour point count.
+    private func simplifyContour(_ points: [CGPoint], tolerance: CGFloat) -> [CGPoint] {
+        guard points.count > 2 else { return points }
+        var dmax: CGFloat = 0
+        var index = 0
+        let end = points.count - 1
+        let lineStart = points[0]
+        let lineEnd = points[end]
+
+        for i in 1..<end {
+            let d = perpendicularDistance(points[i], lineStart: lineStart, lineEnd: lineEnd)
+            if d > dmax {
+                index = i
+                dmax = d
+            }
+        }
+
+        if dmax > tolerance {
+            let left = simplifyContour(Array(points[0...index]), tolerance: tolerance)
+            let right = simplifyContour(Array(points[index...end]), tolerance: tolerance)
+            return Array(left.dropLast()) + right
+        } else {
+            return [lineStart, lineEnd]
+        }
+    }
+
+    private func perpendicularDistance(_ point: CGPoint, lineStart: CGPoint, lineEnd: CGPoint) -> CGFloat {
+        let dx = lineEnd.x - lineStart.x
+        let dy = lineEnd.y - lineStart.y
+        let lengthSq = dx * dx + dy * dy
+        if lengthSq == 0 { return hypot(point.x - lineStart.x, point.y - lineStart.y) }
+        let num = abs(dy * point.x - dx * point.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x)
+        return num / sqrt(lengthSq)
+    }
+
+    private static func computeIoU(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let intersection = a.intersection(b)
+        guard !intersection.isNull else { return 0 }
+        let intersectionArea = intersection.width * intersection.height
+        let unionArea = a.width * a.height + b.width * b.height - intersectionArea
+        return unionArea > 0 ? intersectionArea / unionArea : 0
     }
 
     // MARK: - Stage 2: Region Classification

@@ -11,32 +11,37 @@ struct LiveDetectionOverlayView: View {
         GeometryReader { geometry in
             ForEach(detections) { detection in
                 let frame = visionToScreen(detection.boundingBox, in: geometry.size)
+                let screenContour = visionContourToScreen(detection.contourPoints, in: geometry.size)
                 switch themeManager.scanOverlayStyle {
                 case .brickit:
                     BrickitBoundingBoxView(
                         frame: frame,
                         legoColor: detection.dominantColor,
-                        confidence: detection.confidence
+                        confidence: detection.confidence,
+                        contourPoints: screenContour
                     )
                 case .clean:
                     CleanBoundingBoxView(
                         frame: frame,
                         label: detection.label,
                         legoColor: detection.dominantColor,
-                        confidence: detection.confidence
+                        confidence: detection.confidence,
+                        contourPoints: screenContour
                     )
                 case .detailed:
                     DetailedBoundingBoxView(
                         frame: frame,
                         label: detection.label,
                         legoColor: detection.dominantColor,
-                        confidence: detection.confidence
+                        confidence: detection.confidence,
+                        contourPoints: screenContour
                     )
                 case .minimal:
                     MinimalBoundingBoxView(
                         frame: frame,
                         legoColor: detection.dominantColor,
-                        confidence: detection.confidence
+                        confidence: detection.confidence,
+                        contourPoints: screenContour
                     )
                 case .none:
                     EmptyView()
@@ -53,6 +58,14 @@ struct LiveDetectionOverlayView: View {
         let height = rect.height * size.height
         return CGRect(x: x, y: y, width: width, height: height)
     }
+
+    /// Convert normalized Vision contour points to screen coordinates.
+    private func visionContourToScreen(_ points: [CGPoint]?, in size: CGSize) -> [CGPoint]? {
+        guard let points, points.count >= 3 else { return nil }
+        return points.map { pt in
+            CGPoint(x: pt.x * size.width, y: (1 - pt.y) * size.height)
+        }
+    }
 }
 
 // MARK: - Clean Style (white boxes, compact label)
@@ -62,19 +75,30 @@ struct CleanBoundingBoxView: View {
     let label: String
     let legoColor: LegoColor
     let confidence: Float
+    var contourPoints: [CGPoint]? = nil
     @State private var appeared = false
 
     private var accentColor: Color { Color.legoColor(legoColor) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Rectangle()
-                .strokeBorder(Color.white.opacity(appeared ? 0.9 : 0.0), lineWidth: 2)
-                .frame(width: frame.width, height: frame.height)
-                .background(
-                    Rectangle()
-                        .fill(Color.white.opacity(appeared ? 0.08 : 0.0))
-                )
+            if let contour = contourPoints, contour.count >= 3 {
+                ContourShape(points: contour, frame: frame)
+                    .stroke(Color.white.opacity(appeared ? 0.9 : 0.0), lineWidth: 2)
+                    .frame(width: frame.width, height: frame.height)
+                    .background(
+                        ContourShape(points: contour, frame: frame)
+                            .fill(Color.white.opacity(appeared ? 0.08 : 0.0))
+                    )
+            } else {
+                Rectangle()
+                    .strokeBorder(Color.white.opacity(appeared ? 0.9 : 0.0), lineWidth: 2)
+                    .frame(width: frame.width, height: frame.height)
+                    .background(
+                        Rectangle()
+                            .fill(Color.white.opacity(appeared ? 0.08 : 0.0))
+                    )
+            }
 
             HStack(spacing: 4) {
                 RoundedRectangle(cornerRadius: 2)
@@ -117,25 +141,39 @@ struct DetailedBoundingBoxView: View {
     let label: String
     let legoColor: LegoColor
     let confidence: Float
+    var contourPoints: [CGPoint]? = nil
     @State private var appeared = false
 
     private var color: Color { Color.legoColor(legoColor) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Highlight fill
-            RoundedRectangle(cornerRadius: 6)
-                .fill(color.opacity(appeared ? 0.15 : 0.0))
-                .frame(width: frame.width, height: frame.height)
+            if let contour = contourPoints, contour.count >= 3 {
+                // Contour-based highlight fill
+                ContourShape(points: contour, frame: frame)
+                    .fill(color.opacity(appeared ? 0.15 : 0.0))
+                    .frame(width: frame.width, height: frame.height)
 
-            // Color-coded border with glow
-            RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(color, lineWidth: appeared ? 2.5 : 1.0)
-                .frame(width: frame.width, height: frame.height)
-                .shadow(color: color.opacity(0.6), radius: appeared ? 6 : 0)
+                // Contour border with glow
+                ContourShape(points: contour, frame: frame)
+                    .stroke(color, lineWidth: appeared ? 2.5 : 1.0)
+                    .frame(width: frame.width, height: frame.height)
+                    .shadow(color: color.opacity(0.6), radius: appeared ? 6 : 0)
+            } else {
+                // Highlight fill
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(color.opacity(appeared ? 0.15 : 0.0))
+                    .frame(width: frame.width, height: frame.height)
 
-            // Corner accents
-            cornerAccents
+                // Color-coded border with glow
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(color, lineWidth: appeared ? 2.5 : 1.0)
+                    .frame(width: frame.width, height: frame.height)
+                    .shadow(color: color.opacity(0.6), radius: appeared ? 6 : 0)
+
+                // Corner accents
+                cornerAccents
+            }
 
             // Label badge with confidence
             HStack(spacing: 3) {
@@ -209,20 +247,51 @@ struct MinimalBoundingBoxView: View {
     let frame: CGRect
     let legoColor: LegoColor
     let confidence: Float
+    var contourPoints: [CGPoint]? = nil
     @State private var appeared = false
 
     private var color: Color { Color.legoColor(legoColor) }
 
     var body: some View {
-        Rectangle()
-            .strokeBorder(color.opacity(appeared ? 0.8 : 0.0), lineWidth: 1.5)
-            .frame(width: frame.width, height: frame.height)
-            .position(x: frame.midX, y: frame.midY)
+        Group {
+            if let contour = contourPoints, contour.count >= 3 {
+                ContourShape(points: contour, frame: frame)
+                    .stroke(color.opacity(appeared ? 0.8 : 0.0), lineWidth: 1.5)
+                    .frame(width: frame.width, height: frame.height)
+            } else {
+                Rectangle()
+                    .strokeBorder(color.opacity(appeared ? 0.8 : 0.0), lineWidth: 1.5)
+                    .frame(width: frame.width, height: frame.height)
+            }
+        }
+        .position(x: frame.midX, y: frame.midY)
             .onAppear {
                 withAnimation(.easeOut(duration: 0.2)) {
                     appeared = true
                 }
             }
             .accessibilityLabel("Detected brick, \(Int(confidence * 100)) percent confidence")
+    }
+}
+
+// MARK: - Contour Shape
+
+/// A `Shape` that draws a closed polygon from screen-space contour points,
+/// translated so they are relative to the given frame origin.
+struct ContourShape: Shape {
+    let points: [CGPoint]
+    let frame: CGRect
+
+    func path(in rect: CGRect) -> Path {
+        guard points.count >= 3 else { return Path() }
+        var path = Path()
+        // Translate absolute screen points to be relative to the frame origin
+        let translated = points.map { CGPoint(x: $0.x - frame.minX, y: $0.y - frame.minY) }
+        path.move(to: translated[0])
+        for pt in translated.dropFirst() {
+            path.addLine(to: pt)
+        }
+        path.closeSubpath()
+        return path
     }
 }

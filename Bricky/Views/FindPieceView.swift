@@ -160,7 +160,9 @@ struct FindPieceViewPlaceholder: View {
 }
 */
 
-/// Overlay that dims everything except matched piece bounding boxes
+/// Overlay that dims everything except matched pieces.
+/// When contour points are available, traces the actual brick perimeter.
+/// Falls back to rounded rectangles when no contour data exists.
 struct FindPieceOverlayView: View {
     let detections: [ObjectRecognitionService.DetectedObject]
 
@@ -174,43 +176,83 @@ struct FindPieceOverlayView: View {
                 )
 
                 for detection in detections {
-                    // Convert Vision coords to view coords
-                    let rect = CGRect(
-                        x: detection.boundingBox.origin.x * size.width,
-                        y: (1 - detection.boundingBox.origin.y - detection.boundingBox.height) * size.height,
-                        width: detection.boundingBox.width * size.width,
-                        height: detection.boundingBox.height * size.height
-                    )
-
-                    // Cut out the piece area (clear the dim)
-                    context.blendMode = .destinationOut
-                    let clearRect = Path(roundedRect: rect.insetBy(dx: -4, dy: -4), cornerRadius: 6)
-                    context.fill(clearRect, with: .color(.white))
-
-                    // Draw highlight border
-                    context.blendMode = .normal
                     let borderColor = Color.legoColor(detection.dominantColor)
 
-                    // Outer glow
-                    context.stroke(
-                        Path(roundedRect: rect.insetBy(dx: -6, dy: -6), cornerRadius: 8),
-                        with: .color(borderColor.opacity(0.4)),
-                        lineWidth: 4
-                    )
+                    if let contourPoints = detection.contourPoints, contourPoints.count >= 3 {
+                        // --- Contour-based highlight ---
+                        let screenPoints = contourPoints.map { pt in
+                            CGPoint(
+                                x: CGFloat(pt.x) * size.width,
+                                y: (1 - CGFloat(pt.y)) * size.height
+                            )
+                        }
 
-                    // Main border
-                    context.stroke(
-                        Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 5),
-                        with: .color(borderColor),
-                        lineWidth: 3
-                    )
+                        // Build closed contour path
+                        var contourPath = Path()
+                        contourPath.move(to: screenPoints[0])
+                        for pt in screenPoints.dropFirst() {
+                            contourPath.addLine(to: pt)
+                        }
+                        contourPath.closeSubpath()
 
-                    // White inner border
-                    context.stroke(
-                        Path(roundedRect: rect, cornerRadius: 4),
-                        with: .color(.white.opacity(0.8)),
-                        lineWidth: 1.5
-                    )
+                        // Cut out the piece area from the dim layer
+                        context.blendMode = .destinationOut
+                        // Slightly expanded for padding
+                        context.fill(contourPath, with: .color(.white))
+
+                        // Draw highlight contour
+                        context.blendMode = .normal
+
+                        // Outer glow
+                        context.stroke(
+                            contourPath,
+                            with: .color(borderColor.opacity(0.4)),
+                            lineWidth: 5
+                        )
+
+                        // Main contour border
+                        context.stroke(
+                            contourPath,
+                            with: .color(borderColor),
+                            lineWidth: 3
+                        )
+
+                        // Inner white edge
+                        context.stroke(
+                            contourPath,
+                            with: .color(.white.opacity(0.7)),
+                            lineWidth: 1.5
+                        )
+                    } else {
+                        // --- Fallback: rounded rectangle ---
+                        let rect = CGRect(
+                            x: detection.boundingBox.origin.x * size.width,
+                            y: (1 - detection.boundingBox.origin.y - detection.boundingBox.height) * size.height,
+                            width: detection.boundingBox.width * size.width,
+                            height: detection.boundingBox.height * size.height
+                        )
+
+                        context.blendMode = .destinationOut
+                        let clearRect = Path(roundedRect: rect.insetBy(dx: -4, dy: -4), cornerRadius: 6)
+                        context.fill(clearRect, with: .color(.white))
+
+                        context.blendMode = .normal
+                        context.stroke(
+                            Path(roundedRect: rect.insetBy(dx: -6, dy: -6), cornerRadius: 8),
+                            with: .color(borderColor.opacity(0.4)),
+                            lineWidth: 4
+                        )
+                        context.stroke(
+                            Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 5),
+                            with: .color(borderColor),
+                            lineWidth: 3
+                        )
+                        context.stroke(
+                            Path(roundedRect: rect, cornerRadius: 4),
+                            with: .color(.white.opacity(0.8)),
+                            lineWidth: 1.5
+                        )
+                    }
                 }
             }
         }

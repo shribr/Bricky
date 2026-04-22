@@ -24,6 +24,8 @@ final class ObjectRecognitionService: ObservableObject {
         let estimatedDimensions: PieceDimensions
         let partNumber: String
         let source: String // "offline"
+        /// Normalized contour points (0-1, Vision coords) tracing the brick perimeter.
+        var contourPoints: [CGPoint]?
     }
 
     /// Process a video frame from the camera
@@ -43,7 +45,8 @@ final class ObjectRecognitionService: ObservableObject {
                 estimatedCategory: det.category,
                 estimatedDimensions: det.dimensions,
                 partNumber: det.partNumber,
-                source: "offline"
+                source: "offline",
+                contourPoints: det.contourPoints
             )
         }
 
@@ -70,7 +73,8 @@ final class ObjectRecognitionService: ObservableObject {
                     estimatedCategory: det.category,
                     estimatedDimensions: det.dimensions,
                     partNumber: det.partNumber,
-                    source: "offline"
+                    source: "offline",
+                    contourPoints: det.contourPoints
                 )
             }
 

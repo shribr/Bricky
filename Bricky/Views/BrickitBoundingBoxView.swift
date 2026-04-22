@@ -13,6 +13,7 @@ struct BrickitBoundingBoxView: View {
     let frame: CGRect
     let legoColor: LegoColor
     let confidence: Float
+    var contourPoints: [CGPoint]? = nil
 
     @State private var appeared = false
     @State private var pulse = false
@@ -26,19 +27,32 @@ struct BrickitBoundingBoxView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Outer glow
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(accent.opacity(appeared ? 0.45 : 0), lineWidth: 4)
-                .blur(radius: 6)
-                .frame(width: frame.width, height: frame.height)
+            if let contour = contourPoints, contour.count >= 3 {
+                // Contour-based: outer glow
+                ContourShape(points: contour, frame: frame)
+                    .stroke(accent.opacity(appeared ? 0.45 : 0), lineWidth: 4)
+                    .blur(radius: 6)
+                    .frame(width: frame.width, height: frame.height)
 
-            // Main rounded stroke
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(accent.opacity(appeared ? 0.95 : 0), lineWidth: 2)
-                .frame(width: frame.width, height: frame.height)
+                // Contour-based: main stroke
+                ContourShape(points: contour, frame: frame)
+                    .stroke(accent.opacity(appeared ? 0.95 : 0), lineWidth: 2)
+                    .frame(width: frame.width, height: frame.height)
+            } else {
+                // Outer glow
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(accent.opacity(appeared ? 0.45 : 0), lineWidth: 4)
+                    .blur(radius: 6)
+                    .frame(width: frame.width, height: frame.height)
 
-            // Corner accents
-            cornerAccents
+                // Main rounded stroke
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(accent.opacity(appeared ? 0.95 : 0), lineWidth: 2)
+                    .frame(width: frame.width, height: frame.height)
+
+                // Corner accents (only for rectangle fallback)
+                cornerAccents
+            }
 
             // Badge
             badge

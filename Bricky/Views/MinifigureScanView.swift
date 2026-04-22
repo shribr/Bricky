@@ -7,6 +7,9 @@ import UIKit
 struct MinifigureScanView: View {
     /// Image captured during pre-scan analysis — auto-starts identification.
     var preCapturedImage: UIImage? = nil
+    /// When true, the image has already been enhanced (e.g. history re-scan)
+    /// and should not be enhanced again.
+    var skipEnhancement: Bool = false
 
     @StateObject private var camera = CameraManager()
     @Environment(\.dismiss) private var dismiss
@@ -97,7 +100,7 @@ struct MinifigureScanView: View {
             if let preImage = preCapturedImage {
                 capturedImage = preImage
                 isIdentifying = true
-                isPreCapturedScan = true
+                isPreCapturedScan = skipEnhancement
                 // Start camera in background for manual re-scan later
                 if camera.isSessionRunning {
                     camera.startSession()
