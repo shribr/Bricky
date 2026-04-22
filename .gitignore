@@ -43,3 +43,6 @@ Carthage/Checkouts/
 *~
 .vscode/
 .idea/
+
+# Large model files
+*.pt
