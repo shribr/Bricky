@@ -10,7 +10,7 @@ struct FindABrickHubView: View {
     @State private var selectedCategory: PieceCategory? = nil
 
     @State private var selectedPiece: SearchablePiece?
-    @State private var showFindLive = false
+    @State private var pieceToFindLive: LegoPiece?
     @State private var showSavedScanPicker = false
     @State private var showPhotoFinder = false
     @State private var photoPickerItem: PhotosPickerItem?
@@ -116,14 +116,15 @@ struct FindABrickHubView: View {
         .confirmationDialog(
             selectedPiece?.name ?? "Find piece",
             isPresented: Binding(
-                get: { selectedPiece != nil && !showFindLive && !showSavedScanPicker },
+                get: { selectedPiece != nil && pieceToFindLive == nil && !showSavedScanPicker },
                 set: { if !$0 { selectedPiece = nil } }
             ),
             titleVisibility: .visible
         ) {
             if let piece = selectedPiece {
                 Button("Find in Live Pile") {
-                    showFindLive = true
+                    pieceToFindLive = piece.asLegoPiece()
+                    selectedPiece = nil
                 }
                 if piece.scanMatchCount > 0 {
                     Button("Find in Saved Scans (\(piece.scanMatchCount))") {
@@ -144,10 +145,8 @@ struct FindABrickHubView: View {
                      : "Not found in any saved scan yet.")
             }
         }
-        .fullScreenCover(isPresented: $showFindLive, onDismiss: { selectedPiece = nil }) {
-            if let piece = selectedPiece {
-                FindPieceView(piece: piece.asLegoPiece())
-            }
+        .fullScreenCover(item: $pieceToFindLive) { piece in
+            FindPieceView(piece: piece)
         }
         .sheet(isPresented: $showSavedScanPicker, onDismiss: { selectedPiece = nil }) {
             if let piece = selectedPiece {

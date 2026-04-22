@@ -97,12 +97,6 @@ struct FindPieceView: View {
             .animation(.easeInOut(duration: 0.3), value: viewModel.targetPieceFound)
         }
         .onAppear {
-            // FindPieceView always shows the regular AVCaptureSession
-            // preview, so explicitly configure THAT camera regardless of the
-            // user's current tracking-mode setting (otherwise, when the user
-            // is in AR World Tracking mode, `viewModel.setupCamera()` would
-            // configure the AR session and the regular preview would stay
-            // black).
             viewModel.cameraManager.configureAndStart { [weak viewModel] in
                 Task { @MainActor in
                     viewModel?.startFindPiece(piece)
@@ -111,10 +105,60 @@ struct FindPieceView: View {
         }
         .onDisappear {
             viewModel.stopFindPiece()
+            viewModel.cameraManager.stopSession()
         }
         .statusBarHidden()
     }
 }
+
+// MARK: - Placeholder (uncomment to use instead of camera)
+/*
+struct FindPieceViewPlaceholder: View {
+    let piece: LegoPiece
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.legoYellow.ignoresSafeArea()
+            VStack(spacing: 24) {
+                Spacer()
+                Image(systemName: "eye.trianglebadge.exclamationmark")
+                    .font(.system(size: 56))
+                    .foregroundStyle(.black.opacity(0.6))
+                VStack(spacing: 12) {
+                    Text("Live Pile Search")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.black)
+                    Text("You are attempting to search for the **\(piece.name)** piece in a pile of bricks using your camera.")
+                        .font(.body)
+                        .foregroundStyle(.black.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Text("This feature is coming soon.")
+                        .font(.subheadline)
+                        .foregroundStyle(.black.opacity(0.5))
+                }
+                Spacer()
+            }
+            VStack {
+                HStack {
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.black.opacity(0.7))
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(.black.opacity(0.1)))
+                    }
+                    .padding()
+                }
+                Spacer()
+            }
+        }
+        .statusBarHidden()
+    }
+}
+*/
 
 /// Overlay that dims everything except matched piece bounding boxes
 struct FindPieceOverlayView: View {
