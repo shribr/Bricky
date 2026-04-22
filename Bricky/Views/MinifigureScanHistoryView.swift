@@ -136,6 +136,9 @@ struct MinifigureScanHistoryView: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                store.reload()
+            }
         }
     }
 
@@ -208,32 +211,32 @@ struct MinifigureScanHistoryView: View {
                     }
                 }
 
-                HStack(spacing: 6) {
-                    Text(entry.date, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-
-                    if entry.confirmed {
-                        Label("Confirmed", systemImage: "checkmark.circle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.green)
-                    } else {
-                        Label("Rejected", systemImage: "xmark.circle")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Text(entry.date, format: .dateTime.month(.abbreviated).day().year().hour().minute())
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
-            VStack(spacing: 2) {
-                Text("\(Int(entry.confidence * 100))%")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(confidenceColor(entry.confidence))
-                Text("match")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 4) {
+                VStack(spacing: 2) {
+                    Text("\(Int(entry.confidence * 100))%")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(confidenceColor(entry.confidence))
+                    Text("match")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                if entry.confirmed {
+                    Label("Confirmed", systemImage: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                } else {
+                    Label("Rejected", systemImage: "xmark.circle")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if !isEditing {
@@ -347,7 +350,14 @@ private struct MinifigureScanHistoryDetailSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                        HStack(spacing: 6) {
+                        if !entry.reasoning.isEmpty {
+                            Text(entry.reasoning)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Spacer()
                             if entry.confirmed {
                                 Label("Added to collection", systemImage: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
@@ -358,7 +368,7 @@ private struct MinifigureScanHistoryDetailSheet: View {
                         }
                         .font(.footnote)
 
-                        Text(entry.date, format: .dateTime.month().day().year().hour().minute())
+                        Text(entry.date, format: .dateTime.month(.abbreviated).day().year().hour().minute())
                             .font(.caption)
                             .foregroundStyle(.tertiary)
 
@@ -430,17 +440,15 @@ private struct MinifigureScanHistoryDetailSheet: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text(entry.minifigureName)
+                        Text(displaySummary)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                             .lineLimit(2)
                     }
-                    if !entry.reasoning.isEmpty {
-                        Text(entry.reasoning)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Text(displayDetail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -455,6 +463,22 @@ private struct MinifigureScanHistoryDetailSheet: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    /// Use the rich analysis summary if available, otherwise fall back to the entry name.
+    private var displaySummary: String {
+        if !entry.analysisSummary.isEmpty {
+            return entry.analysisSummary
+        }
+        return entry.minifigureName
+    }
+
+    /// Use the rich analysis detail if available, otherwise fall back to reasoning.
+    private var displayDetail: String {
+        if !entry.analysisDetail.isEmpty {
+            return entry.analysisDetail
+        }
+        return entry.reasoning
     }
 
     private func imageTile<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {

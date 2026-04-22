@@ -209,7 +209,11 @@ struct CameraScanView: View {
             // Pause the camera session but don't reset scan state — user may come back
             if viewModel.isScanning {
                 wasScanningBeforeNav = true
-                viewModel.cameraManager.stopSession()
+                if viewModel.isARMode {
+                    viewModel.arCameraManager.stopSession()
+                } else {
+                    viewModel.cameraManager.stopSession()
+                }
             }
         }
         .navigationDestination(isPresented: $navigateToResults) {

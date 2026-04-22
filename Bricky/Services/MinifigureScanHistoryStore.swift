@@ -25,9 +25,48 @@ final class MinifigureScanHistoryStore: ObservableObject {
         let reasoning: String
         let imageURL: URL?
         let confirmed: Bool
+        /// Short analysis banner title (e.g. "Low confidence match" or "Possible hybrid").
+        let analysisSummary: String
+        /// Longer analysis explanation (what the AI observed about each region).
+        let analysisDetail: String
 
         /// Local file name for the captured scan image (e.g. "{id}.jpg").
         var capturedImageFilename: String { "\(id.uuidString).jpg" }
+
+        // Backward-compatible decoding for entries saved before analysisSummary/analysisDetail existed.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(UUID.self, forKey: .id)
+            date = try c.decode(Date.self, forKey: .date)
+            minifigureId = try c.decodeIfPresent(String.self, forKey: .minifigureId)
+            minifigureName = try c.decode(String.self, forKey: .minifigureName)
+            theme = try c.decode(String.self, forKey: .theme)
+            year = try c.decode(Int.self, forKey: .year)
+            confidence = try c.decode(Double.self, forKey: .confidence)
+            reasoning = try c.decode(String.self, forKey: .reasoning)
+            imageURL = try c.decodeIfPresent(URL.self, forKey: .imageURL)
+            confirmed = try c.decode(Bool.self, forKey: .confirmed)
+            analysisSummary = (try? c.decode(String.self, forKey: .analysisSummary)) ?? ""
+            analysisDetail = (try? c.decode(String.self, forKey: .analysisDetail)) ?? ""
+        }
+
+        init(id: UUID, date: Date, minifigureId: String?, minifigureName: String,
+             theme: String, year: Int, confidence: Double, reasoning: String,
+             imageURL: URL?, confirmed: Bool, analysisSummary: String = "",
+             analysisDetail: String = "") {
+            self.id = id
+            self.date = date
+            self.minifigureId = minifigureId
+            self.minifigureName = minifigureName
+            self.theme = theme
+            self.year = year
+            self.confidence = confidence
+            self.reasoning = reasoning
+            self.imageURL = imageURL
+            self.confirmed = confirmed
+            self.analysisSummary = analysisSummary
+            self.analysisDetail = analysisDetail
+        }
     }
 
     @Published private(set) var entries: [ScanEntry] = []
@@ -55,7 +94,9 @@ final class MinifigureScanHistoryStore: ObservableObject {
         confidence: Double,
         reasoning: String,
         capturedImage: UIImage?,
-        confirmed: Bool
+        confirmed: Bool,
+        analysisSummary: String = "",
+        analysisDetail: String = ""
     ) {
         let entry = ScanEntry(
             id: UUID(),
@@ -67,7 +108,9 @@ final class MinifigureScanHistoryStore: ObservableObject {
             confidence: confidence,
             reasoning: reasoning,
             imageURL: figure?.imageURL,
-            confirmed: confirmed
+            confirmed: confirmed,
+            analysisSummary: analysisSummary,
+            analysisDetail: analysisDetail
         )
 
         entries.insert(entry, at: 0)
@@ -147,6 +190,11 @@ final class MinifigureScanHistoryStore: ObservableObject {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         entries = (try? decoder.decode([ScanEntry].self, from: data)) ?? []
+    }
+
+    /// Re-read from disk. Used by pull-to-refresh.
+    func reload() {
+        load()
     }
 
     // MARK: - Image helpers

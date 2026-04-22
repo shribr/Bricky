@@ -215,4 +215,9 @@ final class ScanHistoryStore: ObservableObject {
             entries = loaded
         }
     }
+
+    /// Re-read from disk. Used by pull-to-refresh.
+    func reload() {
+        loadFromDisk()
+    }
 }

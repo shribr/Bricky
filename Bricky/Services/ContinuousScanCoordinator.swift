@@ -52,7 +52,7 @@ final class ContinuousScanCoordinator: ObservableObject {
     private var lastCoverageGrowthAt: Date = Date()
     /// How long coverage must plateau before auto-completion countdown begins.
     private let plateauTimeout: TimeInterval = 4.0
-    private var autoCompleteTimer: Timer?
+    private var autoCompleteTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -91,7 +91,8 @@ final class ContinuousScanCoordinator: ObservableObject {
         guard phase == .detectingBoundary, geometry.hasBoundary else { return }
         phase = .boundaryReady
         // Brief pulse, then begin scanning.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             guard let self, self.phase == .boundaryReady else { return }
             self.phase = .scanning
         }
@@ -172,32 +173,32 @@ final class ContinuousScanCoordinator: ObservableObject {
     private func evaluateAutoComplete() {
         let idle = Date().timeIntervalSince(lastCoverageGrowthAt)
         guard idle >= plateauTimeout else { return }
-        guard autoCompleteTimer == nil else { return }
+        guard autoCompleteTask == nil else { return }
         guard coverage >= 0.35 else { return }   // require some progress before offering auto-finish
 
         let countdownSeconds: Double = 5.0
         autoCompleteCountdown = countdownSeconds
-        autoCompleteTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
-            Task { @MainActor [weak self] in
-                guard let self, let remaining = self.autoCompleteCountdown else {
-                    timer.invalidate(); return
-                }
-                let next = remaining - 0.1
-                if next <= 0 {
-                    timer.invalidate()
-                    self.autoCompleteTimer = nil
+        autoCompleteTask = Task { [weak self] in
+            var remaining = countdownSeconds
+            while remaining > 0 {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                guard !Task.isCancelled else { return }
+                remaining -= 0.1
+                guard let self else { return }
+                if remaining <= 0 {
                     self.autoCompleteCountdown = nil
+                    self.autoCompleteTask = nil
                     self.finish()
                 } else {
-                    self.autoCompleteCountdown = next
+                    self.autoCompleteCountdown = remaining
                 }
             }
         }
     }
 
     private func cancelAutoComplete() {
-        autoCompleteTimer?.invalidate()
-        autoCompleteTimer = nil
+        autoCompleteTask?.cancel()
+        autoCompleteTask = nil
         autoCompleteCountdown = nil
     }
 }

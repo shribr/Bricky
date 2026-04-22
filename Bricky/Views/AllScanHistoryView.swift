@@ -70,6 +70,9 @@ struct AllScanHistoryView: View {
             }
             .navigationTitle("Scan History")
             .navigationBarTitleDisplayMode(.inline)
+            .refreshable {
+                scanHistory.reload()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") { dismiss() }

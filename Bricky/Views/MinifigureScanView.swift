@@ -31,6 +31,10 @@ struct MinifigureScanView: View {
     @State private var enhanceWasApplied = false
     @State private var hybridAnalysis: HybridFigureAnalyzer.Analysis?
     @State private var showSubjectFullScreen = false
+    /// True when the identify() call was triggered from a pre-captured
+    /// (history re-scan) image that was already enhanced previously.
+    /// Prevents double-enhancement artifacts.
+    @State private var isPreCapturedScan = false
 
     var body: some View {
         ZStack {
@@ -93,6 +97,7 @@ struct MinifigureScanView: View {
             if let preImage = preCapturedImage {
                 capturedImage = preImage
                 isIdentifying = true
+                isPreCapturedScan = true
                 // Start camera in background for manual re-scan later
                 if camera.isSessionRunning {
                     camera.startSession()
@@ -316,7 +321,10 @@ struct MinifigureScanView: View {
         // enabled (default), run our auto-crop + CoreImage enhancement
         // pipeline OFF the main actor with a visible status message.
         var oriented = image.normalizedOrientation()
-        if ScanImageEnhancer.isEnabled {
+        // Skip enhancement for images from scan history — they were
+        // already auto-cropped + enhanced on the original scan.
+        let shouldEnhance = ScanImageEnhancer.isEnabled && !isPreCapturedScan
+        if shouldEnhance {
             enhancingInProgress = true
             // Run enhancement in parallel with a minimum-display timer so
             // the user can clearly see "Enhancing image…" — without this
@@ -447,7 +455,9 @@ struct MinifigureScanView: View {
                 confidence: topCandidate?.confidence ?? 0,
                 reasoning: topCandidate?.reasoning ?? "",
                 capturedImage: oriented,
-                confirmed: false
+                confirmed: false,
+                analysisSummary: hybridAnalysis?.summary ?? "",
+                analysisDetail: hybridAnalysis?.detail ?? ""
             )
 
             showResults = true
@@ -535,7 +545,7 @@ struct MinifigureScanView: View {
                     candidate: candidate,
                     capturedImage: capturedImage,
                     analysisDetail: hybridAnalysis,
-                    onConfirm: {
+                    onConfirm: { [hybridAnalysis] in
                         MinifigureCollectionStore.shared.markScanned(fig.id)
                         MinifigureScanHistoryStore.shared.record(
                             figure: fig,
@@ -543,7 +553,9 @@ struct MinifigureScanView: View {
                             confidence: candidate.confidence,
                             reasoning: candidate.reasoning,
                             capturedImage: capturedImage,
-                            confirmed: true
+                            confirmed: true,
+                            analysisSummary: hybridAnalysis?.summary ?? "",
+                            analysisDetail: hybridAnalysis?.detail ?? ""
                         )
                         // Also feed the confirmation into the training
                         // store so the correction reranker can boost this
@@ -571,14 +583,16 @@ struct MinifigureScanView: View {
                             )
                         }
                     },
-                    onReject: {
+                    onReject: { [hybridAnalysis] in
                         MinifigureScanHistoryStore.shared.record(
                             figure: fig,
                             candidateName: candidate.modelName,
                             confidence: candidate.confidence,
                             reasoning: candidate.reasoning,
                             capturedImage: capturedImage,
-                            confirmed: false
+                            confirmed: false,
+                            analysisSummary: hybridAnalysis?.summary ?? "",
+                            analysisDetail: hybridAnalysis?.detail ?? ""
                         )
                     }
                 )

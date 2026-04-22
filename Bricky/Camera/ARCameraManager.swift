@@ -50,6 +50,10 @@ final class ARCameraManager: NSObject, ObservableObject {
     let session = ARSession()
     private let delegateQueue = DispatchQueue(label: AppConfig.keychainPrefix + ".ar.delegate")
 
+    deinit {
+        session.pause()
+    }
+
     /// Callback for each captured frame (CVPixelBuffer from ARFrame)
     var onFrameCaptured: ((CVPixelBuffer) -> Void)?
 
@@ -73,6 +77,7 @@ final class ARCameraManager: NSObject, ObservableObject {
         case arNotSupported
         case permissionDenied
         case trackingLost
+        case sessionFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -80,6 +85,7 @@ final class ARCameraManager: NSObject, ObservableObject {
             case .arNotSupported: return "ARKit world tracking is not supported on this device."
             case .permissionDenied: return "Camera permission was denied. Please enable it in Settings."
             case .trackingLost: return "AR tracking was lost. Try moving to a well-lit area with more visual features."
+            case .sessionFailed(let msg): return "AR session failed: \(msg)"
             }
         }
     }
@@ -403,6 +409,16 @@ extension ARCameraManager: ARSessionDelegate {
     nonisolated func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
         Task { @MainActor [weak self] in
             self?.trackingState = camera.trackingState
+        }
+    }
+
+    nonisolated func session(_ session: ARSession, didFailWithError error: Error) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isSessionRunning = false
+            self.error = .sessionFailed(error.localizedDescription)
+            os.Logger(subsystem: AppConfig.keychainPrefix, category: "ARCamera")
+                .error("AR session failed: \(error.localizedDescription)")
         }
     }
 }
