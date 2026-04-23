@@ -31,6 +31,40 @@ from torchvision import transforms
 from embed_catalog import torso_crop, load_dinov2
 
 
+# ---------------------------------------------------------------------------
+# Figure bbox detection — crop the figure out of an augmented / photographed
+# image *before* applying the fixed torso band, so rotation / background-
+# paste don't push the figure out of the 30-70% window.
+# ---------------------------------------------------------------------------
+
+def detect_figure_bbox(img: Image.Image) -> tuple[int, int, int, int]:
+    """Return (left, top, right, bottom) of the foreground figure.
+
+    Samples the 5-pixel border strips to learn the background colour,
+    then finds the bounding box of pixels that differ from it (L2 > 50).
+    Falls back to the full image if nothing is detected.
+    """
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    corners = np.concatenate([
+        arr[0:5].reshape(-1, 3),
+        arr[-5:].reshape(-1, 3),
+        arr[:, 0:5].reshape(-1, 3),
+        arr[:, -5:].reshape(-1, 3),
+    ])
+    bg = corners.mean(axis=0)
+    dist = np.sqrt(((arr - bg) ** 2).sum(axis=2))
+    ys, xs = np.where(dist > 50)
+    if len(xs) == 0:
+        return (0, 0, img.width, img.height)
+    pad = 8
+    return (
+        max(0, int(xs.min()) - pad),
+        max(0, int(ys.min()) - pad),
+        min(img.width, int(xs.max()) + pad),
+        min(img.height, int(ys.max()) + pad),
+    )
+
+
 DEFAULT_EVAL = Path(__file__).resolve().parent / "eval"
 DEFAULT_INDEX = Path(__file__).resolve().parent / "index" / "dinov2_vits14"
 
@@ -69,6 +103,12 @@ def main() -> int:
     parser.add_argument("--random-init", action="store_true",
                         help="Use the random-init stub to match an index built with "
                              "--random-init (smoke-test plumbing only).")
+    parser.add_argument("--no-detect-bbox", action="store_true",
+                        help="Skip bbox detection before torso crop. By default "
+                             "the evaluator detects the figure bounding box in each "
+                             "query image before cropping the 30-70%% torso band, "
+                             "so rotated/composited augmentations don't push the "
+                             "figure outside the crop window.")
     args = parser.parse_args()
 
     matrix, ids, meta = load_index(args.index)
@@ -106,10 +146,15 @@ def main() -> int:
               "(eval set overlaps excluded figures). They are excluded from scoring.")
 
     t0 = time.time()
+    use_bbox = not args.no_detect_bbox
+    if use_bbox:
+        print("  bbox detection enabled (disable with --no-detect-bbox)")
     batch_imgs: list[torch.Tensor] = []
     batch_meta: list[tuple[str, Path]] = []
     for i, (fid, p) in enumerate(in_index):
         img = Image.open(p).convert("RGB")
+        if use_bbox:
+            img = img.crop(detect_figure_bbox(img))
         crop = torso_crop(img)
         batch_imgs.append(tx(crop))
         batch_meta.append((fid, p))

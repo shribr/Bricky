@@ -1,0 +1,1280 @@
+[
+  {
+    "filename": "adv013_johnny_thunder_jungle.jpeg",
+    "search_prefix": "adv013",
+    "search_tokens": [
+      "adv013",
+      "johnny",
+      "jungle",
+      "thunder"
+    ],
+    "figure_id": "fig-000748",
+    "figure_name": "Johnny Thunder, Printed Legs (Expedition)",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000359",
+        "name": "Johnny Thunder (Desert)",
+        "theme": "Adventurers",
+        "score": 7.0
+      },
+      {
+        "id": "fig-000748",
+        "name": "Johnny Thunder, Printed Legs (Expedition)",
+        "theme": "Adventurers",
+        "score": 7.0
+      },
+      {
+        "id": "fig-000802",
+        "name": "Johnny Thunder with Backpack (Desert)",
+        "theme": "Adventurers",
+        "score": 7.0
+      },
+      {
+        "id": "fig-000839",
+        "name": "Johnny Thunder with Tan Pants with Pockets",
+        "theme": "Adventurers",
+        "score": 7.0
+      },
+      {
+        "id": "fig-001108",
+        "name": "Johnny Thunder (Desert) with Chin Scar",
+        "theme": "Adventurers",
+        "score": 7.0
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "cas141_forestman_quiver_b.jpeg",
+    "search_prefix": "cas141",
+    "search_tokens": [
+      "b",
+      "cas141",
+      "forestman",
+      "quiver"
+    ],
+    "figure_id": "fig-012979",
+    "figure_name": "Forestman, Quiver, Thin Moustache",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-012855",
+        "name": "Forestman, Quiver, Sideburns",
+        "theme": "Promotional",
+        "score": 7.0
+      },
+      {
+        "id": "fig-012979",
+        "name": "Forestman, Quiver, Thin Moustache",
+        "theme": "Icons",
+        "score": 7.0
+      },
+      {
+        "id": "fig-016155",
+        "name": "Forestman, Quiver, Smile",
+        "theme": "BrickLink Designer Program",
+        "score": 7.0
+      },
+      {
+        "id": "fig-016156",
+        "name": "Forestman, Quiver, Stubbles",
+        "theme": "BrickLink Designer Program",
+        "score": 7.0
+      },
+      {
+        "id": "fig-016161",
+        "name": "Forestman, Quiver, Beard",
+        "theme": "BrickLink Designer Program",
+        "score": 7.0
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "chef005_classic_chef_red_neckerchief.jpeg",
+    "search_prefix": "chef005",
+    "search_tokens": [
+      "chef",
+      "chef005",
+      "classic",
+      "neckerchief",
+      "red"
+    ],
+    "figure_id": "fig-000073",
+    "figure_name": "Chef, Red Neckerchief, Light Bluish Gray Legs, Goatee Beard",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000073",
+        "name": "Chef, Red Neckerchief, Light Bluish Gray Legs, Goatee Beard",
+        "theme": "Make & Create",
+        "score": 9.0
+      },
+      {
+        "id": "fig-000215",
+        "name": "Chef, Red Neckerchief, Blue Legs, Red Cap",
+        "theme": "Town",
+        "score": 9.0
+      },
+      {
+        "id": "fig-000224",
+        "name": "Chef, Red Neckerchief, White Legs, Moustache",
+        "theme": "Seasonal",
+        "score": 9.0
+      },
+      {
+        "id": "fig-001024",
+        "name": "Chef, Red Neckerchief, Black Legs, Goatee Beard",
+        "theme": "City",
+        "score": 9.0
+      },
+      {
+        "id": "fig-001675",
+        "name": "Chef, Red Neckerchief, Black Legs, Moustache",
+        "theme": "City",
+        "score": 9.0
+      }
+    ]
+  },
+  {
+    "filename": "cop008_city_police_officer.jpeg",
+    "search_prefix": "cop008",
+    "search_tokens": [
+      "city",
+      "cop008",
+      "officer",
+      "police"
+    ],
+    "figure_id": "fig-002090",
+    "figure_name": "Police Officer, Vibrant Yellow Police Vest, Orange Life Jacket, Nougat Hair",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-002090",
+        "name": "Police Officer, Vibrant Yellow Police Vest, Orange Life Jacket, Nougat Hair",
+        "theme": "City",
+        "score": 10.5
+      },
+      {
+        "id": "fig-008014",
+        "name": "Police Officer, Vibrant Yellow Police Vest, White Helmet with Visor",
+        "theme": "City",
+        "score": 10.5
+      },
+      {
+        "id": "fig-011772",
+        "name": "Police Officer, Sand Blue Torso, Dark Blue Legs",
+        "theme": "City",
+        "score": 10.5
+      },
+      {
+        "id": "fig-011990",
+        "name": "Police Officer - Justin Justice - Bright Light Blue Shirt, Dark Blue Legs, Dark Blue Cap",
+        "theme": "City",
+        "score": 10.5
+      },
+      {
+        "id": "fig-012887",
+        "name": "Police Officer - Dark Blue Torso, Legs and Helmet",
+        "theme": "City",
+        "score": 10.5
+      }
+    ]
+  },
+  {
+    "filename": "cty_worker_blue_overalls_knit_cap.jpeg",
+    "search_prefix": "cty",
+    "search_tokens": [
+      "blue",
+      "cap",
+      "cty",
+      "knit",
+      "overalls",
+      "worker"
+    ],
+    "figure_id": "fig-001067",
+    "figure_name": "Construction Worker, Blue Overalls over Medium Blue Shirt, Blue Cap, Goatee Beard",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-001067",
+        "name": "Construction Worker, Blue Overalls over Medium Blue Shirt, Blue Cap, Goatee Beard",
+        "theme": "City",
+        "score": 10.67
+      },
+      {
+        "id": "fig-001180",
+        "name": "Construction Worker, Orange Overalls over Blue Sweater, Blue Cap, Beard",
+        "theme": "City",
+        "score": 10.67
+      },
+      {
+        "id": "fig-001894",
+        "name": "Construction Worker, Orange Overalls over Blue Sweater, Blue Cap, Dark Tan Beard",
+        "theme": "City",
+        "score": 10.67
+      },
+      {
+        "id": "fig-008120",
+        "name": "Pete - Construction Worker, Blue Overalls over Orange Sweater, Brown Cavalry Cap, Printed Hair and Stubble",
+        "theme": "Town",
+        "score": 10.67
+      },
+      {
+        "id": "fig-008279",
+        "name": "Construction Worker, Orange Overalls over Blue Sweater, Black Cap",
+        "theme": "City",
+        "score": 10.67
+      }
+    ]
+  },
+  {
+    "filename": "loc012_longtooth_body_with_iceklaw_ice_bear_mask.jpeg",
+    "search_prefix": "loc012",
+    "search_tokens": [
+      "bear",
+      "body",
+      "ice",
+      "iceklaw",
+      "loc012",
+      "longtooth",
+      "mask",
+      "with"
+    ],
+    "figure_id": "fig-005653",
+    "figure_name": "Longtooth with Shoulder Armor",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-005728",
+        "name": "Ice Bear Warrior with White Legs",
+        "theme": "Legends of Chima",
+        "score": 6.75
+      },
+      {
+        "id": "fig-005729",
+        "name": "Ice Bear Warrior with Trans-Light Blue Right Leg",
+        "theme": "Legends of Chima",
+        "score": 6.75
+      },
+      {
+        "id": "fig-000431",
+        "name": "Diver, Woman, Blue Wetsuit, Black Helmet with Mask, Airtank",
+        "theme": "Town",
+        "score": 4.5
+      },
+      {
+        "id": "fig-000530",
+        "name": "Diver, Man, Red Wetsuit, Red Helmet with Mask, Airtank, Stubble",
+        "theme": "Town",
+        "score": 4.5
+      },
+      {
+        "id": "fig-000710",
+        "name": "Diver, Man, Red Wetsuit, Black Helmet with Mask, Airtank, Printed White Hair",
+        "theme": "Town",
+        "score": 4.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "loc012_longtooth_body_with_lion_mane.jpeg",
+    "search_prefix": "loc012",
+    "search_tokens": [
+      "body",
+      "lion",
+      "loc012",
+      "longtooth",
+      "mane",
+      "with"
+    ],
+    "figure_id": "fig-005653",
+    "figure_name": "Longtooth with Shoulder Armor",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-002304",
+        "name": "Agent Fuse with Body Armor",
+        "theme": "Agents",
+        "score": 5.33
+      },
+      {
+        "id": "fig-002729",
+        "name": "Baby, White Body - Head with neck",
+        "theme": "Modular Buildings",
+        "score": 5.33
+      },
+      {
+        "id": "fig-005494",
+        "name": "Sandman, Swirling Dirt Lower Body with Tan Sweater",
+        "theme": "Super Heroes Marvel",
+        "score": 5.33
+      },
+      {
+        "id": "fig-005653",
+        "name": "Longtooth with Shoulder Armor",
+        "theme": "Legends of Chima",
+        "score": 5.33
+      },
+      {
+        "id": "fig-007690",
+        "name": "Baby, White Body - Head with no neck",
+        "theme": "City",
+        "score": 5.33
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "loc012_longtooth_body_with_mottrot_mammoth_mask.jpeg",
+    "search_prefix": "loc012",
+    "search_tokens": [
+      "body",
+      "loc012",
+      "longtooth",
+      "mammoth",
+      "mask",
+      "mottrot",
+      "with"
+    ],
+    "figure_id": "fig-005653",
+    "figure_name": "Longtooth with Shoulder Armor",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000431",
+        "name": "Diver, Woman, Blue Wetsuit, Black Helmet with Mask, Airtank",
+        "theme": "Town",
+        "score": 4.86
+      },
+      {
+        "id": "fig-000530",
+        "name": "Diver, Man, Red Wetsuit, Red Helmet with Mask, Airtank, Stubble",
+        "theme": "Town",
+        "score": 4.86
+      },
+      {
+        "id": "fig-000710",
+        "name": "Diver, Man, Red Wetsuit, Black Helmet with Mask, Airtank, Printed White Hair",
+        "theme": "Town",
+        "score": 4.86
+      },
+      {
+        "id": "fig-000846",
+        "name": "Cam with Trans-Dark Blue Diving Mask",
+        "theme": "Alpha Team",
+        "score": 4.86
+      },
+      {
+        "id": "fig-000985",
+        "name": "Flex with Trans-Dark Blue Diving Mask",
+        "theme": "Alpha Team",
+        "score": 4.86
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "loc012_longtooth_body_with_saber_tooth_tiger_mask.jpeg",
+    "search_prefix": "loc012",
+    "search_tokens": [
+      "body",
+      "loc012",
+      "longtooth",
+      "mask",
+      "saber",
+      "tiger",
+      "tooth",
+      "with"
+    ],
+    "figure_id": "fig-005722",
+    "figure_name": "Saber-Tooth Tiger Warrior with Copper Plates on Jaw",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-005722",
+        "name": "Saber-Tooth Tiger Warrior with Copper Plates on Jaw",
+        "theme": "Legends of Chima",
+        "score": 9.0
+      },
+      {
+        "id": "fig-005723",
+        "name": "Saber-Tooth Tiger Warrior",
+        "theme": "Legends of Chima",
+        "score": 6.75
+      },
+      {
+        "id": "fig-000126",
+        "name": "Racer, Yellow and White Outfit with Tiger, Black Diving Helmet with Visor",
+        "theme": "Town",
+        "score": 4.5
+      },
+      {
+        "id": "fig-000283",
+        "name": "Racer, Yellow and White Outfit with Tiger, Black Helmet with Visor, Yellow Life Vest",
+        "theme": "Town",
+        "score": 4.5
+      },
+      {
+        "id": "fig-000431",
+        "name": "Diver, Woman, Blue Wetsuit, Black Helmet with Mask, Airtank",
+        "theme": "Town",
+        "score": 4.5
+      }
+    ]
+  },
+  {
+    "filename": "loc116_razar_fire_chi.jpeg",
+    "search_prefix": "loc116",
+    "search_tokens": [
+      "chi",
+      "fire",
+      "loc116",
+      "razar"
+    ],
+    "figure_id": "fig-005691",
+    "figure_name": "Razar with Shoulder Armor and Fire Chi",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-005691",
+        "name": "Razar with Shoulder Armor and Fire Chi",
+        "theme": "Legends of Chima",
+        "score": 10.5
+      },
+      {
+        "id": "fig-000125",
+        "name": "Worriz in Fire Chi Outfit",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      },
+      {
+        "id": "fig-001418",
+        "name": "Lundor with Shoulder Armor and Fire Chi",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      },
+      {
+        "id": "fig-005670",
+        "name": "Cragger with Shoulder Armor and Fire Chi",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      },
+      {
+        "id": "fig-005674",
+        "name": "Eris with Fire Chi",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      }
+    ]
+  },
+  {
+    "filename": "loc155_ice_bear_warrior.jpeg",
+    "search_prefix": "loc155",
+    "search_tokens": [
+      "bear",
+      "ice",
+      "loc155",
+      "warrior"
+    ],
+    "figure_id": "fig-005728",
+    "figure_name": "Ice Bear Warrior with White Legs",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-005728",
+        "name": "Ice Bear Warrior with White Legs",
+        "theme": "Legends of Chima",
+        "score": 10.5
+      },
+      {
+        "id": "fig-005729",
+        "name": "Ice Bear Warrior with Trans-Light Blue Right Leg",
+        "theme": "Legends of Chima",
+        "score": 10.5
+      },
+      {
+        "id": "fig-013935",
+        "name": "Ice Cream Vendor, Polar Bear Costume",
+        "theme": "City",
+        "score": 7.0
+      },
+      {
+        "id": "fig-000023",
+        "name": "Warrior Woman",
+        "theme": "Collectible Minifigures",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000047",
+        "name": "Tomahawk Warrior",
+        "theme": "Collectible Minifigures",
+        "score": 3.5
+      }
+    ]
+  },
+  {
+    "filename": "loc156_icepaw_ice_bear.jpeg",
+    "search_prefix": "loc156",
+    "search_tokens": [
+      "bear",
+      "ice",
+      "icepaw",
+      "loc156"
+    ],
+    "figure_id": "fig-005710",
+    "figure_name": "Icepaw",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-005728",
+        "name": "Ice Bear Warrior with White Legs",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      },
+      {
+        "id": "fig-005729",
+        "name": "Ice Bear Warrior with Trans-Light Blue Right Leg",
+        "theme": "Legends of Chima",
+        "score": 7.0
+      },
+      {
+        "id": "fig-013935",
+        "name": "Ice Cream Vendor, Polar Bear Costume",
+        "theme": "City",
+        "score": 7.0
+      },
+      {
+        "id": "fig-000113",
+        "name": "Ice Planet - White Hair",
+        "theme": "Space",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000750",
+        "name": "Ice Planet - White Eyebrows, Mustache",
+        "theme": "Space",
+        "score": 3.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "pi032_pirate_red_black_stripes.jpeg",
+    "search_prefix": "pi032",
+    "search_tokens": [
+      "black",
+      "pi032",
+      "pirate",
+      "red",
+      "stripes"
+    ],
+    "figure_id": "fig-000297",
+    "figure_name": "Pirate - Red/Black Stripes, Blue Legs, Blue Bandana",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000297",
+        "name": "Pirate - Red/Black Stripes, Blue Legs, Blue Bandana",
+        "theme": "Pirates",
+        "score": 12.0
+      },
+      {
+        "id": "fig-001445",
+        "name": "Pirate - Medium Blue Stripes, Black Legs, Red Bandana",
+        "theme": "Pirates",
+        "score": 12.0
+      },
+      {
+        "id": "fig-005085",
+        "name": "Pirate - Red Stripes, Black Legs, White Bandana",
+        "theme": "Pirates",
+        "score": 12.0
+      },
+      {
+        "id": "fig-005087",
+        "name": "Pirate - Red/Black Stripes, Blue Legs, Red Bandana, Scar",
+        "theme": "Pirates",
+        "score": 12.0
+      },
+      {
+        "id": "fig-005089",
+        "name": "Pirate - Red Stripes, Black Legs, Red Bandana, Scar",
+        "theme": "Pirates",
+        "score": 12.0
+      }
+    ]
+  },
+  {
+    "filename": "pi048_imperial_guard_redcoat.jpeg",
+    "search_prefix": "pi048",
+    "search_tokens": [
+      "guard",
+      "imperial",
+      "pi048",
+      "redcoat"
+    ],
+    "figure_id": "fig-004757",
+    "figure_name": "Soldier (Imperial Guard) - Blue Epaulettes",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000400",
+        "name": "Officer (Imperial Guard) - Yellow Epaulettes",
+        "theme": "Pirates",
+        "score": 7.0
+      },
+      {
+        "id": "fig-004756",
+        "name": "Soldier (Imperial Guard) - Admiral",
+        "theme": "Pirates",
+        "score": 7.0
+      },
+      {
+        "id": "fig-004757",
+        "name": "Soldier (Imperial Guard) - Blue Epaulettes",
+        "theme": "Pirates",
+        "score": 7.0
+      },
+      {
+        "id": "fig-004758",
+        "name": "Soldier (Imperial Guard) - Admiral, Plume",
+        "theme": "Pirates",
+        "score": 7.0
+      },
+      {
+        "id": "fig-005511",
+        "name": "Skeleton, Standard Face, Missing 1 Leg, Imperial Guard Hat",
+        "theme": "LEGO Ideas and CUUSOO",
+        "score": 7.0
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "pi068_islander_king_kahuka.jpeg",
+    "search_prefix": "pi068",
+    "search_tokens": [
+      "islander",
+      "kahuka",
+      "king",
+      "pi068"
+    ],
+    "figure_id": "fig-001092",
+    "figure_name": "Islander - King Kahuka, Mask",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-001092",
+        "name": "Islander - King Kahuka, Mask",
+        "theme": "Pirates",
+        "score": 10.5
+      },
+      {
+        "id": "fig-005501",
+        "name": "Islander - King Kahuka, Feathers",
+        "theme": "Pirates",
+        "score": 10.5
+      },
+      {
+        "id": "fig-000184",
+        "name": "King Leo (Knights Kingdom I) - Lion Shield, Helmet",
+        "theme": "Legoland Parks",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000408",
+        "name": "Troll King, Metallic Copper Crown",
+        "theme": "Castle",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000645",
+        "name": "King (Royal Knights) - Blue Legs, Blue Hips, no Cape",
+        "theme": "Castle",
+        "score": 3.5
+      }
+    ]
+  },
+  {
+    "filename": "shell001_shell_gas_attendant.jpeg",
+    "search_prefix": "shell001",
+    "search_tokens": [
+      "attendant",
+      "gas",
+      "shell",
+      "shell001"
+    ],
+    "figure_id": "fig-000231",
+    "figure_name": "Man, White Shirt with Shell Logo, Red Cap",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000231",
+        "name": "Man, White Shirt with Shell Logo, Red Cap",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000293",
+        "name": "Racer, White Shirt with Shell Logo, Red Legs, Red Helmet with Visor",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000352",
+        "name": "Man, White Torso with Shell Logo, Blue Legs, Red Hat",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000367",
+        "name": "Racer, White Shirt with Shell Logo, Black Legs, Red Helmet with Visor",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000384",
+        "name": "Man, White Torso with Shell Logo, Red Legs, Red Hat",
+        "theme": "Town",
+        "score": 3.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp002_blacktron_two_astronaut.jpeg",
+    "search_prefix": "sp002",
+    "search_tokens": [
+      "astronaut",
+      "blacktron",
+      "sp002",
+      "two"
+    ],
+    "figure_id": "fig-000061",
+    "figure_name": "Blacktron II - 3626a Head",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000061",
+        "name": "Blacktron II - 3626a Head",
+        "theme": "Space",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000062",
+        "name": "Blacktron II - 3626b Head",
+        "theme": "Space",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000079",
+        "name": "Astronaut, White, White Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000099",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Breastplate and Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000103",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp015_futuron_red_astronaut.jpeg",
+    "search_prefix": "sp015",
+    "search_tokens": [
+      "astronaut",
+      "futuron",
+      "red",
+      "sp015"
+    ],
+    "figure_id": "fig-006946",
+    "figure_name": "Futuron Spaceman, Red with Airtanks and Dark Blue Visor",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-006946",
+        "name": "Futuron Spaceman, Red with Airtanks and Dark Blue Visor",
+        "theme": "Space",
+        "score": 7.0
+      },
+      {
+        "id": "fig-006949",
+        "name": "Futuron Spaceman, Red and Green with Airtanks and Trans-Red Visor",
+        "theme": "Educational and Dacta",
+        "score": 7.0
+      },
+      {
+        "id": "fig-008523",
+        "name": "Astronaut - White Torso and Legs, Orange Trim, White Helmet, Side Lamp Red",
+        "theme": "City",
+        "score": 7.0
+      },
+      {
+        "id": "fig-015735",
+        "name": "Astronaut, White and Bright Green Spacesuit (Futuron), Reddish Brown Hair",
+        "theme": "City",
+        "score": 7.0
+      },
+      {
+        "id": "fig-015736",
+        "name": "Astronaut, White, Black and Dark Blue Spacesuit (Futuron), Dark Azure Helmet",
+        "theme": "City",
+        "score": 7.0
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp020_ice_planet_astronaut_male.jpeg",
+    "search_prefix": "sp020",
+    "search_tokens": [
+      "astronaut",
+      "ice",
+      "male",
+      "planet",
+      "sp020"
+    ],
+    "figure_id": "fig-000113",
+    "figure_name": "Ice Planet - White Hair",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000113",
+        "name": "Ice Planet - White Hair",
+        "theme": "Space",
+        "score": 6.0
+      },
+      {
+        "id": "fig-000750",
+        "name": "Ice Planet - White Eyebrows, Mustache",
+        "theme": "Space",
+        "score": 6.0
+      },
+      {
+        "id": "fig-002233",
+        "name": "Ice Planet - Red Hair, Female",
+        "theme": "Space",
+        "score": 6.0
+      },
+      {
+        "id": "fig-009226",
+        "name": "Astronaut - White Torso and Legs, Gold Visor, Male",
+        "theme": "Creator",
+        "score": 6.0
+      },
+      {
+        "id": "fig-009229",
+        "name": "Astronaut - White Torso and Legs, Gold Visor, Male, Smile",
+        "theme": "Creator",
+        "score": 6.0
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp033_mtron_astronaut_a.jpeg",
+    "search_prefix": "sp033",
+    "search_tokens": [
+      "a",
+      "astronaut",
+      "mtron",
+      "sp033"
+    ],
+    "figure_id": "fig-000065",
+    "figure_name": "M:Tron",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000079",
+        "name": "Astronaut, White, White Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000099",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Breastplate and Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000103",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000361",
+        "name": "Astronaut, White, Blue Cap, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000567",
+        "name": "Soccer Player Coca-Cola Secret A",
+        "theme": "Sports",
+        "score": 3.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp033_mtron_astronaut_b.jpeg",
+    "search_prefix": "sp033",
+    "search_tokens": [
+      "astronaut",
+      "b",
+      "mtron",
+      "sp033"
+    ],
+    "figure_id": "fig-000065",
+    "figure_name": "M:Tron",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000079",
+        "name": "Astronaut, White, White Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000099",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Breastplate and Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000103",
+        "name": "Astronaut, White, Light Gray Hips, Helmet with Large Chrome Gold Visor, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000361",
+        "name": "Astronaut, White, Blue Cap, Headset",
+        "theme": "Town",
+        "score": 3.5
+      },
+      {
+        "id": "fig-000568",
+        "name": "Soccer Player Coca-Cola Secret B",
+        "theme": "Sports",
+        "score": 3.5
+      }
+    ],
+    "manual_review": "auto-filled by script; verify against photo"
+  },
+  {
+    "filename": "sp036_space_police_one_officer.jpeg",
+    "search_prefix": "sp036",
+    "search_tokens": [
+      "officer",
+      "one",
+      "police",
+      "sp036",
+      "space"
+    ],
+    "figure_id": "fig-002238",
+    "figure_name": "Space Police III - Officer",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-002238",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002255",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002257",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002272",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002274",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      }
+    ]
+  },
+  {
+    "filename": "sp098_space_police_three_officer.jpeg",
+    "search_prefix": "sp098",
+    "search_tokens": [
+      "officer",
+      "police",
+      "sp098",
+      "space",
+      "three"
+    ],
+    "figure_id": "fig-002238",
+    "figure_name": "Space Police III - Officer",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-002238",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002255",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002257",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002272",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      },
+      {
+        "id": "fig-002274",
+        "name": "Space Police III - Officer",
+        "theme": "Space",
+        "score": 9.0
+      }
+    ]
+  },
+  {
+    "filename": "sw0201_clone_trooper_phase_one.jpeg",
+    "search_prefix": "sw0201",
+    "search_tokens": [
+      "clone",
+      "one",
+      "phase",
+      "sw0201",
+      "trooper"
+    ],
+    "figure_id": "fig-000058",
+    "figure_name": "Clone Trooper, Phase I Armor, Angry, Plain Legs",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-000058",
+        "name": "Clone Trooper, Phase I Armor, Angry, Plain Legs",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-000303",
+        "name": "Clone Trooper, Phase I Armor, Brown Eyes",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-000507",
+        "name": "Clone Trooper, Phase II Armor, Angry, Printed Legs (11217 Helmet)",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003523",
+        "name": "Clone Trooper, Phase I Armor, Plain Black Head",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003666",
+        "name": "Clone Trooper, Phase II Armor, Plain Black Head, Neck Bracket",
+        "theme": "Star Wars",
+        "score": 9.0
+      }
+    ]
+  },
+  {
+    "filename": "uncertain_cty_female_blue_floral_dress.jpeg",
+    "search_prefix": "cty",
+    "search_tokens": [
+      "blue",
+      "cty",
+      "dress",
+      "female",
+      "floral"
+    ],
+    "figure_id": null,
+    "figure_name": null,
+    "confident": false,
+    "uncertain": true,
+    "candidates": [
+      {
+        "id": "fig-001370",
+        "name": "Merida - Dark Blue Dress",
+        "theme": "Disney",
+        "score": 6.0
+      },
+      {
+        "id": "fig-002128",
+        "name": "Mulan - Dark Blue Dress",
+        "theme": "Disney",
+        "score": 6.0
+      },
+      {
+        "id": "fig-002337",
+        "name": "Anna - Dark Blue Vest, Red Dress",
+        "theme": "Friends",
+        "score": 6.0
+      },
+      {
+        "id": "fig-003494",
+        "name": "Cinderella - Medium Blue Dress, Bright Light Blue Gloves, Hair Band",
+        "theme": "Disney",
+        "score": 6.0
+      },
+      {
+        "id": "fig-003581",
+        "name": "Elsa - Medium Azure Dress, Medium Blue Cape - Closed Mouth",
+        "theme": "Disney",
+        "score": 6.0
+      }
+    ]
+  },
+  {
+    "filename": "uncertain_sw_rebel_trooper_brown_jacket.jpeg",
+    "search_prefix": "sw",
+    "search_tokens": [
+      "brown",
+      "jacket",
+      "rebel",
+      "sw",
+      "trooper"
+    ],
+    "figure_id": "fig-001887",
+    "figure_name": "Rebel Trooper in Hoth Uniform, White Hat, White Jacket, Moustache",
+    "confident": true,
+    "uncertain": true,
+    "candidates": [
+      {
+        "id": "fig-001887",
+        "name": "Rebel Trooper in Hoth Uniform, White Hat, White Jacket, Moustache",
+        "theme": "Books",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003608",
+        "name": "Rebel Trooper in Hoth Uniform, White Hat, Yellow Skin, Backpack, Brown Visor",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003677",
+        "name": "Rebel Trooper in Hoth Uniform, White Hat, Tan Jacket (30170 Goggles)",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003725",
+        "name": "Rebel Trooper in Hoth Uniform, White Hat, Tan Jacket (46304 Goggles)",
+        "theme": "Star Wars",
+        "score": 9.0
+      },
+      {
+        "id": "fig-003819",
+        "name": "Rebel Trooper in Endor Uniform, Sand Green Legs, Brown Beard, Neck Bracket",
+        "theme": "Star Wars",
+        "score": 9.0
+      }
+    ]
+  },
+  {
+    "filename": "ww005_western_cavalry_soldier.jpeg",
+    "search_prefix": "ww005",
+    "search_tokens": [
+      "cavalry",
+      "soldier",
+      "western",
+      "ww005"
+    ],
+    "figure_id": "fig-004369",
+    "figure_name": "Cavalry Soldier - White Handkerchief",
+    "confident": true,
+    "uncertain": false,
+    "candidates": [
+      {
+        "id": "fig-004369",
+        "name": "Cavalry Soldier - White Handkerchief",
+        "theme": "Western",
+        "score": 10.5
+      },
+      {
+        "id": "fig-004374",
+        "name": "Cavalry Soldier",
+        "theme": "Western",
+        "score": 10.5
+      },
+      {
+        "id": "fig-000736",
+        "name": "Soldier - Western, Lieutenant, Cap",
+        "theme": "Western",
+        "score": 7.0
+      },
+      {
+        "id": "fig-002037",
+        "name": "Cavalry General",
+        "theme": "Western",
+        "score": 7.0
+      },
+      {
+        "id": "fig-004368",
+        "name": "Cavalry Lieutenant - Hat, White Bandana",
+        "theme": "Western",
+        "score": 7.0
+      }
+    ]
+  }
+]

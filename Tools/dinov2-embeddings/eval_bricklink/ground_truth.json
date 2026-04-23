@@ -1,0 +1,1195 @@
+{
+  "description": "Cross-source eval: BrickLink renders queried against Rebrickable index",
+  "source": "BrickLink CDN (img.bricklink.com)",
+  "held_out": [],
+  "ground_truth": [
+    {
+      "figure_id": "fig-000055",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000108",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000194",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000432",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000457",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000515",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000552",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000566",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000765",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000808",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000831",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-000984",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001122",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001172",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001229",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001262",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001390",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001406",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001537",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001605",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001637",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001653",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001705",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001782",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001805",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001810",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001939",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001969",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-001972",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002023",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002212",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002475",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002504",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002507",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002564",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002762",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002806",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002850",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002876",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002882",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002925",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-002938",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003069",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003200",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003460",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003579",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003775",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003802",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003833",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003883",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003949",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003963",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003971",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-003985",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004047",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004140",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004163",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004230",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004233",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004471",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004507",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004592",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004800",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004811",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004829",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004837",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004889",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004892",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004906",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-004945",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005047",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005095",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005097",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005100",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005298",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005367",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005372",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005768",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005781",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-005948",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006164",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006230",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006231",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006298",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006491",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006559",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006607",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006615",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006664",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006755",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006902",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006920",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006933",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006937",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-006967",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007022",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007225",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007290",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007321",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007663",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007718",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007722",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007730",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007826",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-007932",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008174",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008244",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008253",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008341",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008351",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008399",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008514",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-008967",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009077",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009111",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009197",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009269",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009628",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009713",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009747",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009760",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009793",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009893",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-009900",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010047",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010070",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010138",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010297",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010299",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010439",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010663",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010812",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010834",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010934",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-010961",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011094",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011105",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011253",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011285",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011416",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011611",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011828",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011848",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011980",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-011994",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012058",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012068",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012090",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012133",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012294",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012336",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012486",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012642",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012811",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-012955",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013049",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013055",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013080",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013115",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013132",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013230",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013416",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013503",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013515",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013572",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013825",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013876",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013913",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013937",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-013959",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014141",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014151",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014293",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014371",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014388",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014460",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014501",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014583",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014710",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014769",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014845",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-014957",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015067",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015075",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015175",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015226",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015648",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015976",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-015989",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016014",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016059",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016392",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016619",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016735",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-016969",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-017071",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-017282",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    },
+    {
+      "figure_id": "fig-017510",
+      "variants": [
+        "bricklink.jpg"
+      ]
+    }
+  ]
+}

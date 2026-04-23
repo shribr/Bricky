@@ -130,7 +130,7 @@ def random_perspective(img: Image.Image, rng: random.Random) -> Image.Image:
     # transform from OUTPUT → INPUT, so we solve the linear system.
     coeffs = _perspective_coeffs(dst, src)
     return img.transform((w, h), Image.Transform.PERSPECTIVE, coeffs,
-                         resample=Image.BILINEAR, fillcolor=(0, 0, 0))
+                         resample=Image.BILINEAR, fillcolor=_border_fill(img))
 
 
 def _perspective_coeffs(src, dst):
@@ -146,9 +146,25 @@ def _perspective_coeffs(src, dst):
     return tuple(float(v) for v in res)
 
 
+def _border_fill(img: Image.Image) -> tuple[int, int, int]:
+    """Average colour of the 3-pixel border — used as fill for rotation
+    and perspective so the corners match the background instead of
+    introducing black triangles that break bbox detection."""
+    import numpy as np
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    border = np.concatenate([
+        arr[0:3].reshape(-1, 3),
+        arr[-3:].reshape(-1, 3),
+        arr[:, 0:3].reshape(-1, 3),
+        arr[:, -3:].reshape(-1, 3),
+    ])
+    return tuple(int(v) for v in border.mean(axis=0))
+
+
 def random_rotation(img: Image.Image, rng: random.Random) -> Image.Image:
     angle = rng.uniform(-25, 25)
-    return img.rotate(angle, resample=Image.BILINEAR, fillcolor=(0, 0, 0), expand=False)
+    return img.rotate(angle, resample=Image.BILINEAR,
+                      fillcolor=_border_fill(img), expand=False)
 
 
 def random_shadow(img: Image.Image, rng: random.Random) -> Image.Image:
