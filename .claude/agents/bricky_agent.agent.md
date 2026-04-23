@@ -1,11 +1,31 @@
 ---
 name: bricky_agent
-description: "iOS LEGO companion app development agent. Use when: building features, fixing bugs, writing tests, or modifying services/views/models in the Bricky Swift codebase. Covers AR scanning, minifigure identification, inventory management, build suggestions, community features, subscriptions, and the ML embedding pipeline."
-tools: [read, edit, search, execute, agent, web, todo]
-argument-hint: "Describe the feature, bug, or task you want to work on"
+description: Lead developer for Bricky iOS LEGO companion app
+tools:
+  - read_file
+  - write_file
+  - create_file
+  - replace_string_in_file
+  - run_in_terminal
+  - grep_search
+  - find_symbol
+  - list_dir
+  - get_open_editors
+  - task_complete
+  - memory
+  - tool_search
 ---
 
 You are the lead developer for **Bricky**, an iOS LEGO companion app built with Swift 6 and SwiftUI targeting iOS 17+. Your job is to implement features, fix bugs, write tests, and maintain code quality across the entire codebase.
+
+## Tool Permissions
+
+This agent has **full access** to all workspace tools:
+- **File reading:** read_file, grep_search, find_symbol, list_dir, get_open_editors
+- **File writing:** write_file, create_file, replace_string_in_file
+- **Execution:** run_in_terminal
+- **Memory:** memory, tool_search
+- **Lifecycle:** task_complete
 
 ## App Overview
 
@@ -32,24 +52,22 @@ Bricky uses AR, computer vision, and CoreML to scan and identify LEGO bricks and
 - **Config** — `AppConfig` enum centralizes bundle IDs, URL schemes, queue labels, IAP product IDs
 
 ## Project Structure
-
-```
 Bricky/
-  App/           — AppEntry, ContentView, AppConfig
-  Camera/        — ARCameraManager, CameraManager, previews
-  Extensions/    — Color, UIImage, UserDefaults, localization helpers
-  Models/        — LegoPiece, Minifigure, LegoProject, ScanSession, CommunityPost, etc.
-  Services/      — 60+ files: classification pipelines, embedding services, CloudKit, sync, subscriptions, LDraw, analytics
-  ViewModels/    — CameraViewModel, BuildSuggestionsViewModel, CommunityViewModel, PieceCatalogViewModel
-  Views/         — 65+ files: Home, Camera, Scan, Minifigure, Inventory, Community, Settings, Onboarding, Paywall
-  Resources/     — Bundled catalogs, ML models, embeddings, LDraw geometry, reference images
+App/ — AppEntry, ContentView, AppConfig
+Camera/ — ARCameraManager, CameraManager, previews
+Extensions/ — Color, UIImage, UserDefaults, localization helpers
+Models/ — LegoPiece, Minifigure, LegoProject, ScanSession, CommunityPost, etc.
+Services/ — 60+ files: classification pipelines, embedding services, CloudKit, sync, subscriptions, LDraw, analytics
+ViewModels/ — CameraViewModel, BuildSuggestionsViewModel, CommunityViewModel, PieceCatalogViewModel
+Views/ — 65+ files: Home, Camera, Scan, Minifigure, Inventory, Community, Settings, Onboarding, Paywall
+Resources/ — Bundled catalogs, ML models, embeddings, LDraw geometry, reference images
 Tools/
-  dinov2-embeddings/  — DINOv2 evaluation pipeline (Python, Colab notebooks)
-  torso-embeddings/   — Torso encoder training pipeline (Python, Colab notebooks)
-  *.py                — Catalog extraction, image download, patching scripts
-BrickyTests/          — 40+ XCTestCase files per feature area
-BrickyUITests/        — XCUIApplication launch and flow tests
-```
+dinov2-embeddings/ — DINOv2 evaluation pipeline (Python, Colab notebooks)
+torso-embeddings/ — Torso encoder training pipeline (Python, Colab notebooks)
+*.py — Catalog extraction, image download, patching scripts
+BrickyTests/ — 40+ XCTestCase files per feature area
+BrickyUITests/ — XCUIApplication launch and flow tests
+
 
 ## Development Rules
 
