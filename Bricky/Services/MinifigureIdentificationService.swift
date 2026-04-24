@@ -51,6 +51,17 @@ final class MinifigureIdentificationService: ObservableObject {
     /// observe it directly.
     @Published private(set) var scanPhase: ScanPhase = .idle
 
+    /// After identification completes, indicates whether the Brickognize
+    /// cloud service was queried. Views use this to show a post-scan
+    /// cloud status indicator in the results.
+    enum CloudStatus: Equatable {
+        case notUsed        // cloud was enabled but confidence was high enough
+        case used           // cloud was queried and results were merged
+        case disabled       // user turned off cloud in settings
+        case failed         // cloud was queried but request failed/timed out
+    }
+    @Published private(set) var lastCloudStatus: CloudStatus = .notUsed
+
     enum IdentificationError: LocalizedError {
         case noResults
         case underlying(Error)
@@ -90,6 +101,7 @@ final class MinifigureIdentificationService: ObservableObject {
 
         Self.logger.info("Identification started")
         scanPhase = .colorCascade
+        lastCloudStatus = .notUsed
 
         // Snapshot the catalog on the MainActor BEFORE going to background.
         // Calling MainActor.assumeIsolated from a detached task would crash.
@@ -125,11 +137,12 @@ final class MinifigureIdentificationService: ObservableObject {
         // scan time. This injects candidates the color cascade missed
         // without reordering existing results — Phase 2's structural
         // reranker handles final ranking.
+        Self.logger.info("[Phase1.5] TorsoEmbedding available=\(TorsoEmbeddingService.shared.isAvailable), FaceEmbedding available=\(FaceEmbeddingService.shared.isAvailable)")
         let mergedFastResults = await mergeWithEmbeddingHits(
             cgImage: cgImage,
             fastResults: fastResults
         )
-        Self.logger.info("[Phase1.5] DINOv2 embedding merge complete — \(mergedFastResults.count) candidates")
+        Self.logger.info("[Phase1.5] DINOv2 embedding merge complete — \(mergedFastResults.count) candidates (was \(fastResults.count))")
 
         scanPhase = .visualRefinement
 
@@ -157,6 +170,11 @@ final class MinifigureIdentificationService: ObservableObject {
                 return "\(fig.id)(\(String(format: "%.2f", c.confidence)))"
             }.joined(separator: ", ")
             Self.logger.info("[Phase2] refined top-5: \(top5)")
+            // Log discrimination: how much confidence gap between #1 and #2
+            if refined.count >= 2 {
+                let gap = refined[0].confidence - refined[1].confidence
+                Self.logger.info("[Phase2] #1-#2 gap: \(String(format: "%.3f", gap)) — \(gap > 0.08 ? "good discrimination" : "POOR discrimination")")
+            }
         } else {
             Self.logger.info("[Phase2] no refinement (no local refs or timed out)")
         }
@@ -166,9 +184,11 @@ final class MinifigureIdentificationService: ObservableObject {
         // Brickognize public API for a second opinion. If it returns a
         // high-confidence match, inject or boost that figure.
         let topConfidenceForCloud = baseResult.first?.confidence ?? 0
-        let willTryCloud = ScanSettings.shared.cloudFallbackEnabled && topConfidenceForCloud < 0.65
+        let willTryCloud = ScanSettings.shared.cloudFallbackEnabled && topConfidenceForCloud < 0.80
         if willTryCloud {
             scanPhase = .cloudValidation
+        } else if !ScanSettings.shared.cloudFallbackEnabled {
+            lastCloudStatus = .disabled
         }
         let cloudEnhanced = await cloudFallbackIfNeeded(
             torsoImage: torsoImage,
@@ -726,7 +746,7 @@ final class MinifigureIdentificationService: ObservableObject {
     ///
     /// Cloud is skipped when:
     /// - The user has disabled cloud fallback in settings
-    /// - The top local candidate already has high confidence (≥0.65)
+    /// - The top local candidate already has high confidence (≥0.80)
     /// - The cloud request fails or times out (3s cap)
     private func cloudFallbackIfNeeded(
         torsoImage: UIImage,
@@ -736,17 +756,19 @@ final class MinifigureIdentificationService: ObservableObject {
         let cloudEnabled = ScanSettings.shared.cloudFallbackEnabled
         guard cloudEnabled else {
             Self.logger.info("[Phase3] Cloud fallback disabled by user")
+            lastCloudStatus = .disabled
             return localCandidates
         }
 
         // Skip if local confidence is already high
         let topConfidence = localCandidates.first?.confidence ?? 0
-        guard topConfidence < 0.65 else {
-            Self.logger.info("[Phase3] Local confidence \(String(format: "%.2f", topConfidence)) ≥ 0.65, skipping cloud")
+        guard topConfidence < 0.80 else {
+            Self.logger.info("[Phase3] Local confidence \(String(format: "%.2f", topConfidence)) ≥ 0.80, skipping cloud")
+            lastCloudStatus = .notUsed
             return localCandidates
         }
 
-        Self.logger.info("[Phase3] Local confidence \(String(format: "%.2f", topConfidence)) < 0.65, trying cloud fallback")
+        Self.logger.info("[Phase3] Local confidence \(String(format: "%.2f", topConfidence)) < 0.80, trying cloud fallback")
 
         // Fire cloud request with 3s timeout
         let cloudTask = Task<[BrickognizeService.MatchedResult], Never> {
@@ -769,11 +791,18 @@ final class MinifigureIdentificationService: ObservableObject {
 
         guard !cloudResults.isEmpty else {
             Self.logger.info("[Phase3] No cloud results, keeping local candidates")
+            lastCloudStatus = .failed
             return localCandidates
         }
 
-        // Merge cloud results into local candidates
+        lastCloudStatus = .used
+
+        // Merge cloud results into local candidates with cross-validation.
+        // Cloud results that CONFIRM a local candidate get a strong boost.
+        // Cloud results that match NO local candidate are penalized
+        // (Brickognize may have misidentified) — injected at low confidence.
         var merged = localCandidates
+        var anyCloudConfirmed = false
 
         for cloudMatch in cloudResults {
             guard let cloudFigure = cloudMatch.matchedFigure else { continue }
@@ -781,9 +810,11 @@ final class MinifigureIdentificationService: ObservableObject {
 
             // Check if this figure is already in local results
             if let existingIdx = merged.firstIndex(where: { $0.figure?.id == cloudFigure.id }) {
-                // Boost existing candidate's confidence
+                // Strong boost: cloud confirms local candidate.
+                // The boost is proportional to the cloud's own confidence.
                 let existing = merged[existingIdx]
-                let boostedConfidence = min(1.0, existing.confidence + cloudScore * 0.3)
+                let boost = cloudScore * 0.35
+                let boostedConfidence = min(0.98, existing.confidence + boost)
                 let boosted = ResolvedCandidate(
                     figure: existing.figure,
                     modelName: "local+cloud",
@@ -791,10 +822,13 @@ final class MinifigureIdentificationService: ObservableObject {
                     reasoning: "\(existing.reasoning) | Cloud confirmed (score=\(String(format: "%.2f", cloudScore)))"
                 )
                 merged[existingIdx] = boosted
+                anyCloudConfirmed = true
                 Self.logger.info("[Phase3] Boosted \(cloudFigure.id) from \(String(format: "%.2f", existing.confidence)) → \(String(format: "%.2f", boostedConfidence))")
-            } else if cloudScore > 0.5 && cloudMatch.matchConfidence > 0.3 {
-                // Inject new candidate from cloud
-                let injectedConfidence = cloudScore * cloudMatch.matchConfidence * 0.8
+            } else if cloudScore > 0.6 && cloudMatch.matchConfidence > 0.4 {
+                // Cloud-only candidate: NOT in local results. Inject at
+                // reduced confidence because the local pipeline disagrees.
+                // Cap at 50% so it never outranks a confirmed local match.
+                let injectedConfidence = min(0.50, cloudScore * cloudMatch.matchConfidence * 0.55)
                 let injected = ResolvedCandidate(
                     figure: cloudFigure,
                     modelName: "cloud",
@@ -802,7 +836,24 @@ final class MinifigureIdentificationService: ObservableObject {
                     reasoning: "Cloud ID: \(cloudMatch.prediction.brickLinkID) \"\(cloudMatch.prediction.name)\" (score=\(String(format: "%.2f", cloudScore)))"
                 )
                 merged.append(injected)
-                Self.logger.info("[Phase3] Injected \(cloudFigure.id) from cloud with conf=\(String(format: "%.2f", injectedConfidence))")
+                Self.logger.info("[Phase3] Injected \(cloudFigure.id) from cloud with PENALIZED conf=\(String(format: "%.2f", injectedConfidence)) (not in local results)")
+            } else {
+                Self.logger.info("[Phase3] Rejected cloud result \(cloudFigure.id) — score=\(String(format: "%.2f", cloudScore)) too low or not in local results")
+            }
+        }
+
+        // If cloud confirmed a local candidate, penalize cloud-only
+        // candidates further — the agreement between local+cloud on
+        // another figure makes cloud-only results even less trustworthy.
+        if anyCloudConfirmed {
+            for i in merged.indices where merged[i].modelName == "cloud" {
+                let penalized = merged[i].confidence * 0.7
+                merged[i] = ResolvedCandidate(
+                    figure: merged[i].figure,
+                    modelName: merged[i].modelName,
+                    confidence: penalized,
+                    reasoning: merged[i].reasoning + " (penalized: cloud confirmed different figure)"
+                )
             }
         }
 
@@ -877,7 +928,7 @@ final class MinifigureIdentificationService: ObservableObject {
                 guard let figId = merged[i].figure?.id,
                       let cosine = torsoHitMap[figId],
                       !merged[i].reasoning.contains("torso-embedding") else { continue }
-                let boost = Double(cosine) * 0.15
+                let boost = Double(cosine) * 0.20
                 let boosted = min(merged[i].confidence + boost, 0.98)
                 merged[i] = ResolvedCandidate(
                     figure: merged[i].figure,
@@ -933,7 +984,7 @@ final class MinifigureIdentificationService: ObservableObject {
                 guard let figId = merged[i].figure?.id,
                       faceHitIds.contains(figId),
                       !merged[i].reasoning.contains("face-embedding") else { continue }
-                let boosted = min(merged[i].confidence + 0.15, 0.98)
+                let boosted = min(merged[i].confidence + 0.18, 0.98)
                 merged[i] = ResolvedCandidate(
                     figure: merged[i].figure,
                     modelName: merged[i].modelName,
@@ -1144,25 +1195,26 @@ final class MinifigureIdentificationService: ObservableObject {
                     }
                 }
                 // Blend three signals when all are available:
-                //   • torso-band feature print (embedding similarity) — 0.40
-                //   • torso visual signature (spatial layout)         — 0.35
+                //   • torso-band feature print (embedding similarity) — 0.50
+                //   • torso visual signature (spatial layout)         — 0.25
                 //   • full-figure feature print                       — 0.25
-                // The structural signature is what disambiguates
-                // figures with similar color palettes but different
-                // print layouts (astronaut vs Star Wars officer, etc.).
+                // The torso band is the PRIMARY identity signal for
+                // minifigures — weighted highest. The structural
+                // signature disambiguates similar color palettes, and
+                // the full-figure print catches silhouette differences.
                 //
                 // SCALE FIX: TorsoVisualSignature.distance() returns
                 // RMSE in ~0–1 range, while VNFeaturePrint distances
                 // are ~0–2+. Multiply sigDist by 1.5 to put them on
                 // comparable scales before blending. Without this, the
-                // signature's 0.35 weight effectively acts like ~0.18.
+                // signature's 0.25 weight effectively acts like ~0.13.
                 let scaledSig = sigDist.map { $0 * 1.5 }
                 let combined: Float
                 switch (torsoDist, scaledSig) {
                 case let (td?, sd?):
-                    combined = 0.40 * td + 0.35 * sd + 0.25 * fullDist
+                    combined = 0.50 * td + 0.25 * sd + 0.25 * fullDist
                 case let (td?, nil):
-                    combined = 0.65 * td + 0.35 * fullDist
+                    combined = 0.70 * td + 0.30 * fullDist
                 case let (nil, sd?):
                     combined = 0.55 * sd + 0.45 * fullDist
                 default:
@@ -1191,19 +1243,49 @@ final class MinifigureIdentificationService: ObservableObject {
         let bestDistance = ranked.first?.1 ?? 1.0
 
         // Absolute-distance ceiling for the BEST candidate.
-        // 0.0 → 0.95, 0.4 → 0.85, 0.7 → 0.65, 1.0 → 0.45, 1.5+ → 0.30
+        // Recalibrated: VNFeaturePrint distances on minifigure photos
+        // typically cluster in 0.5–0.8 — the old formula penalized
+        // this range too harshly, producing ~69% for correct matches.
+        // 0.0 → 0.95, 0.4 → 0.88, 0.7 → 0.78, 1.0 → 0.55, 1.5+ → 0.30
         let bestCeiling: Double = {
             let d = Double(bestDistance)
-            if d <= 0.4 { return 0.95 - d * 0.25 }              // 0.95 → 0.85
-            if d <= 0.7 { return 0.85 - (d - 0.4) * (2.0/3.0) } // 0.85 → 0.65
-            if d <= 1.0 { return 0.65 - (d - 0.7) * (2.0/3.0) } // 0.65 → 0.45
-            return max(0.30, 0.45 - (d - 1.0) * 0.30)
+            if d <= 0.4 { return 0.95 - d * 0.175 }             // 0.95 → 0.88
+            if d <= 0.7 { return 0.88 - (d - 0.4) * (1.0/3.0) } // 0.88 → 0.78
+            if d <= 1.0 { return 0.78 - (d - 0.7) * 0.767 }     // 0.78 → 0.55
+            return max(0.30, 0.55 - (d - 1.0) * 0.50)
+        }()
+
+        // Build a map of Phase 1.5 embedding confidence by figure ID.
+        // This carries the DINOv2 signal — candidates that the embedding
+        // retriever scored highly should retain that advantage through
+        // Phase 2 instead of being overwritten by VNFeaturePrint alone.
+        let embeddingConfMap: [String: Double] = {
+            var m = [String: Double]()
+            for c in fastCandidates {
+                if let id = c.figure?.id { m[id] = c.confidence }
+            }
+            return m
         }()
 
         var visualResults = ranked.prefix(10).enumerated().map { (idx, item) -> ResolvedCandidate in
-            let (fig, distance, _) = item
-            // Each successive rank loses a small amount of confidence.
-            let confidence = max(0.25, bestCeiling - Double(idx) * 0.06)
+            let (fig, distance, embeddingConf) = item
+            // Visual-only confidence from Phase 2 distance.
+            let visualConf = max(0.25, bestCeiling - Double(idx) * 0.06)
+
+            // Blend Phase 2 visual confidence with Phase 1.5 embedding
+            // confidence. The embedding signal (DINOv2 torso/face) is
+            // specifically trained on visual features and should not be
+            // discarded. Use 55% visual / 45% embedding when embedding
+            // data is available; fall back to pure visual otherwise.
+            let embConf = embeddingConfMap[fig.id] ?? embeddingConf
+            let hasEmbeddingSignal = embConf > 0.10  // non-trivial embedding confidence
+            let confidence: Double
+            if hasEmbeddingSignal {
+                confidence = 0.55 * visualConf + 0.45 * embConf
+            } else {
+                confidence = visualConf
+            }
+
             let qualityNote: String
             switch distance {
             case ..<0.4: qualityNote = "strong visual match"

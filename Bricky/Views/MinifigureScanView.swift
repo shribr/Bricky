@@ -481,20 +481,8 @@ struct MinifigureScanView: View {
                         analysisBanner(hybrid)
                     }
 
-                    if resolvedCandidates.contains(where: { $0.isCloudAssisted }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "icloud.fill")
-                                .font(.caption)
-                                .foregroundStyle(.cyan)
-                            Text("Some results verified by Brickognize cloud service")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(.cyan.opacity(0.08)))
-                    }
+                    // Always show cloud status so user knows what happened
+                    cloudStatusBanner
 
                     if resolvedCandidates.isEmpty {
                         ContentUnavailableView(
@@ -647,6 +635,53 @@ struct MinifigureScanView: View {
     }
 
     // MARK: - Analysis banner
+
+    @ViewBuilder
+    private var cloudStatusBanner: some View {
+        let status = identificationService.lastCloudStatus
+        HStack(spacing: 8) {
+            switch status {
+            case .used:
+                Image(systemName: "icloud.fill")
+                    .font(.caption)
+                    .foregroundStyle(.cyan)
+                Text("Results verified by Brickognize cloud service")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            case .notUsed:
+                Image(systemName: "iphone")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                Text("Identified locally — high confidence")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            case .disabled:
+                Image(systemName: "icloud.slash")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Cloud verification disabled in settings")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            case .failed:
+                Image(systemName: "exclamationmark.icloud")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Text("Cloud verification failed — showing local results")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(status == .used ? .cyan.opacity(0.08) :
+                      status == .notUsed ? .green.opacity(0.08) :
+                      status == .failed ? .orange.opacity(0.08) :
+                      .gray.opacity(0.06))
+        )
+    }
 
     private func analysisBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {
         Button {
