@@ -23,6 +23,9 @@ struct MinifigureScanStatusView: View {
     /// the cycling stage text — used for short-lived pre-scan steps like
     /// "Enhancing image…" that run before the main identification loop.
     var overrideMessage: String?
+    /// When true, a cloud validation banner is displayed below the main
+    /// status text to indicate the Brickognize service is being queried.
+    var showCloudValidation: Bool = false
 
     /// Captured at construction so `TimelineView` ticks compute elapsed
     /// time deterministically.
@@ -30,10 +33,12 @@ struct MinifigureScanStatusView: View {
 
     init(stages: [String] = MinifigureScanStatusView.defaultStages,
          interval: TimeInterval = 1.5,
-         overrideMessage: String? = nil) {
+         overrideMessage: String? = nil,
+         showCloudValidation: Bool = false) {
         self.stages = stages
         self.interval = interval
         self.overrideMessage = overrideMessage
+        self.showCloudValidation = showCloudValidation
         self.startedAt = Date()
     }
 
@@ -73,6 +78,21 @@ struct MinifigureScanStatusView: View {
                     .id(label) // re-trigger transition on each change
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .animation(.easeInOut(duration: 0.35), value: label)
+
+                if showCloudValidation {
+                    HStack(spacing: 8) {
+                        Image(systemName: "icloud.and.arrow.up")
+                            .font(.caption.weight(.semibold))
+                            .symbolEffect(.pulse, options: .repeating)
+                        Text("Validating with Brickognize cloud service…")
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(.cyan.opacity(0.15)))
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
             .padding(.horizontal, 28)
         }

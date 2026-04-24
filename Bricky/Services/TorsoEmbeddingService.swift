@@ -38,6 +38,9 @@ final class TorsoEmbeddingService {
 
     private init() {
         let model: VNCoreMLModel?
+        // Try compiled model first (.mlmodelc), then fall back to runtime
+        // compilation of raw .mlmodel (needed when model is inside a folder
+        // reference and Xcode didn't compile it at build time).
         if let url = Bundle.main.url(
                 forResource: "TorsoEncoder",
                 withExtension: "mlmodelc",
@@ -53,8 +56,25 @@ final class TorsoEmbeddingService {
                 Self.logger.error("Failed to load TorsoEncoder: \(error.localizedDescription)")
                 model = nil
             }
+        } else if let rawURL = Bundle.main.url(
+                forResource: "TorsoEncoder",
+                withExtension: "mlmodel",
+                subdirectory: "TorsoEmbeddings"
+            ) ?? Bundle.main.url(forResource: "TorsoEncoder", withExtension: "mlmodel") {
+            // Runtime-compile the raw .mlmodel → temporary .mlmodelc
+            do {
+                let compiledURL = try MLModel.compileModel(at: rawURL)
+                let config = MLModelConfiguration()
+                config.computeUnits = .all
+                let coreModel = try MLModel(contentsOf: compiledURL, configuration: config)
+                model = try VNCoreMLModel(for: coreModel)
+                Self.logger.info("Runtime-compiled and loaded TorsoEncoder.mlmodel")
+            } catch {
+                Self.logger.error("Failed to runtime-compile TorsoEncoder: \(error.localizedDescription)")
+                model = nil
+            }
         } else {
-            Self.logger.info("TorsoEncoder.mlmodelc not bundled — feature disabled")
+            Self.logger.info("TorsoEncoder model not bundled — feature disabled")
             model = nil
         }
         self.visionModel = model
@@ -81,11 +101,10 @@ final class TorsoEmbeddingService {
     /// detached task.
     private static func runEncoder(visionModel: VNCoreMLModel, image: CGImage) -> [Float]? {
         let request = VNCoreMLRequest(model: visionModel)
-        // The encoder was trained on letterboxed 224×224 inputs, but
-        // the iOS-side preprocessing uses Vision's image cropping which
-        // is `centerCrop` by default. `scaleFill` matches the Python
-        // padding more closely on near-square torso bands.
-        request.imageCropAndScaleOption = .scaleFill
+        // DINOv2 evaluation: resize shortest edge to 256, center-crop
+        // to 224×224. Vision's .centerCrop does exactly this — resize
+        // preserving aspect ratio then crop the center square.
+        request.imageCropAndScaleOption = .centerCrop
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {
             try handler.perform([request])
@@ -104,8 +123,17 @@ final class TorsoEmbeddingService {
 
         let count = array.count
         var out = [Float](repeating: 0, count: count)
-        let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: count)
-        for i in 0..<count { out[i] = ptr[i] }
+
+        // CoreML mlprogram models (DINOv2) output Float16; older
+        // neuralnetwork models output Float32. Handle both.
+        switch array.dataType {
+        case .float16:
+            let ptr = array.dataPointer.bindMemory(to: Float16.self, capacity: count)
+            for i in 0..<count { out[i] = Float(ptr[i]) }
+        default:
+            let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: count)
+            for i in 0..<count { out[i] = ptr[i] }
+        }
 
         // Safety re-normalization: if the CoreML output isn't quite
         // unit-length (float precision, neuralnetwork-format rounding),

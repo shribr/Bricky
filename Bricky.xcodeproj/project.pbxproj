@@ -19,6 +19,7 @@
 		0B54274FD754DEB2EAC1CD3B /* SprintHFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */; };
 		0C7D3214D53EFAA6814CF678 /* TorsoEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */; };
 		0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */; };
+		0CB06964DAEB8A916BF49999 /* ScannerPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C99999 /* ScannerPipelineTests.swift */; };
 		0D494F0879D5C9E7DB730720 /* AllScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */; };
 		11281C7B158EF2DCA81E6FF8 /* FavoritesStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */; };
 		1248FD3DAA4503F99D861775 /* CameraScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A989E630393136FB68A0F3D2 /* CameraScanView.swift */; };
@@ -132,7 +133,9 @@
 		9D4BF5EFCBD72FE6B6938D38 /* ScanCoverageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94EC4AD6FE61E96D5770C947 /* ScanCoverageTracker.swift */; };
 		9D4E66576DC6EAD0900368CE /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */; };
 		A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */; };
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* BrickognizeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */; };
 		A2CB46692366042DFA24D41E /* BrickLinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F6129A14CE15B1121EE20A /* BrickLinkService.swift */; };
+		DB07DA353E9CDAEA8FB2B686 /* BrickognizeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECCE9EC5FE1D40FE4CB2747 /* BrickognizeService.swift */; };
 		A2CEB2D26C6B51D850E8CB5A /* MinifigureIdentificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F90204EE4194D35F7FBE42D /* MinifigureIdentificationService.swift */; };
 		A300C642700D56ABAFE3E411 /* MultiScanFindResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */; };
 		A576B7C37A8517859A7D1FE2 /* ScanGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2272923D35B2120D8C0F4B /* ScanGuideView.swift */; };
@@ -244,6 +247,7 @@
 		04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigurePartClassifier.swift; sourceTree = "<group>"; };
 		05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintGAppStoreTests.swift; sourceTree = "<group>"; };
 		06F6129A14CE15B1121EE20A /* BrickLinkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkService.swift; sourceTree = "<group>"; };
+		7ECCE9EC5FE1D40FE4CB2747 /* BrickognizeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickognizeService.swift; sourceTree = "<group>"; };
 		07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		0960168ADA1F03521746E701 /* MinifigureDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureDetailView.swift; sourceTree = "<group>"; };
 		0C9598800607FE66FCA7EB02 /* MinifigureScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanHistoryStore.swift; sourceTree = "<group>"; };
@@ -268,6 +272,7 @@
 		21E8CE05EE2EE49A13C94740 /* MinifigImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MinifigImages; path = Bricky/Resources/MinifigImages; sourceTree = SOURCE_ROOT; };
 		223D25FC8EFB4FB6EAF2BFC5 /* MinifigureConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureConfirmationSheet.swift; sourceTree = "<group>"; };
 		2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintKEngagementTests.swift; sourceTree = "<group>"; };
+		2405A5152F897DE922C99999 /* ScannerPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerPipelineTests.swift; sourceTree = "<group>"; };
 		25C2442A5A513C4D8F057EA0 /* HybridFigureAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridFigureAnalyzer.swift; sourceTree = "<group>"; };
 		25C3FB53FD13493CF42AEB11 /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
 		289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLocationTests.swift; sourceTree = "<group>"; };
@@ -448,6 +453,7 @@
 		FC9E5318E5F2A286859D4087 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkURLTests.swift; sourceTree = "<group>"; };
+		C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickognizeServiceTests.swift; sourceTree = "<group>"; };
 		FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiScanFindResultsView.swift; sourceTree = "<group>"; };
 		FEBA2383E14AA9320FADB141 /* UIImage+Orientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Orientation.swift"; sourceTree = "<group>"; };
 		FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTipView.swift; sourceTree = "<group>"; };
@@ -517,6 +523,7 @@
 				CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */,
 				70ADD39D0E814FA533C4AB7D /* BrickLinkColorMap.swift */,
 				06F6129A14CE15B1121EE20A /* BrickLinkService.swift */,
+				7ECCE9EC5FE1D40FE4CB2747 /* BrickognizeService.swift */,
 				79BD1E8270C591FF0FC91A3E /* BuildSuggestionEngine.swift */,
 				5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */,
 				CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */,
@@ -633,6 +640,7 @@
 			isa = PBXGroup;
 			children = (
 				6BE7607A39AAA879183E0FA9 /* ARCameraManagerTests.swift */,
+				C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */,
 				FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */,
 				7258A02119F014757C85ED01 /* BuildSuggestionEngineTests.swift */,
 				ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */,
@@ -671,6 +679,7 @@
 				7362E8AE109BBA57C2B8E3EC /* SprintIDataSyncTests.swift */,
 				6AC6B3E9E9AAC132713F85AB /* SprintJCommunityTests.swift */,
 				2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */,
+				2405A5152F897DE922C99999 /* ScannerPipelineTests.swift */,
 				F80A790919432D63489718D6 /* TopographicMeshRendererTests.swift */,
 			);
 			path = BrickyTests;
@@ -932,6 +941,7 @@
 				DB22ADDD7FE0D4DC10D737AB /* BrickGeometryGenerator.swift in Sources */,
 				7711F2AB0635E299F332B979 /* BrickLinkColorMap.swift in Sources */,
 				A2CB46692366042DFA24D41E /* BrickLinkService.swift in Sources */,
+				DB07DA353E9CDAEA8FB2B686 /* BrickognizeService.swift in Sources */,
 				4B733BDE26FBDEE9652994C0 /* BrickitBoundingBoxView.swift in Sources */,
 				7ED84243362C0366C4E29554 /* BuildDetailView.swift in Sources */,
 				F265650A3AD65D4CF4DBD38B /* BuildStepViewer.swift in Sources */,
@@ -1087,6 +1097,7 @@
 			files = (
 				2DFD33D8232F79446647AD78 /* ARCameraManagerTests.swift in Sources */,
 				A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */,
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* BrickognizeServiceTests.swift in Sources */,
 				B0066CB4D6BA178BD42560C5 /* BuildSuggestionEngineTests.swift in Sources */,
 				AE1E9995F023E40405113741 /* BuildSuggestionsViewModelTests.swift in Sources */,
 				3753741E07C6D0314B8DFB61 /* CameraViewModelARTests.swift in Sources */,
@@ -1124,6 +1135,7 @@
 				78280E54CCB780DD43733145 /* SprintIDataSyncTests.swift in Sources */,
 				22184BDF590C6B08A3FBD539 /* SprintJCommunityTests.swift in Sources */,
 				0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */,
+				0CB06964DAEB8A916BF49999 /* ScannerPipelineTests.swift in Sources */,
 				C2E8CEBC6A55988AC82EBF36 /* TopographicMeshRendererTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

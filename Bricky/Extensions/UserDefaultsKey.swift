@@ -57,5 +57,6 @@ enum UserDefaultsKey {
         static let trackingMode = "ScanSettings.trackingMode"
         static let trackingModeLiDARMigratedV1 = "ScanSettings.trackingModeLiDARMigratedV1"
         static let useCompositeMode = "ScanSettings.useCompositeMode"
+        static let cloudFallbackEnabled = "ScanSettings.cloudFallbackEnabled"
     }
 }

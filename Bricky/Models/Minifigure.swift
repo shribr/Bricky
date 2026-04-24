@@ -112,8 +112,9 @@ struct MinifigurePartRequirement: Codable, Hashable {
     }
 
     /// Resolve `color` string → `LegoColor` enum, falling back to `.gray`.
+    /// Supports both canonical names and aliases (e.g. "Trans Red").
     var legoColor: LegoColor {
-        LegoColor(rawValue: color) ?? .gray
+        LegoColor(fromString: color) ?? .gray
     }
 }
 

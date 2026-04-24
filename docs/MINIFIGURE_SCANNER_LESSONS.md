@@ -216,6 +216,62 @@ companion [MINIFIGURE_ANATOMY.md](MINIFIGURE_ANATOMY.md).
 
 ---
 
+## 5b. Source code audit findings (verified June 2025)
+
+These findings were confirmed by reading every line of the identification
+pipeline. Discrepancies between prior documentation and actual code are
+noted.
+
+### Full pipeline flow (verified)
+```
+identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionReranker
+```
+
+1. **Phase 1** (`fastColorBasedCandidates`): 24×24 downsample, coarse
+   color bucketing, LEGO color mapping. Returns top **60** candidates.
+   Cascade mode activates when torso score >= 0.80 AND (patterned OR
+   rare color). Joint-inference weights: torso 0.72, head 0.10, hair
+   0.10, legs 0.04, accessories 0.02 (placeholder).
+2. **Phase 1.5** (`mergeWithEmbeddingHits`): CoreML `TorsoEncoder.mlmodelc`
+   + `FaceEncoder.mlmodelc`. **Graceful no-op** when models aren't bundled
+   (`isAvailable` checks both model + index). Injection threshold: cosine
+   >= 0.50. **Never reorders** existing candidates — only adds new ones.
+3. **Phase 2** (`refineWithLocalReferenceImages`): Three-signal blend:
+   - `VNFeaturePrintObservation` on torso band (0.45 weight)
+   - `TorsoVisualSignature` spatial descriptor (0.30 weight)
+   - `VNFeaturePrintObservation` on full figure (0.25 weight)
+   - Downloads up to 8 reference images on-demand (4s overall timeout)
+   - Returns top 6-8 candidates
+4. **UserCorrectionReranker**: Feature-print matching against past manual
+   corrections. **Injection disabled** (over-fired). Boost-only: distance
+   ≤ 3.5 = strong, ≤ 6 = moderate. Strict thresholds because VN feature
+   prints cluster tightly on minifig photos.
+
+### Embedding resources (verified in bundle)
+- `Bricky/Resources/TorsoEmbeddings/`: `torso_embeddings.bin` (Float16),
+  `torso_embeddings_index.json`, `torso_embeddings_mean.bin`
+- `Bricky/Resources/FaceEmbeddings/`: `face_embeddings.bin` (Float16),
+  `face_embeddings_index.json`, `face_embeddings_mean.bin`
+- **Missing from bundle (unverified)**: `TorsoEncoder.mlmodelc`,
+  `FaceEncoder.mlmodelc` — if absent, Phase 1.5 is entirely disabled
+
+### Test coverage (as of audit)
+- `fuzzyScore()`: 4 assertions
+- `MinifigurePartClassifier.slot()`: 13 assertions
+- **Core identification pipeline: ZERO test coverage**
+- No tests for cascade scoring, embedding lookup, confidence calibration,
+  or end-to-end identification
+
+### Python pipeline alignment
+- `embed_catalog.py` torso crop: 30-70% vertical band → 224×224 thumbnail
+  → letterbox on (244,244,244) → ImageNet normalize. **Matches** Swift's
+  Phase 1 crop coordinates but Swift uses `scaleFill` (not letterbox).
+- `detect_figure_bbox()` duplicated identically in `evaluate_retrieval.py`
+  and `ingest_real_photos.py`.
+- DINOv2 `vits14` produces 384-D embeddings; index stores as Float16.
+
+---
+
 ## 6. Future work (not yet implemented)
 
 - **Trained CoreML torso-print classifier.** The biggest remaining

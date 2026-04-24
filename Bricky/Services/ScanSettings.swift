@@ -89,6 +89,15 @@ final class ScanSettings: ObservableObject {
         didSet { UserDefaults.standard.set(autoDetectGridSize, forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize) }
     }
 
+    // MARK: - Cloud Identification
+
+    /// When enabled, the scanner uses the Brickognize cloud API as a
+    /// fallback when local identification confidence is low. Requires
+    /// network connectivity. Default: true (opt-out via Settings).
+    @Published var cloudFallbackEnabled: Bool {
+        didSet { UserDefaults.standard.set(cloudFallbackEnabled, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) }
+    }
+
     // MARK: - Geolocation (Sprint C)
 
     /// Whether scans tag themselves with the device's current location.
@@ -191,6 +200,12 @@ final class ScanSettings: ObservableObject {
         self.preRenderOnComplete = defaults.bool(forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete)
         self.segmentGridSize = max(3, min(10, defaults.integer(forKey: UserDefaultsKey.ScanSettings.segmentGridSize)))
         self.autoDetectGridSize = defaults.bool(forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize)
+
+        // Cloud fallback — default: enabled
+        if defaults.object(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) == nil {
+            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
+        }
+        self.cloudFallbackEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
 
         // Geolocation (Sprint C) — defaults: capture off, never prompted, 0.5 km radius.
         self.locationCaptureEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationCaptureEnabled)

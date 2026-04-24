@@ -34,7 +34,7 @@ struct PreScanAnalysisView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let frameW = geo.size.width - 56
+            let frameW = max(0, geo.size.width - 56)
             let frameH = min(frameW * 1.1, geo.size.height * 0.40)
 
             ZStack {
@@ -138,7 +138,7 @@ struct PreScanAnalysisView: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: width - 20, height: 2)
+                    .frame(width: max(0, width - 20), height: 2)
                     .shadow(color: .cyan.opacity(0.5), radius: 8)
                     .offset(y: -height / 2 + 10 + hScanProgress * (height - 20))
 
@@ -151,7 +151,7 @@ struct PreScanAnalysisView: View {
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: 2, height: height - 20)
+                    .frame(width: 2, height: max(0, height - 20))
                     .shadow(color: .blue.opacity(0.4), radius: 6)
                     .offset(x: -width / 2 + 10 + vScanProgress * (width - 20))
             }

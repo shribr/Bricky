@@ -1,0 +1,84 @@
+[
+  {
+    "metadataOutputVersion" : "3.0",
+    "shortDescription" : "DINOv2 dinov2_vits14 face encoder for minifigure identification",
+    "outputSchema" : [
+      {
+        "hasShapeFlexibility" : "0",
+        "isOptional" : "0",
+        "dataType" : "Float16",
+        "formattedType" : "MultiArray (Float16 1 × 384)",
+        "shortDescription" : "",
+        "shape" : "[1, 384]",
+        "name" : "embedding",
+        "type" : "MultiArray"
+      }
+    ],
+    "storagePrecision" : "Float16",
+    "modelParameters" : [
+
+    ],
+    "author" : "DINOv2 (Meta AI)",
+    "specificationVersion" : 7,
+    "mlProgramOperationTypeHistogram" : {
+      "Transpose" : 49,
+      "Squeeze" : 36,
+      "Ios16.softmax" : 12,
+      "Split" : 12,
+      "Ios16.linear" : 48,
+      "Ios16.add" : 25,
+      "Concat" : 1,
+      "Ios16.realDiv" : 1,
+      "Tile" : 1,
+      "Ios16.sub" : 1,
+      "Ios16.cast" : 1,
+      "Ios16.conv" : 1,
+      "Ios16.matmul" : 24,
+      "Ios16.gelu" : 12,
+      "Ios16.layerNorm" : 25,
+      "SliceByIndex" : 1,
+      "Ios16.reshape" : 25,
+      "Ios16.maximum" : 1,
+      "Ios16.mul" : 38,
+      "Ios16.reduceL2Norm" : 1
+    },
+    "computePrecision" : "Mixed (Float16, Float32, Int32)",
+    "isUpdatable" : "0",
+    "stateSchema" : [
+
+    ],
+    "availability" : {
+      "macOS" : "13.0",
+      "tvOS" : "16.0",
+      "visionOS" : "1.0",
+      "watchOS" : "9.0",
+      "iOS" : "16.0",
+      "macCatalyst" : "16.0"
+    },
+    "modelType" : {
+      "name" : "MLModelType_mlProgram"
+    },
+    "inputSchema" : [
+      {
+        "height" : "224",
+        "colorspace" : "RGB",
+        "isOptional" : "0",
+        "width" : "224",
+        "isColor" : "1",
+        "formattedType" : "Image (Color 224 × 224)",
+        "hasSizeFlexibility" : "0",
+        "type" : "Image",
+        "shortDescription" : "",
+        "name" : "image"
+      }
+    ],
+    "userDefinedMetadata" : {
+      "com.github.apple.coremltools.conversion_date" : "2026-04-23",
+      "com.github.apple.coremltools.source" : "torch==2.8.0",
+      "com.github.apple.coremltools.version" : "9.0",
+      "com.github.apple.coremltools.source_dialect" : "TorchScript"
+    },
+    "generatedClassName" : "FaceEncoder",
+    "method" : "predict"
+  }
+]

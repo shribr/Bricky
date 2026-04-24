@@ -73,7 +73,7 @@ struct InventoryImporter {
             let heightUnits = Int(safeField(fields, at: heightIdx) ?? "3") ?? 3
 
             let category = PieceCategory(rawValue: categoryStr) ?? inferCategory(from: name)
-            let color = LegoColor(rawValue: colorStr) ?? inferColor(from: colorStr)
+            let color = LegoColor(fromString: colorStr) ?? inferColor(from: colorStr)
 
             let piece = InventoryStore.InventoryPiece(
                 partNumber: partNumber,

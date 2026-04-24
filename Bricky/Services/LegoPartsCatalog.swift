@@ -151,7 +151,7 @@ final class LegoPartsCatalog {
                let alias = ColorAlias(rawValue: str) {
                 self = .alias(alias)
             } else if let names = try? container.decode([String].self) {
-                self = .explicit(names.compactMap { LegoColor(rawValue: $0) })
+                self = .explicit(names.compactMap { LegoColor(fromString: $0) })
             } else {
                 self = .explicit([])
             }

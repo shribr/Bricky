@@ -42,7 +42,7 @@ final class InventoryStore: ObservableObject {
         }
 
         var pieceCategory: PieceCategory { PieceCategory(rawValue: category) ?? .brick }
-        var pieceColor: LegoColor { LegoColor(rawValue: color) ?? .gray }
+        var pieceColor: LegoColor { LegoColor(fromString: color) ?? .gray }
         var dimensions: PieceDimensions {
             PieceDimensions(studsWide: studsWide, studsLong: studsLong, heightUnits: heightUnits)
         }

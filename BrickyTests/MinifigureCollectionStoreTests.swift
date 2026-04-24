@@ -36,7 +36,7 @@ final class MinifigureCollectionStoreTests: XCTestCase {
                 partNumber: part,
                 name: "Piece \(part)",
                 category: .minifigure,
-                color: LegoColor(rawValue: color) ?? .red,
+                color: LegoColor(fromString: color) ?? .red,
                 quantity: qty,
                 dimensions: PieceDimensions(studsWide: 1, studsLong: 1, heightUnits: 1)
             )

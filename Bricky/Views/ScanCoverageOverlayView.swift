@@ -46,8 +46,8 @@ struct ScanCoverageOverlayView: View {
                             let rect = CGRect(
                                 x: CGFloat(col) * cellW + 1,
                                 y: CGFloat(row) * cellH + 1,
-                                width: cellW - 2,
-                                height: cellH - 2
+                                width: max(0, cellW - 2),
+                                height: max(0, cellH - 2)
                             )
                             drawShadedTile(in: rect, intensity: intensity, context: context)
                         }

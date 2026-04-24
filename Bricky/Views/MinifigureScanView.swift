@@ -12,6 +12,7 @@ struct MinifigureScanView: View {
     var skipEnhancement: Bool = false
 
     @StateObject private var camera = CameraManager()
+    @ObservedObject private var identificationService = MinifigureIdentificationService.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var isIdentifying = false
@@ -69,7 +70,8 @@ struct MinifigureScanView: View {
                 Color.black.opacity(0.55).ignoresSafeArea()
                 VStack(spacing: 24) {
                     MinifigureScanStatusView(
-                        overrideMessage: enhanceOverrideMessage
+                        overrideMessage: enhanceOverrideMessage,
+                        showCloudValidation: identificationService.scanPhase == .cloudValidation
                     )
                 }
                 // Persistent badge in bottom-right so the user always has
@@ -220,7 +222,7 @@ struct MinifigureScanView: View {
                 // Hint
                 VStack {
                     Spacer()
-                        .frame(height: (geo.size.height - height) / 2 - 50)
+                        .frame(height: max(0, (geo.size.height - height) / 2 - 50))
                     Text("Center the minifigure torso")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 12)
@@ -484,6 +486,21 @@ struct MinifigureScanView: View {
                         analysisBanner(hybrid)
                     }
 
+                    if resolvedCandidates.contains(where: { $0.isCloudAssisted }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "icloud.fill")
+                                .font(.caption)
+                                .foregroundStyle(.cyan)
+                            Text("Some results verified by Brickognize cloud service")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(.cyan.opacity(0.08)))
+                    }
+
                     if resolvedCandidates.isEmpty {
                         ContentUnavailableView(
                             "No matches",
@@ -725,6 +742,11 @@ struct MinifigureScanView: View {
                 Spacer()
 
                 VStack(spacing: 2) {
+                    if candidate.isCloudAssisted {
+                        Image(systemName: "icloud.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.cyan)
+                    }
                     Text("\(Int(candidate.confidence * 100))%")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(confidenceColor(candidate.confidence))

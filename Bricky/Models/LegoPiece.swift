@@ -242,7 +242,25 @@ enum LegoColor: String, Codable, CaseIterable, Hashable {
     case lightBlue = "Light Blue"
     case transparent = "Transparent"
     case transparentBlue = "Trans Blue"
-    case transparentRed = "Trans Red"
+    case transparentRed = "Transparent Red"
+
+    /// Alternative raw value mappings — the parts catalog uses "Trans Red"
+    /// while the minifigure catalog uses "Transparent Red".
+    private static let aliases: [String: LegoColor] = [
+        "Trans Red": .transparentRed,
+    ]
+
+    /// Initialize from a string, supporting both canonical raw values
+    /// and known aliases (e.g. "Trans Red" → .transparentRed).
+    init?(fromString s: String) {
+        if let c = LegoColor(rawValue: s) {
+            self = c
+        } else if let c = Self.aliases[s] {
+            self = c
+        } else {
+            return nil
+        }
+    }
 
     var hexColor: String {
         switch self {

@@ -27,6 +27,9 @@ final class FaceEmbeddingService {
 
     private init() {
         let model: VNCoreMLModel?
+        // Try compiled model first (.mlmodelc), then fall back to runtime
+        // compilation of raw .mlmodel (needed when model is inside a folder
+        // reference and Xcode didn't compile it at build time).
         if let url = Bundle.main.url(
                 forResource: "FaceEncoder",
                 withExtension: "mlmodelc",
@@ -42,8 +45,25 @@ final class FaceEmbeddingService {
                 Self.logger.error("Failed to load FaceEncoder: \(error.localizedDescription)")
                 model = nil
             }
+        } else if let rawURL = Bundle.main.url(
+                forResource: "FaceEncoder",
+                withExtension: "mlmodel",
+                subdirectory: "FaceEmbeddings"
+            ) ?? Bundle.main.url(forResource: "FaceEncoder", withExtension: "mlmodel") {
+            // Runtime-compile the raw .mlmodel → temporary .mlmodelc
+            do {
+                let compiledURL = try MLModel.compileModel(at: rawURL)
+                let config = MLModelConfiguration()
+                config.computeUnits = .all
+                let coreModel = try MLModel(contentsOf: compiledURL, configuration: config)
+                model = try VNCoreMLModel(for: coreModel)
+                Self.logger.info("Runtime-compiled and loaded FaceEncoder.mlmodel")
+            } catch {
+                Self.logger.error("Failed to runtime-compile FaceEncoder: \(error.localizedDescription)")
+                model = nil
+            }
         } else {
-            Self.logger.info("FaceEncoder.mlmodelc not bundled — feature disabled")
+            Self.logger.info("FaceEncoder model not bundled — feature disabled")
             model = nil
         }
         self.visionModel = model
@@ -72,7 +92,7 @@ final class FaceEmbeddingService {
 
     private static func runEncoder(visionModel: VNCoreMLModel, image: CGImage) -> [Float]? {
         let request = VNCoreMLRequest(model: visionModel)
-        request.imageCropAndScaleOption = .scaleFill
+        request.imageCropAndScaleOption = .centerCrop
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {
             try handler.perform([request])
@@ -88,8 +108,17 @@ final class FaceEmbeddingService {
 
         let count = array.count
         var out = [Float](repeating: 0, count: count)
-        let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: count)
-        for i in 0..<count { out[i] = ptr[i] }
+
+        // CoreML mlprogram models (DINOv2) output Float16; older
+        // neuralnetwork models output Float32. Handle both.
+        switch array.dataType {
+        case .float16:
+            let ptr = array.dataPointer.bindMemory(to: Float16.self, capacity: count)
+            for i in 0..<count { out[i] = Float(ptr[i]) }
+        default:
+            let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: count)
+            for i in 0..<count { out[i] = ptr[i] }
+        }
 
         // Safety re-normalization: if the CoreML output isn't quite
         // unit-length (float precision, neuralnetwork-format rounding),

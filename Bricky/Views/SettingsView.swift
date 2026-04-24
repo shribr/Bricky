@@ -199,6 +199,22 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                Divider()
+
+                // Cloud Identification
+                Text("Cloud Identification")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Toggle(isOn: $scanSettings.cloudFallbackEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Brickognize Cloud Fallback")
+                            .font(.subheadline)
+                        Text("Uses the Brickognize API when offline identification confidence is low. Requires internet.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 } label: {
                     Label("Scanning", systemImage: "viewfinder")
                 }

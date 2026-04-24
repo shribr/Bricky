@@ -329,7 +329,7 @@ struct SetDetailView: View {
                 Section {
                     ForEach(missing.prefix(20), id: \.partNumber) { item in
                         HStack {
-                            if let color = LegoColor(rawValue: item.color) {
+                            if let color = LegoColor(fromString: item.color) {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color.legoColor(color))
                                     .frame(width: 20, height: 20)
@@ -367,7 +367,7 @@ struct SetDetailView: View {
             ForEach(legoSet.pieces.indices, id: \.self) { idx in
                 let piece = legoSet.pieces[idx]
                 HStack {
-                    if let color = LegoColor(rawValue: piece.color) {
+                    if let color = LegoColor(fromString: piece.color) {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.legoColor(color))
                             .frame(width: 20, height: 20)
