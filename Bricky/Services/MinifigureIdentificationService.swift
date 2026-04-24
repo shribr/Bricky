@@ -645,7 +645,7 @@ final class MinifigureIdentificationService: ObservableObject {
             if lowQualityScan {
                 return 100      // low quality, cast wider net
             }
-            return 150          // joint inference on common color — need depth
+            return 250          // joint inference on common color — need depth
         }()
         let top = matches.prefix(poolSize)
         Self.logger.info("[Phase1] pool size \(poolSize), returning \(top.count) candidates")
@@ -905,11 +905,11 @@ final class MinifigureIdentificationService: ObservableObject {
 
         let existingIds: Set<String> = Set(fastResults.compactMap { $0.figure?.id })
         var merged = fastResults
-        let injectionThreshold: Float = 0.35
+        let injectionThreshold: Float = 0.25
 
         // Torso embedding hits.
         if torsoService.isAvailable {
-            let hits = await torsoService.nearestFigures(for: torsoCG, topK: 24)
+            let hits = await torsoService.nearestFigures(for: torsoCG, topK: 40)
             if let top = hits.first {
                 print("[TorsoEmbed] top-1 cosine=\(top.cosine) id=\(top.figureId)  |  threshold=\(injectionThreshold)")
             }
@@ -928,7 +928,7 @@ final class MinifigureIdentificationService: ObservableObject {
                 guard let figId = merged[i].figure?.id,
                       let cosine = torsoHitMap[figId],
                       !merged[i].reasoning.contains("torso-embedding") else { continue }
-                let boost = Double(cosine) * 0.20
+                let boost = Double(cosine) * 0.25
                 let boosted = min(merged[i].confidence + boost, 0.98)
                 merged[i] = ResolvedCandidate(
                     figure: merged[i].figure,
@@ -941,7 +941,7 @@ final class MinifigureIdentificationService: ObservableObject {
             for hit in usefulHits where !existingIds.contains(hit.figureId) {
                 guard let figure = MinifigureCatalog.shared.figure(id: hit.figureId) else { continue }
                 let normalized = Double((hit.cosine - injectionThreshold) / (1.0 - injectionThreshold))
-                let confidence = 0.50 + max(0.0, min(1.0, normalized)) * 0.40
+                let confidence = 0.55 + max(0.0, min(1.0, normalized)) * 0.40
                 merged.append(ResolvedCandidate(
                     figure: figure,
                     modelName: figure.name,
@@ -1267,39 +1267,103 @@ final class MinifigureIdentificationService: ObservableObject {
             return m
         }()
 
-        var visualResults = ranked.prefix(10).enumerated().map { (idx, item) -> ResolvedCandidate in
-            let (fig, distance, embeddingConf) = item
-            // Visual-only confidence from Phase 2 distance.
-            let visualConf = max(0.25, bestCeiling - Double(idx) * 0.06)
+        // ── EMBEDDING-AWARE PRE-SORT ──
+        //
+        // CRITICAL FIX: The old code sorted purely by VNFeaturePrint
+        // distance, took the top-10, then blended with DINOv2. This
+        // meant the embedding signal could NEVER rescue a candidate
+        // that VNFeaturePrint penalized — devastating for dark figures
+        // where VNFeaturePrint gives high distances to everything.
+        //
+        // New approach: compute a preliminary blended score for ALL
+        // scored candidates, sort by that, THEN take the top-10. This
+        // lets DINOv2 pull the correct figure into the final set even
+        // when VNFeaturePrint can't distinguish it from noise.
+        //
+        // For each candidate we compute:
+        //   visualConf:  absolute-distance-based confidence from VNFeaturePrint
+        //   embConf:     Phase 1.5 DINOv2 embedding confidence
+        //   blendedConf: adaptive mix (65% embedding when visual is weak)
+        struct ScoredEntry {
+            let figure: Minifigure
+            let distance: Float
+            let colorConfidence: Double
+            let visualConf: Double
+            let embConf: Double
+            let blendedConf: Double
+        }
 
-            // Blend Phase 2 visual confidence with Phase 1.5 embedding
-            // confidence. The embedding signal (DINOv2 torso/face) is
-            // specifically trained on visual features and should not be
-            // discarded. Use 55% visual / 45% embedding when embedding
-            // data is available; fall back to pure visual otherwise.
-            let embConf = embeddingConfMap[fig.id] ?? embeddingConf
-            let hasEmbeddingSignal = embConf > 0.10  // non-trivial embedding confidence
-            let confidence: Double
-            if hasEmbeddingSignal {
-                confidence = 0.55 * visualConf + 0.45 * embConf
+        let allEntries: [ScoredEntry] = ranked.enumerated().map { (idx, item) in
+            let (fig, distance, colorConf) = item
+            // Visual confidence: same absolute-distance formula, but
+            // applied per-candidate (not just top-10). Use a gentler
+            // rank penalty since we're scoring the full pool.
+            let vConf: Double = {
+                let d = Double(distance)
+                if d <= 0.4 { return 0.95 - d * 0.175 }
+                if d <= 0.7 { return 0.88 - (d - 0.4) * (1.0/3.0) }
+                if d <= 1.0 { return 0.78 - (d - 0.7) * 0.767 }
+                return max(0.30, 0.55 - (d - 1.0) * 0.50)
+            }()
+            let eConf = embeddingConfMap[fig.id] ?? colorConf
+            let hasEmb = eConf > 0.10
+            let blended: Double
+            if hasEmb {
+                if distance > 0.7 {
+                    blended = 0.35 * vConf + 0.65 * eConf
+                } else {
+                    blended = 0.55 * vConf + 0.45 * eConf
+                }
             } else {
-                confidence = visualConf
+                blended = vConf
             }
+            return ScoredEntry(
+                figure: fig,
+                distance: distance,
+                colorConfidence: colorConf,
+                visualConf: vConf,
+                embConf: eConf,
+                blendedConf: blended
+            )
+        }
+
+        // Sort by blended confidence (embedding-aware) instead of
+        // pure VNFeaturePrint distance. This is THE key change that
+        // lets DINOv2 rescue dark/patterned figures.
+        let sortedByBlend = allEntries.sorted { $0.blendedConf > $1.blendedConf }
+
+        // Diagnostic: show how the pre-sort reorders vs pure visual.
+        if let topByBlend = sortedByBlend.first {
+            print("[Phase2-PreSort] #1 by blend: \(topByBlend.figure.id) blend=\(String(format: "%.3f", topByBlend.blendedConf)) vis=\(String(format: "%.3f", topByBlend.visualConf)) emb=\(String(format: "%.3f", topByBlend.embConf)) dist=\(String(format: "%.2f", topByBlend.distance))")
+        }
+        if sortedByBlend.count >= 2 {
+            let e = sortedByBlend[1]
+            print("[Phase2-PreSort] #2 by blend: \(e.figure.id) blend=\(String(format: "%.3f", e.blendedConf)) vis=\(String(format: "%.3f", e.visualConf)) emb=\(String(format: "%.3f", e.embConf)) dist=\(String(format: "%.2f", e.distance))")
+        }
+        // Show what pure-visual would have picked
+        if let topByVis = allEntries.min(by: { $0.distance < $1.distance }), topByVis.figure.id != sortedByBlend.first?.figure.id {
+            print("[Phase2-PreSort] NOTE: pure-visual #1 was \(topByVis.figure.id) dist=\(String(format: "%.2f", topByVis.distance)) — embedding-aware pre-sort changed the winner")
+        }
+
+        var visualResults = sortedByBlend.prefix(10).enumerated().map { (idx, entry) -> ResolvedCandidate in
+            // Apply a small rank penalty so the #1 candidate scores
+            // slightly higher than #2 etc.
+            let confidence = max(0.25, entry.blendedConf - Double(idx) * 0.02)
 
             let qualityNote: String
-            switch distance {
+            switch entry.distance {
             case ..<0.4: qualityNote = "strong visual match"
             case ..<0.7: qualityNote = "good visual match"
             case ..<1.0: qualityNote = "weak visual match"
             default: qualityNote = "low-confidence visual match"
             }
             return ResolvedCandidate(
-                figure: fig,
-                modelName: fig.name,
+                figure: entry.figure,
+                modelName: entry.figure.name,
                 confidence: confidence,
                 reasoning: idx == 0
-                    ? "Best \(qualityNote) (distance \(String(format: "%.2f", distance)))."
-                    : "\(qualityNote.capitalized) (distance \(String(format: "%.2f", distance)))."
+                    ? "Best \(qualityNote) (distance \(String(format: "%.2f", entry.distance)))."
+                    : "\(qualityNote.capitalized) (distance \(String(format: "%.2f", entry.distance)))."
             )
         }
 
@@ -1659,21 +1723,24 @@ final class MinifigureIdentificationService: ObservableObject {
                 let b = pixelData[offset + 2]
 
                 if excludeBackground {
-                    // Skip very dark pixels (deep shadows). Don't skip
-                    // bright pixels — LEGO white (#F4F4F4) IS a valid
-                    // figure color (chefs, doctors, scientists, helmets,
-                    // suits). Saliency cropping already removed most
-                    // background, so the remaining bright pixels are
-                    // overwhelmingly the figure itself.
+                    // Skip pixels that are likely shadows/background
+                    // rather than actual LEGO colors. BUT: black IS a
+                    // valid LEGO color (Blacktron, Ninja, Batman, etc.)
+                    // so we only skip near-black pixels that are also
+                    // completely desaturated. Dark pixels with ANY color
+                    // (logo on black torso) are always kept.
                     let brightness = (Int(r) + Int(g) + Int(b)) / 3
-                    if brightness < 25 { continue }
+                    let maxC = max(r, g, b)
+                    let minC = min(r, g, b)
+                    let saturation = Int(maxC) - Int(minC)
+                    // Only skip truly black AND desaturated pixels when
+                    // brightness is extremely low (< 10). The old
+                    // threshold of 25 was killing LEGO black pieces.
+                    if brightness < 10 && saturation < 8 { continue }
                     // Skip very low-saturation greys ONLY when they're
                     // mid-brightness — those are usually surfaces (table,
                     // paper, wall). Pure white (high brightness, low sat)
                     // is kept because it's a real LEGO color.
-                    let maxC = max(r, g, b)
-                    let minC = min(r, g, b)
-                    let saturation = Int(maxC) - Int(minC)
                     if saturation < 15 && brightness >= 60 && brightness <= 235 {
                         continue
                     }
@@ -1738,11 +1805,12 @@ final class MinifigureIdentificationService: ObservableObject {
         torsoBandImage cgImage: CGImage,
         hasGenericHead: Bool
     ) -> TorsoSignature {
-        // Sample the torso band into a small RGB buffer. Reuse the same
-        // pixel-fetch path as `extractDominantColors` for consistency
-        // (24×24 pixels — sufficient to detect zipper stripes / badges
-        // at typical capture resolution; extremely cheap to process).
-        let size = 24
+        // Sample the torso band into a moderate RGB buffer. Use 48×48
+        // (4× the area of the old 24×24) so small but distinctive logos
+        // like Blacktron's "B" or M-Tron's "M" occupy enough pixels to
+        // register in the print-pixel ratio. At 24×24 a ~10% logo only
+        // covered ~30 pixels and often fell below the detection threshold.
+        let size = 48
         let bytesPerPixel = 4
         let bytesPerRow = size * bytesPerPixel
         var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
@@ -1760,10 +1828,9 @@ final class MinifigureIdentificationService: ObservableObject {
         }
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
 
-        // Build the "kept" pixel list with the same background-filter
-        // rules used elsewhere (skip near-black shadows and mid-bright
-        // low-saturation greys, but keep bright whites — white is a
-        // real LEGO color).
+        // Build the "kept" pixel list. Skip only truly black
+        // desaturated pixels (shadows), NOT LEGO black pieces.
+        // Black IS a valid LEGO color (Blacktron, Ninja, Batman, etc.)
         var kept: [RGB] = []
         kept.reserveCapacity(size * size)
         for y in 0..<size {
@@ -1773,10 +1840,12 @@ final class MinifigureIdentificationService: ObservableObject {
                 let g = pixelData[offset + 1]
                 let b = pixelData[offset + 2]
                 let brightness = (Int(r) + Int(g) + Int(b)) / 3
-                if brightness < 25 { continue }
                 let maxC = max(r, g, b)
                 let minC = min(r, g, b)
                 let saturation = Int(maxC) - Int(minC)
+                // Only skip truly black AND desaturated (< 10 brightness,
+                // < 8 saturation). Keeps LEGO black pieces.
+                if brightness < 10 && saturation < 8 { continue }
                 if saturation < 15 && brightness >= 60 && brightness <= 235 { continue }
                 kept.append(RGB(r: r, g: g, b: b))
             }
@@ -1819,7 +1888,7 @@ final class MinifigureIdentificationService: ObservableObject {
             if distSq > thresholdSq { printPixels += 1 }
         }
         let ratio = Double(printPixels) / Double(kept.count)
-        let patterned = bandColors.count >= 2 || ratio >= 0.12
+        let patterned = bandColors.count >= 2 || ratio >= 0.06
         return TorsoSignature(
             bandColors: bandColors,
             printPixelRatio: ratio,

@@ -45,13 +45,19 @@ enum ScanImageEnhancer {
         // 1. Auto-crop around the subject with padding.
         let croppedCG = autoCrop(cgImage: cg) ?? cg
 
+        // 1b. Straighten the figure if it's tilted. Uses Vision's
+        // horizon detection to compute the dominant tilt angle and
+        // rotate so the figure stands upright. Small tilts (<2°) are
+        // ignored to avoid unnecessary resampling.
+        let straightenedCG = straighten(cgImage: croppedCG) ?? croppedCG
+
         // 2. Auto-enhance with CoreImage.
-        let ci = CIImage(cgImage: croppedCG)
+        let ci = CIImage(cgImage: straightenedCG)
         let enhanced = applyAutoAdjustments(to: ci) ?? ci
 
         // 3. Bake back to UIImage.
         guard let finalCG = ciContext.createCGImage(enhanced, from: enhanced.extent) else {
-            return UIImage(cgImage: croppedCG)
+            return UIImage(cgImage: straightenedCG)
         }
         return UIImage(cgImage: finalCG, scale: oriented.scale, orientation: .up)
     }
@@ -62,6 +68,42 @@ enum ScanImageEnhancer {
         await Task.detached(priority: .userInitiated) {
             enhance(image)
         }.value
+    }
+
+    // MARK: - Step 1b: Straighten
+
+    /// Detect the dominant tilt angle of the figure and rotate to upright.
+    /// Uses Vision's horizon detection to find the angle, then applies a
+    /// CIImage affine rotation. Returns nil if the figure is already
+    /// nearly upright (within ±2°) or if detection fails.
+    private static func straighten(cgImage: CGImage) -> CGImage? {
+        let request = VNDetectHorizonRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        guard let observation = request.results?.first else { return nil }
+
+        let angleDegrees = observation.angle * 180.0 / .pi
+        // Skip tiny tilts — resampling costs quality when not needed.
+        guard abs(angleDegrees) > 2.0 && abs(angleDegrees) < 45.0 else { return nil }
+
+        // Rotate the image to correct the tilt.
+        let ci = CIImage(cgImage: cgImage)
+        let rotated = ci.transformed(by: CGAffineTransform(rotationAngle: -observation.angle))
+
+        // Crop to the inscribed rectangle to remove rotation artifacts
+        // (black triangles at corners). Use a conservative inset.
+        let extent = rotated.extent
+        let inset = abs(sin(observation.angle)) * min(extent.width, extent.height) * 0.1
+        let cropped = rotated.cropped(to: extent.insetBy(dx: inset, dy: inset))
+
+        guard let result = ciContext.createCGImage(cropped, from: cropped.extent) else {
+            return nil
+        }
+        return result
     }
 
     // MARK: - Step 1: Auto-crop
