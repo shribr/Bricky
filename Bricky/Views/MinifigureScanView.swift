@@ -81,16 +81,11 @@ struct MinifigureScanView: View {
                 // top-right placement outside the visible frame on the
                 // direct-scan entry path.
                 if enhanceWasApplied {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            enhancedBadge
-                                .padding(.trailing, 16)
-                                .padding(.bottom, 60)
-                        }
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    enhancedBadge
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 40)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
         }
