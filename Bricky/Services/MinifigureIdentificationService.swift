@@ -138,10 +138,13 @@ final class MinifigureIdentificationService: ObservableObject {
         // without reordering existing results — Phase 2's structural
         // reranker handles final ranking.
         Self.logger.info("[Phase1.5] TorsoEmbedding available=\(TorsoEmbeddingService.shared.isAvailable), FaceEmbedding available=\(FaceEmbeddingService.shared.isAvailable)")
-        let mergedFastResults = await mergeWithEmbeddingHits(
+        let embeddingResult = await mergeWithEmbeddingHits(
             cgImage: cgImage,
             fastResults: fastResults
         )
+        let mergedFastResults = embeddingResult.candidates
+        let rawEmbeddingCosines = embeddingResult.rawCosines
+        let embeddingDiscrimination = embeddingResult.embeddingDiscrimination
         Self.logger.info("[Phase1.5] DINOv2 embedding merge complete — \(mergedFastResults.count) candidates (was \(fastResults.count))")
 
         scanPhase = .visualRefinement
@@ -150,7 +153,9 @@ final class MinifigureIdentificationService: ObservableObject {
         let refinement = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
             await self.refineWithLocalReferenceImages(
                 cgImage: cgImage,
-                fastCandidates: mergedFastResults
+                fastCandidates: mergedFastResults,
+                rawEmbeddingCosines: rawEmbeddingCosines,
+                embeddingDiscrimination: embeddingDiscrimination
             )
         }
 
@@ -290,9 +295,10 @@ final class MinifigureIdentificationService: ObservableObject {
         )
         let torsoBandColors = torsoSignature.bandColors
         let torsoIsPatterned = torsoSignature.isPatterned
+        let torsoDetectedText = torsoSignature.detectedText
 
         Self.logger.debug(
-            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned) | printRatio: \(String(format: "%.2f", torsoSignature.printPixelRatio))"
+            "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned) | printRatio: \(String(format: "%.2f", torsoSignature.printPixelRatio)) | OCR: \(torsoDetectedText.isEmpty ? "none" : torsoDetectedText.joined(separator: ", "))"
         )
 
         // ── Silhouette layer: hair / headgear presence ──
@@ -566,8 +572,40 @@ final class MinifigureIdentificationService: ObservableObject {
             // that sneak through via neutral aux signals (s.hair = 0.30)
             // are noise — they scored 0.03 composite and would pollute
             // the candidate pool without contributing signal.
+            //
+            // OCR BOOST: If Vision detected text on the torso (e.g. "B",
+            // "M", "POLICE"), boost figures whose name contains that text.
+            // This is an extremely strong signal — a "B" on a black torso
+            // with green accents immediately points to Blacktron. Match is
+            // case-insensitive and checks both the figure name and theme.
+            var ocrBoost: Double = 0.0
+            if !torsoDetectedText.isEmpty && composite > 0 && s.torso > 0 {
+                let nameLower = fig.name.lowercased()
+                let themeLower = fig.theme.lowercased()
+                for text in torsoDetectedText {
+                    let textLower = text.lowercased()
+                    // Match: name or theme contains the OCR text, OR
+                    // the OCR text is a single letter that starts the name
+                    // (e.g., "B" matches "Blacktron", "M" matches "M-Tron").
+                    if nameLower.contains(textLower) || themeLower.contains(textLower) {
+                        ocrBoost = max(ocrBoost, 0.30)
+                    } else if textLower.count == 1 {
+                        // Single letter: check if any word in the name starts with it
+                        let words = nameLower.split(separator: " ").map(String.init)
+                            + nameLower.split(separator: "-").map(String.init)
+                        if words.contains(where: { $0.hasPrefix(textLower) }) {
+                            ocrBoost = max(ocrBoost, 0.20)
+                        }
+                    }
+                }
+            }
+
             if composite > 0 && s.torso > 0 {
-                matches.append((fig, composite, s, torsoConfident))
+                let finalComposite = min(composite + ocrBoost, 1.0)
+                if ocrBoost > 0 {
+                    print("[TorsoOCR] boost \(fig.id) '\(fig.name)' +\(String(format: "%.2f", ocrBoost)) → \(String(format: "%.3f", finalComposite))")
+                }
+                matches.append((fig, finalComposite, s, torsoConfident))
             }
         }
 
@@ -799,10 +837,31 @@ final class MinifigureIdentificationService: ObservableObject {
 
         // Merge cloud results into local candidates with cross-validation.
         // Cloud results that CONFIRM a local candidate get a strong boost.
-        // Cloud results that match NO local candidate are penalized
-        // (Brickognize may have misidentified) — injected at low confidence.
+        // Merge cloud results with local candidates.
+        //
+        // KEY INSIGHT: Brickognize is a purpose-built LEGO recognition
+        // service trained specifically on minifigures. When it returns a
+        // HIGH-confidence result (score > 0.80), that signal is almost
+        // certainly more reliable than our local pipeline (which uses
+        // general-purpose DINOv2 + VNFeaturePrint models NOT trained on
+        // LEGO). The old code penalized cloud-only results to max 0.50 —
+        // this meant the cloud's correct answer was consistently buried
+        // beneath wrong local candidates.
+        //
+        // New logic:
+        //   - Cloud score ≥ 0.80: TRUST IT. Inject at the cloud's own
+        //     score (scaled to 0.85–0.95 range). This beats weak local
+        //     candidates that scored 0.6–0.75 through random color overlap.
+        //   - Cloud score 0.60–0.80: moderate confidence. Inject at a
+        //     scaled-down score but still competitive with local results.
+        //   - Cloud confirms a local candidate: boost as before.
+        //
+        // Additionally, when the cloud returns a high-confidence result
+        // that the local pipeline missed entirely, that's a strong signal
+        // the local pipeline failed — penalize local candidates that
+        // DON'T match the cloud, not the other way around.
         var merged = localCandidates
-        var anyCloudConfirmed = false
+        var highConfCloudInjected = false
 
         for cloudMatch in cloudResults {
             guard let cloudFigure = cloudMatch.matchedFigure else { continue }
@@ -810,8 +869,7 @@ final class MinifigureIdentificationService: ObservableObject {
 
             // Check if this figure is already in local results
             if let existingIdx = merged.firstIndex(where: { $0.figure?.id == cloudFigure.id }) {
-                // Strong boost: cloud confirms local candidate.
-                // The boost is proportional to the cloud's own confidence.
+                // Cloud confirms local candidate — strong boost.
                 let existing = merged[existingIdx]
                 let boost = cloudScore * 0.35
                 let boostedConfidence = min(0.98, existing.confidence + boost)
@@ -822,37 +880,55 @@ final class MinifigureIdentificationService: ObservableObject {
                     reasoning: "\(existing.reasoning) | Cloud confirmed (score=\(String(format: "%.2f", cloudScore)))"
                 )
                 merged[existingIdx] = boosted
-                anyCloudConfirmed = true
+                if cloudScore >= 0.80 { highConfCloudInjected = true }
                 Self.logger.info("[Phase3] Boosted \(cloudFigure.id) from \(String(format: "%.2f", existing.confidence)) → \(String(format: "%.2f", boostedConfidence))")
-            } else if cloudScore > 0.6 && cloudMatch.matchConfidence > 0.4 {
-                // Cloud-only candidate: NOT in local results. Inject at
-                // reduced confidence because the local pipeline disagrees.
-                // Cap at 50% so it never outranks a confirmed local match.
-                let injectedConfidence = min(0.50, cloudScore * cloudMatch.matchConfidence * 0.55)
+
+            } else if cloudScore >= 0.80 {
+                // HIGH-CONFIDENCE cloud-only: Brickognize is very sure about
+                // a figure our local pipeline didn't even consider. Trust it.
+                // Scale 0.80→0.85, 0.90→0.90, 1.0→0.95.
+                let injectedConfidence = 0.85 + (cloudScore - 0.80) * 0.50
                 let injected = ResolvedCandidate(
                     figure: cloudFigure,
                     modelName: "cloud",
                     confidence: injectedConfidence,
-                    reasoning: "Cloud ID: \(cloudMatch.prediction.brickLinkID) \"\(cloudMatch.prediction.name)\" (score=\(String(format: "%.2f", cloudScore)))"
+                    reasoning: "Brickognize: \"\(cloudMatch.prediction.name)\" (score=\(String(format: "%.2f", cloudScore))) — high-confidence cloud identification"
                 )
                 merged.append(injected)
-                Self.logger.info("[Phase3] Injected \(cloudFigure.id) from cloud with PENALIZED conf=\(String(format: "%.2f", injectedConfidence)) (not in local results)")
+                highConfCloudInjected = true
+                Self.logger.info("[Phase3] HIGH-CONF cloud inject \(cloudFigure.id) \"\(cloudFigure.name)\" conf=\(String(format: "%.2f", injectedConfidence)) (cloud score=\(String(format: "%.2f", cloudScore)))")
+
+            } else if cloudScore > 0.60 {
+                // MODERATE cloud-only: inject at a competitive but not
+                // dominant confidence. Scale 0.60→0.55, 0.79→0.70.
+                let injectedConfidence = 0.55 + (cloudScore - 0.60) * 0.75
+                let injected = ResolvedCandidate(
+                    figure: cloudFigure,
+                    modelName: "cloud",
+                    confidence: injectedConfidence,
+                    reasoning: "Brickognize: \"\(cloudMatch.prediction.name)\" (score=\(String(format: "%.2f", cloudScore)))"
+                )
+                merged.append(injected)
+                Self.logger.info("[Phase3] Moderate cloud inject \(cloudFigure.id) conf=\(String(format: "%.2f", injectedConfidence))")
+
             } else {
-                Self.logger.info("[Phase3] Rejected cloud result \(cloudFigure.id) — score=\(String(format: "%.2f", cloudScore)) too low or not in local results")
+                Self.logger.info("[Phase3] Rejected cloud result \(cloudFigure.id) — score=\(String(format: "%.2f", cloudScore)) too low")
             }
         }
 
-        // If cloud confirmed a local candidate, penalize cloud-only
-        // candidates further — the agreement between local+cloud on
-        // another figure makes cloud-only results even less trustworthy.
-        if anyCloudConfirmed {
-            for i in merged.indices where merged[i].modelName == "cloud" {
-                let penalized = merged[i].confidence * 0.7
+        // When a high-confidence cloud result was injected for a figure
+        // the local pipeline MISSED, that's evidence the local pipeline
+        // failed. Penalize local-only candidates (those NOT confirmed by
+        // the cloud) so the cloud result can surface to #1.
+        if highConfCloudInjected {
+            for i in merged.indices {
+                guard merged[i].modelName != "cloud" && merged[i].modelName != "local+cloud" else { continue }
+                let demoted = merged[i].confidence * 0.75
                 merged[i] = ResolvedCandidate(
                     figure: merged[i].figure,
                     modelName: merged[i].modelName,
-                    confidence: penalized,
-                    reasoning: merged[i].reasoning + " (penalized: cloud confirmed different figure)"
+                    confidence: demoted,
+                    reasoning: merged[i].reasoning + " (demoted: cloud identified different figure with high confidence)"
                 )
             }
         }
@@ -883,14 +959,18 @@ final class MinifigureIdentificationService: ObservableObject {
     ///
     /// No-op (returns `fastResults` unchanged) when the embedding
     /// service hasn't been trained / bundled yet.
+    /// Merge color-cascade candidates with DINOv2 embedding hits.
+    /// Returns merged candidates AND a map of raw DINOv2 cosine
+    /// similarities per figure ID, so Phase 2 can use the actual
+    /// embedding signal rather than the inflated composite confidence.
     private func mergeWithEmbeddingHits(
         cgImage: CGImage,
         fastResults: [ResolvedCandidate]
-    ) async -> [ResolvedCandidate] {
+    ) async -> (candidates: [ResolvedCandidate], rawCosines: [String: Float], embeddingDiscrimination: Double) {
         let torsoService = TorsoEmbeddingService.shared
         let faceService = FaceEmbeddingService.shared
         guard torsoService.isAvailable || faceService.isAvailable else {
-            return fastResults
+            return (fastResults, [:], 0.0)
         }
 
         // Crop regions in parallel.
@@ -907,6 +987,12 @@ final class MinifigureIdentificationService: ObservableObject {
         var merged = fastResults
         let injectionThreshold: Float = 0.25
 
+        // Track raw DINOv2 cosines per figure ID — these are the
+        // ACTUAL embedding signal, not the inflated composites that
+        // result from stacking color + embedding + face boosts.
+        var rawCosineMap: [String: Float] = [:]
+        var embeddingDiscrimination: Double = 0.0
+
         // Torso embedding hits.
         if torsoService.isAvailable {
             let hits = await torsoService.nearestFigures(for: torsoCG, topK: 40)
@@ -919,6 +1005,21 @@ final class MinifigureIdentificationService: ObservableObject {
             }
             let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
             print("[TorsoEmbed] \(usefulHits.count)/\(hits.count) hits pass threshold \(injectionThreshold)")
+
+            // Store raw cosines for every hit.
+            for hit in usefulHits {
+                rawCosineMap[hit.figureId] = max(rawCosineMap[hit.figureId] ?? 0, hit.cosine)
+            }
+
+            // Compute embedding discrimination: spread between #1 and #5.
+            // High spread (>0.05) = DINOv2 can tell figures apart.
+            // Low spread (<0.03) = DINOv2 is guessing, all look similar.
+            if hits.count >= 5 {
+                let top1 = Double(hits[0].cosine)
+                let top5val = Double(hits[4].cosine)
+                embeddingDiscrimination = top1 - top5val
+                print("[TorsoEmbed] discrimination (top1-top5): \(String(format: "%.4f", embeddingDiscrimination)) — \(embeddingDiscrimination > 0.04 ? "GOOD" : embeddingDiscrimination > 0.02 ? "MODERATE" : "POOR")")
+            }
 
             // Boost existing color-cascade candidates that also appear
             // in the torso embedding results — agreement between color
@@ -997,7 +1098,7 @@ final class MinifigureIdentificationService: ObservableObject {
         Self.logger.info(
             "Embedding retrieval injected \(merged.count - fastResults.count) candidate(s)"
         )
-        return merged
+        return (merged, rawCosineMap, embeddingDiscrimination)
     }
 
     /// Re-rank fast-phase candidates by visual similarity using ONLY
@@ -1009,7 +1110,9 @@ final class MinifigureIdentificationService: ObservableObject {
     /// keep the fast-phase results).
     private func refineWithLocalReferenceImages(
         cgImage: CGImage,
-        fastCandidates: [ResolvedCandidate]
+        fastCandidates: [ResolvedCandidate],
+        rawEmbeddingCosines: [String: Float] = [:],
+        embeddingDiscrimination: Double = 0.0
     ) async -> [ResolvedCandidate] {
         // Generate the captured-image feature prints off the main actor.
         // Two prints: one over the full subject (silhouette / overall
@@ -1255,35 +1358,51 @@ final class MinifigureIdentificationService: ObservableObject {
             return max(0.30, 0.55 - (d - 1.0) * 0.50)
         }()
 
-        // Build a map of Phase 1.5 embedding confidence by figure ID.
-        // This carries the DINOv2 signal — candidates that the embedding
-        // retriever scored highly should retain that advantage through
-        // Phase 2 instead of being overwritten by VNFeaturePrint alone.
+        // Build a map of RAW DINOv2 cosine similarities normalized to
+        // a 0–1 confidence scale. Unlike the old approach which used
+        // the inflated Phase 1.5 composite (color + embedding boosts
+        // stacked to ~0.97), this uses the ACTUAL DINOv2 cosine
+        // similarities — the true embedding signal.
+        //
+        // Raw cosines for minifig torsos typically range 0.60–0.85.
+        // Normalize: 0.60 → 0.0, 0.85+ → 1.0, linear in between.
         let embeddingConfMap: [String: Double] = {
             var m = [String: Double]()
-            for c in fastCandidates {
-                if let id = c.figure?.id { m[id] = c.confidence }
+            for (figId, cosine) in rawEmbeddingCosines {
+                let normalized = Double(max(0, min(1, (cosine - 0.60) / 0.25)))
+                m[figId] = normalized
             }
             return m
         }()
 
+        // Determine embedding weight based on discrimination quality.
+        // When DINOv2 top-5 cosines are tightly clustered (<0.03 spread),
+        // the model can't tell figures apart — embedding is noise.
+        // When spread is high (>0.05), DINOv2 has a strong opinion.
+        let embeddingWeight: Double
+        let visualWeight: Double
+        if embeddingDiscrimination > 0.05 {
+            // Strong discrimination — trust embeddings heavily.
+            embeddingWeight = 0.55
+            visualWeight = 0.45
+        } else if embeddingDiscrimination > 0.03 {
+            // Moderate discrimination — balanced blend.
+            embeddingWeight = 0.40
+            visualWeight = 0.60
+        } else {
+            // Poor discrimination — embeddings are noise, trust visual.
+            embeddingWeight = 0.20
+            visualWeight = 0.80
+        }
+        print("[Phase2] embedding discrimination=\(String(format: "%.4f", embeddingDiscrimination)) → visual weight=\(String(format: "%.0f%%", visualWeight * 100)), embedding weight=\(String(format: "%.0f%%", embeddingWeight * 100))")
+
         // ── EMBEDDING-AWARE PRE-SORT ──
         //
-        // CRITICAL FIX: The old code sorted purely by VNFeaturePrint
-        // distance, took the top-10, then blended with DINOv2. This
-        // meant the embedding signal could NEVER rescue a candidate
-        // that VNFeaturePrint penalized — devastating for dark figures
-        // where VNFeaturePrint gives high distances to everything.
-        //
-        // New approach: compute a preliminary blended score for ALL
-        // scored candidates, sort by that, THEN take the top-10. This
-        // lets DINOv2 pull the correct figure into the final set even
-        // when VNFeaturePrint can't distinguish it from noise.
-        //
-        // For each candidate we compute:
-        //   visualConf:  absolute-distance-based confidence from VNFeaturePrint
-        //   embConf:     Phase 1.5 DINOv2 embedding confidence
-        //   blendedConf: adaptive mix (65% embedding when visual is weak)
+        // Compute blended score for ALL scored candidates using raw
+        // DINOv2 cosines (not inflated composites), sort by blended
+        // score, THEN take the top-10. This lets DINOv2 pull the
+        // correct figure into the final set when it has strong
+        // discrimination, without polluting results when it doesn't.
         struct ScoredEntry {
             let figure: Minifigure
             let distance: Float
@@ -1295,9 +1414,6 @@ final class MinifigureIdentificationService: ObservableObject {
 
         let allEntries: [ScoredEntry] = ranked.enumerated().map { (idx, item) in
             let (fig, distance, colorConf) = item
-            // Visual confidence: same absolute-distance formula, but
-            // applied per-candidate (not just top-10). Use a gentler
-            // rank penalty since we're scoring the full pool.
             let vConf: Double = {
                 let d = Double(distance)
                 if d <= 0.4 { return 0.95 - d * 0.175 }
@@ -1305,15 +1421,11 @@ final class MinifigureIdentificationService: ObservableObject {
                 if d <= 1.0 { return 0.78 - (d - 0.7) * 0.767 }
                 return max(0.30, 0.55 - (d - 1.0) * 0.50)
             }()
-            let eConf = embeddingConfMap[fig.id] ?? colorConf
-            let hasEmb = eConf > 0.10
+            let eConf = embeddingConfMap[fig.id] ?? 0.0
+            let hasEmb = eConf > 0.05
             let blended: Double
             if hasEmb {
-                if distance > 0.7 {
-                    blended = 0.35 * vConf + 0.65 * eConf
-                } else {
-                    blended = 0.55 * vConf + 0.45 * eConf
-                }
+                blended = visualWeight * vConf + embeddingWeight * eConf
             } else {
                 blended = vConf
             }
@@ -1674,6 +1786,10 @@ final class MinifigureIdentificationService: ObservableObject {
         let printPixelRatio: Double
         /// Convenience: `bandColors.count >= 2 || printPixelRatio >= 0.12`.
         let isPatterned: Bool
+        /// Text fragments detected on the torso via Vision OCR.
+        /// Examples: "B" (Blacktron), "M" (M-Tron), "POLICE", "FIRE".
+        /// Empty when no text is detected.
+        let detectedText: [String]
     }
 
     /// LEGO colors that show up on hundreds of distinct figure torsos
@@ -1824,7 +1940,7 @@ final class MinifigureIdentificationService: ObservableObject {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false)
+            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false, detectedText: [])
         }
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
 
@@ -1851,7 +1967,7 @@ final class MinifigureIdentificationService: ObservableObject {
             }
         }
         guard !kept.isEmpty else {
-            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false)
+            return TorsoSignature(bandColors: [], printPixelRatio: 0, isPatterned: false, detectedText: [])
         }
 
         // Distinct LEGO colors in the band (existing patterned-torso
@@ -1889,10 +2005,47 @@ final class MinifigureIdentificationService: ObservableObject {
         }
         let ratio = Double(printPixels) / Double(kept.count)
         let patterned = bandColors.count >= 2 || ratio >= 0.06
+
+        // ── OCR: detect text printed on the torso ──
+        //
+        // Many LEGO factions print distinctive text on the torso:
+        //   "B" (Blacktron), "M" (M-Tron), "POLICE", "FIRE",
+        //   "RESCUE", "COAST GUARD", letters/numbers on sports jerseys.
+        // Even a single recognized character is a VERY strong signal
+        // because it narrows the search space dramatically — a "B"
+        // on a black torso immediately points to Blacktron.
+        //
+        // Use Vision's text recognizer on the original full-resolution
+        // torso crop (NOT the downsampled 48×48) for better OCR quality.
+        var detectedText: [String] = []
+        let textHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        let textRequest = VNRecognizeTextRequest()
+        textRequest.recognitionLevel = .accurate
+        textRequest.usesLanguageCorrection = false  // single letters/short words
+        textRequest.minimumTextHeight = 0.05        // detect small text
+        textRequest.recognitionLanguages = ["en-US"]
+        do {
+            try textHandler.perform([textRequest])
+            for observation in textRequest.results ?? [] {
+                guard let candidate = observation.topCandidates(1).first else { continue }
+                let text = candidate.string.trimmingCharacters(in: .whitespaces)
+                if !text.isEmpty && candidate.confidence > 0.3 {
+                    detectedText.append(text)
+                }
+            }
+        } catch {
+            // OCR failure is non-fatal — we just won't have text signal
+            print("[TorsoOCR] recognition failed: \(error.localizedDescription)")
+        }
+        if !detectedText.isEmpty {
+            print("[TorsoOCR] detected text: \(detectedText.joined(separator: ", "))")
+        }
+
         return TorsoSignature(
             bandColors: bandColors,
             printPixelRatio: ratio,
-            isPatterned: patterned
+            isPatterned: patterned || !detectedText.isEmpty,
+            detectedText: detectedText
         )
     }
 

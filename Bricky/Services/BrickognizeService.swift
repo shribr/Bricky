@@ -151,24 +151,79 @@ actor BrickognizeService {
     private func matchPredictions(_ predictions: [PredictionResult]) async -> [MatchedResult] {
         let catalog = await MainActor.run { MinifigureCatalog.shared.allFigures }
 
-        return predictions.map { prediction in
+        var results: [MatchedResult] = []
+        for prediction in predictions {
             // Try cached match first
             if let cachedID = nameToFigureCache[prediction.name],
                let fig = catalog.first(where: { $0.id == cachedID }) {
-                return MatchedResult(prediction: prediction, matchedFigure: fig, matchConfidence: 0.9)
+                results.append(MatchedResult(prediction: prediction, matchedFigure: fig, matchConfidence: 0.9))
+                continue
             }
 
-            // Name similarity matching
+            // Name similarity matching against local catalog
             let match = findBestMatch(for: prediction, in: catalog)
+
+            // If local matching is weak, try the Rebrickable search API
+            // to find the figure by name. This handles cases where the
+            // Brickognize name doesn't closely match our catalog entries.
+            if match == nil || match!.similarity < 0.50 {
+                if let apiMatch = await searchRebrickableForFigure(name: prediction.name, catalog: catalog) {
+                    nameToFigureCache[prediction.name] = apiMatch.figure.id
+                    results.append(MatchedResult(prediction: prediction, matchedFigure: apiMatch.figure, matchConfidence: apiMatch.similarity))
+                    continue
+                }
+            }
+
             if let match {
                 nameToFigureCache[prediction.name] = match.figure.id
             }
-            return MatchedResult(
+            results.append(MatchedResult(
                 prediction: prediction,
                 matchedFigure: match?.figure,
                 matchConfidence: match?.similarity ?? 0
-            )
+            ))
         }
+        return results
+    }
+
+    /// Search the Rebrickable API for a minifigure by name, then match
+    /// the results against our local catalog.
+    private func searchRebrickableForFigure(name: String, catalog: [Minifigure]) async -> FigureMatch? {
+        // Normalize the search term: "Blacktron 2" → "Blacktron II"
+        let normalized = normalizeForMatching(name)
+        guard let encoded = normalized.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://rebrickable.com/api/v3/lego/minifigs/?search=\(encoded)&page_size=5&key=f80c762a9866cefa7111f5cabd5556dd") else {
+            return nil
+        }
+
+        do {
+            let (data, response) = try await session.data(from: url)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+
+            struct RebrickableSearchResult: Decodable {
+                let results: [RebrickableMinifig]
+                struct RebrickableMinifig: Decodable {
+                    let set_num: String
+                    let name: String
+                }
+            }
+
+            let searchResult = try JSONDecoder().decode(RebrickableSearchResult.self, from: data)
+            // Find the first result that's in our local catalog
+            for rb in searchResult.results {
+                if let fig = catalog.first(where: { $0.id == rb.set_num }) {
+                    Self.logger.info("[RebrickableSearch] '\(name)' → \(fig.id) '\(fig.name)' via API")
+                    return FigureMatch(figure: fig, similarity: 0.85)
+                }
+            }
+            // If first result has an ID, try it even if not in local catalog
+            if let first = searchResult.results.first {
+                Self.logger.info("[RebrickableSearch] API returned \(first.set_num) '\(first.name)' but not in local catalog")
+            }
+        } catch {
+            Self.logger.warning("[RebrickableSearch] API search failed: \(error.localizedDescription)")
+        }
+        return nil
     }
 
     private struct FigureMatch {
@@ -177,46 +232,120 @@ actor BrickognizeService {
     }
 
     /// Find the best catalog match for a Brickognize prediction by name similarity.
+    ///
+    /// Brickognize returns BrickLink-style names like "Blacktron 2" which
+    /// don't directly match Rebrickable names like "Blacktron II (3626b Head)".
+    /// This method uses a multi-signal approach:
+    ///
+    /// 1. **Normalized containment**: Does the prediction name appear as a
+    ///    substring of the catalog name (after normalizing "2"→"II" etc)?
+    ///    This catches "Blacktron 2" → "Blacktron II - Jetpack, 3626b Head".
+    /// 2. **Token overlap**: Jaccard similarity on word tokens (existing).
+    /// 3. **Theme match**: Boost figures whose theme matches Brickognize's
+    ///    category (Space, Town, etc.).
+    /// 4. **Penalty for "costume" figures**: "Blacktron Fan" from The LEGO
+    ///    Movie is NOT a real Blacktron figure. Penalize figures from
+    ///    non-matching themes when the prediction has a clear theme.
     private func findBestMatch(for prediction: PredictionResult, in figures: [Minifigure]) -> FigureMatch? {
+        let predName = prediction.name.lowercased()
+        let predNormalized = normalizeForMatching(predName)
         let predWords = tokenize(prediction.name)
-        guard !predWords.isEmpty else { return nil }
+        guard !predWords.isEmpty || !predNormalized.isEmpty else { return nil }
+
+        let predCategory = prediction.category?.lowercased()
+            .components(separatedBy: " / ").first ?? ""
 
         var bestMatch: FigureMatch?
 
         for fig in figures {
+            let figName = fig.name.lowercased()
+            let figNormalized = normalizeForMatching(figName)
             let figWords = tokenize(fig.name)
             guard !figWords.isEmpty else { continue }
 
-            // Jaccard similarity on word tokens
-            let intersection = predWords.intersection(figWords)
-            let union = predWords.union(figWords)
-            let jaccard = Double(intersection.count) / Double(union.count)
+            var score: Double = 0
 
-            // Bonus for matching theme-specific prefixes
-            let themeBonus: Double
-            if let category = prediction.category?.lowercased(),
-               fig.theme.lowercased().contains(category.components(separatedBy: " / ").first ?? "") {
-                themeBonus = 0.1
-            } else {
-                themeBonus = 0
+            // Signal 1: Normalized containment (very strong signal).
+            // "blacktron ii" contained in "blacktron ii - jetpack, 3626b head"
+            if !predNormalized.isEmpty && figNormalized.contains(predNormalized) {
+                // Score based on how much of the fig name is covered.
+                // Shorter fig names that match = more specific = better.
+                let coverage = Double(predNormalized.count) / Double(figNormalized.count)
+                score = max(score, 0.60 + coverage * 0.30)
             }
 
-            let score = jaccard + themeBonus
+            // Signal 2: Token overlap (Jaccard)
+            if !predWords.isEmpty {
+                let intersection = predWords.intersection(figWords)
+                let union = predWords.union(figWords)
+                let jaccard = Double(intersection.count) / Double(union.count)
+                score = max(score, jaccard)
+            }
+
+            // Signal 3: Theme match bonus
+            if !predCategory.isEmpty {
+                let figTheme = fig.theme.lowercased()
+                if figTheme.contains(predCategory) || predCategory.contains(figTheme) {
+                    score += 0.15
+                } else {
+                    // Theme MISMATCH penalty: "Blacktron Fan" from "The LEGO Movie"
+                    // should not beat "Blacktron II" from "Space" when
+                    // Brickognize's category is "Minifigures / Space".
+                    // Only apply if we have a category and the figure's theme
+                    // is clearly unrelated (movie, promotional, etc.)
+                    let unrelatedThemes: Set<String> = [
+                        "the lego movie", "promotional", "books",
+                        "collectible minifigures", "lego exclusive"
+                    ]
+                    if unrelatedThemes.contains(figTheme) && score < 0.80 {
+                        score *= 0.7
+                    }
+                }
+            }
 
             if score > (bestMatch?.similarity ?? 0.15) {
                 bestMatch = FigureMatch(figure: fig, similarity: min(score, 1.0))
             }
         }
 
+        if let match = bestMatch {
+            Self.logger.info("[NameMatch] '\(prediction.name)' → \(match.figure.id) '\(match.figure.name)' (sim=\(String(format: "%.2f", match.similarity)))")
+        }
+
         return bestMatch
     }
 
+    /// Normalize a name for substring matching:
+    /// - Convert arabic numerals to roman numerals ("2" → "ii", "1" → "i")
+    /// - Strip parenthetical suffixes like "(3626a Head)"
+    /// - Collapse whitespace
+    private func normalizeForMatching(_ name: String) -> String {
+        var s = name.lowercased()
+        // Remove parenthetical suffixes
+        s = s.replacingOccurrences(of: "\\s*\\([^)]*\\)", with: "", options: .regularExpression)
+        // Normalize common arabic→roman conversions for LEGO naming
+        // Must be done as whole words to avoid mangling "2003" → "mmiii"
+        let romanMap: [(String, String)] = [
+            ("\\b1\\b", "i"), ("\\b2\\b", "ii"), ("\\b3\\b", "iii"),
+            ("\\b4\\b", "iv"), ("\\b5\\b", "v")
+        ]
+        for (pattern, replacement) in romanMap {
+            s = s.replacingOccurrences(of: pattern, with: replacement, options: .regularExpression)
+        }
+        // Collapse whitespace
+        s = s.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
+        return s
+    }
+
     /// Tokenize a name into lowercase words, removing common LEGO noise words.
+    /// Keeps single-char roman numerals (i, v, x) that are significant for
+    /// LEGO naming (Blacktron I vs II).
     private func tokenize(_ name: String) -> Set<String> {
         let noise: Set<String> = ["with", "and", "the", "a", "an", "of", "in", "on", "-", "/", ","]
+        let romanNumerals: Set<String> = ["i", "ii", "iii", "iv", "v", "x"]
         let words = name.lowercased()
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { $0.count > 1 && !noise.contains($0) }
+            .filter { !$0.isEmpty && !noise.contains($0) && ($0.count > 1 || romanNumerals.contains($0)) }
         return Set(words)
     }
 }
