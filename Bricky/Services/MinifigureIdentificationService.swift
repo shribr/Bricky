@@ -206,7 +206,7 @@ final class MinifigureIdentificationService: ObservableObject {
         }
 
         let timeout = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
-            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
             refinement.cancel()
             return mergedFastResults
         }
@@ -346,11 +346,55 @@ final class MinifigureIdentificationService: ObservableObject {
             return dist < 90
         }()
 
+        // ── Silhouette layer: hair / headgear presence ──
+        // Per the LEGO design heuristic (see docs/MINIFIGURE_ANATOMY.md),
+        // hair/headgear is the SILHOUETTE layer — the first thing the
+        // human eye registers. We don't try to attribute "this hair
+        // looks like X's hair" (too widely shared across characters),
+        // but PRESENCE/ABSENCE of headgear and its color does help
+        // narrow the catalog: a figure with a tall white feather on
+        // top should not match a bald yellow figure, and vice versa.
+        //
+        // Detection: sample the very top of the head band. If the
+        // topmost stripe is dominated by a NON-yellow LEGO color with
+        // decent coverage, the figure is wearing headgear of that color.
+        //
+        // MOVED ABOVE palette building so headgear color can be stripped
+        // from fullDominant before it pollutes the torso scoring palette.
+        let silhouetteBand = cropVerticalBand(subjectCG, top: 0.0, bottom: 0.15)
+        let silhouetteDominant = extractDominantColors(from: silhouetteBand, excludeBackground: true)
+        let headgearColor: LegoColor? = {
+            guard let top = silhouetteDominant.first,
+                  let lc = closestLegoColor(r: top.r, g: top.g, b: top.b)?.color
+            else { return nil }
+            // Yellow at the top = bald yellow head, not headgear.
+            if lc == .yellow { return nil }
+            return lc
+        }()
+        let figureHasHeadgear = headgearColor != nil
+
         // Build the primary palette from the TORSO band first (most
         // distinctive region), then fill from full-crop colors. Keeps
         // the torso color signal from being drowned out by a yellow
         // generic head, which is otherwise ~30% of the visible figure.
-        let primaryRGB = torsoDominant.prefix(2) + fullDominant.prefix(3)
+        //
+        // When headgear is detected, filter its color out of the full-
+        // crop contributions. A large black helmet or white hat can
+        // dominate the full-image palette and shift the primary color
+        // away from the torso — e.g. a black Space Police helmet on a
+        // green-torso figure makes "black" the primary, matching every
+        // black-torso figure instead of the correct green-torso one.
+        let filteredFullDominant: [RGB] = {
+            guard let hgColor = headgearColor else {
+                return Array(fullDominant.prefix(3))
+            }
+            // Strip pixels whose closest LEGO color matches the headgear.
+            return fullDominant.filter { pixel in
+                guard let lc = closestLegoColor(r: pixel.r, g: pixel.g, b: pixel.b)?.color else { return true }
+                return lc != hgColor
+            }.prefix(3).map { $0 }
+        }()
+        let primaryRGB = torsoDominant.prefix(2) + filteredFullDominant
         var matchedPairs = primaryRGB.compactMap {
             closestLegoColor(r: $0.r, g: $0.g, b: $0.b)
         }
@@ -385,30 +429,6 @@ final class MinifigureIdentificationService: ObservableObject {
         Self.logger.debug(
             "Fast phase colors: \(matched.map { $0.color.rawValue }.joined(separator: ", ")) | torsoBand: \(torsoBandColors.map(\.rawValue).joined(separator: ", ")) | patterned: \(torsoIsPatterned) | printRatio: \(String(format: "%.2f", torsoSignature.printPixelRatio)) | OCR: \(torsoDetectedText.isEmpty ? "none" : torsoDetectedText.joined(separator: ", "))"
         )
-
-        // ── Silhouette layer: hair / headgear presence ──
-        // Per the LEGO design heuristic (see docs/MINIFIGURE_ANATOMY.md),
-        // hair/headgear is the SILHOUETTE layer — the first thing the
-        // human eye registers. We don't try to attribute "this hair
-        // looks like X's hair" (too widely shared across characters),
-        // but PRESENCE/ABSENCE of headgear and its color does help
-        // narrow the catalog: a figure with a tall white feather on
-        // top should not match a bald yellow figure, and vice versa.
-        //
-        // Detection: sample the very top of the head band. If the
-        // topmost stripe is dominated by a NON-yellow LEGO color with
-        // decent coverage, the figure is wearing headgear of that color.
-        let silhouetteBand = cropVerticalBand(subjectCG, top: 0.0, bottom: 0.15)
-        let silhouetteDominant = extractDominantColors(from: silhouetteBand, excludeBackground: true)
-        let headgearColor: LegoColor? = {
-            guard let top = silhouetteDominant.first,
-                  let lc = closestLegoColor(r: top.r, g: top.g, b: top.b)?.color
-            else { return nil }
-            // Yellow at the top = bald yellow head, not headgear.
-            if lc == .yellow { return nil }
-            return lc
-        }()
-        let figureHasHeadgear = headgearColor != nil
 
         // ── Disambiguator layer: non-yellow head color ──
         // Per docs/MINIFIGURE_SCANNER_LESSONS.md: non-yellow heads
@@ -1404,8 +1424,8 @@ final class MinifigureIdentificationService: ObservableObject {
         // Budget: max 24 parallel downloads with a 4s overall timeout.
         // If the network is slow / offline we silently fall back to the
         // existing color-only behavior.
-        let MAX_FETCH = 24
-        let FETCH_TIMEOUT: TimeInterval = 4.0
+        let MAX_FETCH = 16
+        let FETCH_TIMEOUT: TimeInterval = 2.5
         if !missingForFetch.isEmpty {
             // DIVERSITY-AWARE FETCH: Instead of purely taking the top-K
             // by confidence (which clusters on figures with identical

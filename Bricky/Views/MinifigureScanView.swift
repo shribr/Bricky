@@ -42,8 +42,13 @@ struct MinifigureScanView: View {
 
     var body: some View {
         ZStack {
-            CameraPreview(session: camera.session)
-                .ignoresSafeArea()
+            // Hide the camera preview once identification starts — the
+            // snapshot takes over and we don't want the live feed
+            // visible behind the results sheet.
+            if !isIdentifying && !showResults {
+                CameraPreview(session: camera.session)
+                    .ignoresSafeArea()
+            }
 
             // Silhouette guide overlay (hidden during identification)
             if !isIdentifying {
@@ -128,9 +133,11 @@ struct MinifigureScanView: View {
         }
         .onChange(of: showResults) { _, showing in
             if showing {
-                // Stop the camera when results are displayed — the user
-                // is done scanning and will navigate home on dismiss.
-                camera.stopSession()
+                // Fully release the camera when results are displayed —
+                // stopSession() leaves the preview layer visible;
+                // releaseCamera() tears down inputs/outputs/session so
+                // the hardware is freed and the preview goes black.
+                camera.releaseCamera()
             }
         }
         .onReceive(camera.$error) { err in
@@ -347,56 +354,33 @@ struct MinifigureScanView: View {
         let shouldEnhance = ScanImageEnhancer.isEnabled && !isPreCapturedScan
         if shouldEnhance {
             enhancingInProgress = true
-            // Run enhancement in parallel with a minimum-display timer so
-            // the user can clearly see "Enhancing image…" — without this
-            // the message flashes too fast to register on a fast pipeline.
-            // 2.0s is comfortably long enough to read and process.
-            // Snapshot `oriented` as an immutable `let` before the
-            // `async let` capture — Swift 6 forbids captured-var
-            // mutation across concurrently-executing tasks.
+            // Run enhancement off the main actor. No artificial delay —
+            // the pipeline is fast enough that a forced wait just feels
+            // sluggish.
             let toEnhance = oriented
-            async let enhanced = ScanImageEnhancer.enhanceAsync(toEnhance)
-            async let minDelay: Void = Task.sleep(nanoseconds: 2_000_000_000)
-            oriented = await enhanced
-            _ = try? await minDelay
+            oriented = await ScanImageEnhancer.enhanceAsync(toEnhance)
             // Update the snapshot the overlay shows BEFORE clearing the
             // status — that way the user sees the enhanced (cropped,
             // tone-corrected) image as the backdrop for the next phase.
             capturedImage = oriented
             enhancingInProgress = false
-            // Show "✓ Enhanced!" confirmation for ~1.2s before
-            // identification stages start cycling. This gives the user
-            // an unmissable confirmation that the enhance step ran.
-            enhanceJustCompleted = true
             enhanceWasApplied = true
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            enhanceJustCompleted = false
+        } else if !isPreCapturedScan {
+            // Even with auto-enhance off, straighten the image so the
+            // figure stands upright in results.
+            let toStraighten = oriented
+            oriented = await ScanImageEnhancer.straightenOnlyAsync(toStraighten)
+            capturedImage = oriented
         } else if oriented !== image {
             capturedImage = oriented
         }
 
-        // Run identification and a short minimum-duration timer in parallel.
-        // Adaptive timing: the pipeline result is shown as soon as it's
-        // ready, but we enforce a 2-second floor so the user sees the
-        // "Identifying…" animation at least briefly. The old 9-second
-        // fixed floor was unnecessarily slow now that CLIP is fast.
-        let started = Date()
-        let minimumDuration: TimeInterval = 2.0
-
+        // Run identification with no artificial delay — show results as
+        // soon as the pipeline finishes.
         do {
-            // Snapshot the (possibly enhanced) image as a `let` for the
-            // `async let` capture — Swift 6 forbids captured-var
-            // mutation across concurrently-executing tasks.
             let identifyImage = oriented
-            async let resolved = MinifigureIdentificationService.shared
+            let result = try await MinifigureIdentificationService.shared
                 .identify(torsoImage: identifyImage)
-
-            let result = try await resolved
-            let elapsed = Date().timeIntervalSince(started)
-            if elapsed < minimumDuration {
-                let remaining = UInt64((minimumDuration - elapsed) * 1_000_000_000)
-                try? await Task.sleep(nanoseconds: remaining)
-            }
             resolvedCandidates = result
 
             // Run hybrid analysis using the top candidate as the anchor

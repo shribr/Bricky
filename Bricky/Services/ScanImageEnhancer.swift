@@ -70,6 +70,24 @@ enum ScanImageEnhancer {
         }.value
     }
 
+    /// Straighten-only path for when auto-enhance is OFF. Normalizes
+    /// orientation and corrects tilt without running the full crop +
+    /// CoreImage enhancement pipeline. Returns the input unchanged if
+    /// the figure is already upright (within ±2°).
+    static func straightenOnly(_ image: UIImage) -> UIImage {
+        let oriented = image.normalizedOrientation()
+        guard let cg = oriented.cgImage else { return oriented }
+        guard let straightened = straighten(cgImage: cg) else { return oriented }
+        return UIImage(cgImage: straightened, scale: oriented.scale, orientation: .up)
+    }
+
+    /// Async variant of straighten-only.
+    static func straightenOnlyAsync(_ image: UIImage) async -> UIImage {
+        await Task.detached(priority: .userInitiated) {
+            straightenOnly(image)
+        }.value
+    }
+
     // MARK: - Step 1b: Straighten
 
     /// Detect the dominant tilt angle of the figure and rotate to upright.
