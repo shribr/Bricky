@@ -196,12 +196,14 @@ final class MinifigureIdentificationService: ObservableObject {
         scanPhase = .visualRefinement
 
         // ── Phase 2: Refinement using locally-available reference images ──
-        let refinement = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
+        let phase1Ids = Set(fastResults.compactMap { $0.figure?.id })
+        let refinement = Task<[ResolvedCandidate], Never> { [mergedFastResults, phase1Ids] in
             await self.refineWithLocalReferenceImages(
                 cgImage: cgImage,
                 fastCandidates: mergedFastResults,
                 rawEmbeddingCosines: rawEmbeddingCosines,
-                embeddingDiscrimination: embeddingDiscrimination
+                embeddingDiscrimination: embeddingDiscrimination,
+                phase1Ids: phase1Ids
             )
         }
 
@@ -1351,7 +1353,8 @@ final class MinifigureIdentificationService: ObservableObject {
         cgImage: CGImage,
         fastCandidates: [ResolvedCandidate],
         rawEmbeddingCosines: [String: Float] = [:],
-        embeddingDiscrimination: Double = 0.0
+        embeddingDiscrimination: Double = 0.0,
+        phase1Ids: Set<String> = []
     ) async -> [ResolvedCandidate] {
         // Generate the captured-image feature prints off the main actor.
         // Two prints: one over the full subject (silhouette / overall
@@ -1382,25 +1385,6 @@ final class MinifigureIdentificationService: ObservableObject {
         guard let capturedFullPrint = captured.full else { return [] }
         let capturedTorsoPrint = captured.torso
         let capturedTorsoSignature = captured.signature
-
-        // ── Captured Torso Color (for Phase 2 mismatch penalty) ──
-        //
-        // Re-extract the dominant LEGO color from the captured torso
-        // band so Phase 2 can penalize candidates whose catalog torso
-        // color doesn't match what the camera actually sees. This
-        // closes the gap where Phase 2's VNFeaturePrint (shape/texture
-        // similarity) can override Phase 1's color signal — e.g., a
-        // Red Spaceman losing to a Yellow Anakin because both have
-        // similar silhouettes.
-        let capturedTorsoColor: LegoColor? = {
-            guard let torsoCG = captured.torsoCG else { return nil }
-            let colors = extractDominantColors(from: torsoCG, excludeBackground: true)
-            guard let top = colors.first else { return nil }
-            return closestLegoColor(r: top.r, g: top.g, b: top.b)?.color
-        }()
-        if let ctc = capturedTorsoColor {
-            print("[Phase2] captured torso primary color: \(ctc)")
-        }
 
         // Build a list of (figure, localImage) — only figures whose image
         // is already available offline. Check the bundled reference set
@@ -1652,46 +1636,28 @@ final class MinifigureIdentificationService: ObservableObject {
             embeddingWeight = 0.15
             visualWeight = 0.70
         }
-        // Color cascade weight: Phase 1+1.5 performed careful color
-        // analysis (torso primary match, headgear, head, legs scoring
-        // plus CLIP/DINOv2 boosting). Carrying this forward prevents
-        // Phase 2's noisy visual scoring from burying correct color
-        // matches. Without this, a Red Classic Spaceman scan can lose
-        // to a Yellow or White figure that happens to have a marginally
-        // better VNFeaturePrint distance despite being the wrong color.
-        //
-        // Adaptive: when the captured torso has a clear, non-common
-        // color (e.g., red, orange, lime), boost color weight to 0.25
-        // because that color is highly discriminative. For common
-        // colors (black, white) 15% is enough — shape/print matters more.
-        let capturedColorIsDiscriminative: Bool = {
-            guard let c = capturedTorsoColor else { return false }
-            // Common colors where hundreds of figures share the same
-            // base torso color — color alone can't disambiguate.
-            let ambiguousColors: Set<LegoColor> = [.black, .white, .gray, .darkGray]
-            return !ambiguousColors.contains(c)
-        }()
-        let colorCascadeWeight: Double = capturedColorIsDiscriminative ? 0.25 : 0.15
-        // Re-balance visual/embedding weights to sum to 1.0
+        // Color cascade weight: Phase 1 performed careful color analysis
+        // (torso primary match, headgear, head, legs scoring). Carrying
+        // this forward prevents Phase 2's noisy visual scoring from
+        // burying correct color matches. Combined with zeroing colorNorm
+        // for CLIP-injected candidates (no Phase 1 color evidence), this
+        // creates a meaningful gap between color-verified and unverified
+        // candidates. At 20%, a Phase 1 hit with colorNorm=1.0 gets a
+        // 0.20 boost that CLIP-injected candidates cannot match.
+        let colorCascadeWeight: Double = 0.20
         let adjustedVisualWeight: Double
         let adjustedEmbeddingWeight: Double
-        if capturedColorIsDiscriminative {
-            // 0.25 color → redistribute the 0.10 taken from the other two
-            if embeddingDiscrimination > 0.05 {
-                adjustedEmbeddingWeight = 0.45  // was 0.50
-                adjustedVisualWeight = 0.30     // was 0.35
-            } else if embeddingDiscrimination > 0.03 {
-                adjustedEmbeddingWeight = 0.30  // was 0.35
-                adjustedVisualWeight = 0.45     // was 0.50
-            } else {
-                adjustedEmbeddingWeight = 0.10  // was 0.15
-                adjustedVisualWeight = 0.65     // was 0.70
-            }
+        if embeddingDiscrimination > 0.05 {
+            adjustedEmbeddingWeight = 0.48
+            adjustedVisualWeight = 0.32
+        } else if embeddingDiscrimination > 0.03 {
+            adjustedEmbeddingWeight = 0.33
+            adjustedVisualWeight = 0.47
         } else {
-            adjustedVisualWeight = visualWeight
-            adjustedEmbeddingWeight = embeddingWeight
+            adjustedEmbeddingWeight = 0.13
+            adjustedVisualWeight = 0.67
         }
-        print("[Phase2] embedding discrimination=\(String(format: "%.4f", embeddingDiscrimination)) → visual weight=\(String(format: "%.0f%%", adjustedVisualWeight * 100)), embedding weight=\(String(format: "%.0f%%", adjustedEmbeddingWeight * 100)), color cascade weight=\(String(format: "%.0f%%", colorCascadeWeight * 100))\(capturedColorIsDiscriminative ? " (discriminative color boost)" : "")")
+        print("[Phase2] embedding discrimination=\(String(format: "%.4f", embeddingDiscrimination)) → visual weight=\(String(format: "%.0f%%", adjustedVisualWeight * 100)), embedding weight=\(String(format: "%.0f%%", adjustedEmbeddingWeight * 100)), color cascade weight=\(String(format: "%.0f%%", colorCascadeWeight * 100))")
 
         // ── EMBEDDING-AWARE PRE-SORT ──
         //
@@ -1720,43 +1686,31 @@ final class MinifigureIdentificationService: ObservableObject {
             }()
             let eConf = embeddingConfMap[fig.id] ?? 0.0
             let hasEmb = eConf > 0.05
-            // Normalize Phase 1+1.5 color confidence to 0–1 scale.
+            // Normalize Phase 1 color confidence to 0–1 scale.
             // Phase 1 cascade hits: 0.55–0.85, CLIP-boosted: up to 0.98,
-            // joint inference: 0.20–0.62, CLIP-injected: 0.60–0.95.
+            // joint inference: 0.20–0.62.
             // Normalize so 0.30 → 0.0, 0.85+ → 1.0.
-            let colorNorm = max(0, min(1, (colorConf - 0.30) / 0.55))
-            var blended: Double
+            //
+            // CRITICAL: Only apply color weight to candidates that came
+            // from the Phase 1 COLOR CASCADE. CLIP/DINOv2-injected
+            // candidates have synthetic confidence (0.60–0.95) based on
+            // embedding cosine, NOT on color evidence. Counting that
+            // synthetic confidence as "color cascade" support lets wrong-
+            // color CLIP hits score the same as correctly-color-matched
+            // Phase 1 candidates — e.g., a gray-torso "Mother" figure
+            // injected by CLIP at 0.80 gets colorNorm=0.91, nearly
+            // identical to a Red Spaceman's Phase 1 score of 0.76
+            // (colorNorm=0.84). This eliminates the 15% color weight
+            // as a discriminator entirely.
+            let isPhase1Candidate = phase1Ids.contains(fig.id)
+            let colorNorm = isPhase1Candidate
+                ? max(0, min(1, (colorConf - 0.30) / 0.55))
+                : 0.0
+            let blended: Double
             if hasEmb {
                 blended = adjustedVisualWeight * vConf + adjustedEmbeddingWeight * eConf + colorCascadeWeight * colorNorm
             } else {
                 blended = (adjustedVisualWeight + adjustedEmbeddingWeight) * vConf + colorCascadeWeight * colorNorm
-            }
-
-            // ── COLOR MISMATCH PENALTY ──
-            //
-            // When the captured torso has a clear color and the
-            // candidate's catalog torso color is DIFFERENT, penalize
-            // the blended score. This prevents wrong-color figures
-            // from winning on shape similarity alone (e.g., a Red
-            // Spaceman matching Yellow Anakin because both have
-            // similar humanoid silhouettes).
-            //
-            // Only apply when:
-            //   1. We have a captured torso color
-            //   2. The candidate has a catalog torso color
-            //   3. They don't match
-            //   4. The captured color is discriminative (not black/white/gray)
-            //
-            // Penalty: multiply blended by 0.75, capping the max
-            // achievable score for a wrong-color candidate well below
-            // a correct-color one.
-            if capturedColorIsDiscriminative, let capturedC = capturedTorsoColor {
-                let catalogTorsoColor: LegoColor? = fig.torsoPart.flatMap { LegoColor(fromString: $0.color) }
-                if let catC = catalogTorsoColor, catC != capturedC {
-                    let penalty = 0.75
-                    blended *= penalty
-                    print("[Phase2-ColorPenalty] \(fig.id) '\(fig.name)': catalog torso=\(catC) vs captured=\(capturedC) → ×\(penalty)")
-                }
             }
             return ScoredEntry(
                 figure: fig,

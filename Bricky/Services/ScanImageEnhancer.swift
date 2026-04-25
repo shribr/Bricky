@@ -42,22 +42,24 @@ enum ScanImageEnhancer {
         let oriented = image.normalizedOrientation()
         guard let cg = oriented.cgImage else { return oriented }
 
-        // 1. Auto-crop around the subject with padding.
-        let croppedCG = autoCrop(cgImage: cg) ?? cg
+        // 1. Straighten FIRST on the full-scene image where horizon
+        //    lines and desk edges are still visible. Both the PCA
+        //    contour strategy and the horizon-detection fallback need
+        //    scene context to detect tilt — running after autocrop
+        //    strips that context away (the cropped image is mostly
+        //    figure, no background lines to anchor off of).
+        let straightenedCG = straighten(cgImage: cg) ?? cg
 
-        // 1b. Straighten the figure if it's tilted. Uses Vision's
-        // horizon detection to compute the dominant tilt angle and
-        // rotate so the figure stands upright. Small tilts (<2°) are
-        // ignored to avoid unnecessary resampling.
-        let straightenedCG = straighten(cgImage: croppedCG) ?? croppedCG
+        // 2. Auto-crop around the subject with padding.
+        let croppedCG = autoCrop(cgImage: straightenedCG) ?? straightenedCG
 
-        // 2. Auto-enhance with CoreImage.
-        let ci = CIImage(cgImage: straightenedCG)
+        // 3. Auto-enhance with CoreImage.
+        let ci = CIImage(cgImage: croppedCG)
         let enhanced = applyAutoAdjustments(to: ci) ?? ci
 
-        // 3. Bake back to UIImage.
+        // 4. Bake back to UIImage.
         guard let finalCG = ciContext.createCGImage(enhanced, from: enhanced.extent) else {
-            return UIImage(cgImage: straightenedCG)
+            return UIImage(cgImage: croppedCG)
         }
         return UIImage(cgImage: finalCG, scale: oriented.scale, orientation: .up)
     }
