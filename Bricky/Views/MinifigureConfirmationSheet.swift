@@ -9,8 +9,13 @@ struct MinifigureConfirmationSheet: View {
     let candidate: MinifigureIdentificationService.ResolvedCandidate
     let capturedImage: UIImage?
     var analysisDetail: HybridFigureAnalyzer.Analysis?
+    /// All candidates from the scan — used to show a "Similar Figures"
+    /// section so the user can pick a better match without going back.
+    var allCandidates: [MinifigureIdentificationService.ResolvedCandidate] = []
     let onConfirm: () -> Void
     let onReject: () -> Void
+    /// Called when the user picks an alternative from the similar list.
+    var onSelectAlternative: ((MinifigureIdentificationService.ResolvedCandidate) -> Void)?
 
     @StateObject private var collectionStore = MinifigureCollectionStore.shared
     @Environment(\.dismiss) private var dismiss
@@ -27,6 +32,7 @@ struct MinifigureConfirmationSheet: View {
                     catalogHeroCard
                     detailsCard
                     yourScanRow
+                    similarFiguresSection
                     actionsRow
                 }
                 .padding()
@@ -124,6 +130,80 @@ struct MinifigureConfirmationSheet: View {
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+    }
+
+    // MARK: - Similar Figures
+
+    /// Other candidates from the scan (excluding the currently shown one)
+    /// that the user can tap to switch to a different match.
+    private var similarCandidates: [MinifigureIdentificationService.ResolvedCandidate] {
+        allCandidates.filter { $0.figure != nil && $0.figure?.id != figure.id }
+    }
+
+    @ViewBuilder
+    private var similarFiguresSection: some View {
+        if !similarCandidates.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Similar Figures")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("Not the right one? Try one of these:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ForEach(similarCandidates) { alt in
+                    Button {
+                        onSelectAlternative?(alt)
+                    } label: {
+                        similarFigureRow(alt)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+        }
+    }
+
+    private func similarFigureRow(_ candidate: MinifigureIdentificationService.ResolvedCandidate) -> some View {
+        HStack(spacing: 12) {
+            MinifigureImageView(url: candidate.figure?.imageURL)
+                .frame(width: 50, height: 60)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(candidate.figure?.name ?? candidate.modelName)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let fig = candidate.figure {
+                    Text("\(fig.theme)\(fig.year > 0 ? " · \(String(fig.year))" : "")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 2) {
+                if candidate.isCloudAssisted {
+                    Image(systemName: "icloud.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.cyan)
+                }
+                Text("\(Int(candidate.confidence * 100))%")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(confidenceColor(candidate.confidence))
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.tertiarySystemGroupedBackground))
+        )
     }
 
     @ViewBuilder

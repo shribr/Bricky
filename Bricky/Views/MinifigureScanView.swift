@@ -117,6 +117,13 @@ struct MinifigureScanView: View {
         .onDisappear {
             camera.stopSession()
         }
+        .onChange(of: showResults) { _, showing in
+            if showing {
+                // Stop the camera when results are displayed — the user
+                // is done scanning and will navigate home on dismiss.
+                camera.stopSession()
+            }
+        }
         .onReceive(camera.$error) { err in
             if let err {
                 errorMessage = err.localizedDescription
@@ -130,6 +137,11 @@ struct MinifigureScanView: View {
         .sheet(isPresented: $showResults, onDismiss: {
             resolvedCandidates = []
             hybridAnalysis = nil
+            // Always navigate back to home when the results sheet is
+            // dismissed — whether by the Close button, swipe-down, or
+            // after a confirm/reject flow.
+            dismiss()
+            NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
         }) {
             resultsSheet
         }
@@ -528,8 +540,6 @@ struct MinifigureScanView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Close") {
                         showResults = false
-                        dismiss()
-                        NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
                     }
                 }
             }
@@ -548,6 +558,7 @@ struct MinifigureScanView: View {
                     candidate: candidate,
                     capturedImage: capturedImage,
                     analysisDetail: hybridAnalysis,
+                    allCandidates: resolvedCandidates,
                     onConfirm: { [hybridAnalysis] in
                         MinifigureCollectionStore.shared.markScanned(fig.id)
                         MinifigureScanHistoryStore.shared.record(
@@ -574,15 +585,15 @@ struct MinifigureScanView: View {
                             )
                         }
                         // Close everything and ask the catalog to push the
-                        // detail view for this figure.
+                        // detail view for this figure. Setting showResults
+                        // to false triggers onDismiss which navigates home.
+                        let confirmedId = fig.id
                         showResults = false
-                        dismiss()
-                        NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             NotificationCenter.default.post(
                                 name: .minifigureScanCompleted,
                                 object: nil,
-                                userInfo: ["minifigId": fig.id]
+                                userInfo: ["minifigId": confirmedId]
                             )
                         }
                     },
@@ -597,6 +608,13 @@ struct MinifigureScanView: View {
                             analysisSummary: hybridAnalysis?.summary ?? "",
                             analysisDetail: hybridAnalysis?.detail ?? ""
                         )
+                    },
+                    onSelectAlternative: { newCandidate in
+                        // Dismiss current confirmation, then present new one
+                        pendingConfirmation = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            pendingConfirmation = newCandidate
+                        }
                     }
                 )
             }
@@ -606,14 +624,13 @@ struct MinifigureScanView: View {
                 candidate: candidate,
                 capturedImage: capturedImage,
                 onSaved: { fig in
+                    let savedId = fig.id
                     showResults = false
-                    dismiss()
-                    NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         NotificationCenter.default.post(
                             name: .minifigureScanCompleted,
                             object: nil,
-                            userInfo: ["minifigId": fig.id]
+                            userInfo: ["minifigId": savedId]
                         )
                     }
                 }
@@ -627,8 +644,6 @@ struct MinifigureScanView: View {
                 rejectedFigIds: resolvedCandidates.compactMap { $0.figure?.id },
                 onDone: {
                     showResults = false
-                    dismiss()
-                    NotificationCenter.default.post(name: .scanFlowShouldPopToRoot, object: nil)
                 }
             )
         }

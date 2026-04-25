@@ -18,6 +18,10 @@
 		0B4BEED98C9ECD68C41BAD31 /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F80702B03C212E2C4FC9F11 /* ScanSession.swift */; };
 		0B54274FD754DEB2EAC1CD3B /* SprintHFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */; };
 		0C7D3214D53EFAA6814CF678 /* TorsoEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */; };
+		CB01E3A1F1D2A4B5C6E7F8A0 /* ClipEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01E3A1F1D2A4B5C6E7F8A1 /* ClipEmbeddingService.swift */; };
+		CB01E3A1F1D2A4B5C6E7F8A2 /* ClipEmbeddingIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01E3A1F1D2A4B5C6E7F8A3 /* ClipEmbeddingIndex.swift */; };
+		CB01E3A1F1D2A4B5C6E7F8A4 /* ClipEmbeddings in Resources */ = {isa = PBXBuildFile; fileRef = CB01E3A1F1D2A4B5C6E7F8A5 /* ClipEmbeddings */; };
+		CB01E3A1F1D2A4B5C6E7F8A6 /* LegoClipVision.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = CB01E3A1F1D2A4B5C6E7F8A7 /* LegoClipVision.mlpackage */; };
 		0CB06964DAEB8A916BF4938B /* SprintKEngagementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C9EE48 /* SprintKEngagementTests.swift */; };
 		0CB06964DAEB8A916BF49999 /* ScannerPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2405A5152F897DE922C99999 /* ScannerPipelineTests.swift */; };
 		0D494F0879D5C9E7DB730720 /* AllScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D713EAF593C0B518C5330A15 /* AllScanHistoryView.swift */; };
@@ -428,6 +432,10 @@
 		DBE58999222EBC235DA4758B /* TopographicMeshRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopographicMeshRenderer.swift; sourceTree = "<group>"; };
 		DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCoverageOverlayView.swift; sourceTree = "<group>"; };
 		E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorsoEmbeddingService.swift; sourceTree = "<group>"; };
+		CB01E3A1F1D2A4B5C6E7F8A1 /* ClipEmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEmbeddingService.swift; sourceTree = "<group>"; };
+		CB01E3A1F1D2A4B5C6E7F8A3 /* ClipEmbeddingIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEmbeddingIndex.swift; sourceTree = "<group>"; };
+		CB01E3A1F1D2A4B5C6E7F8A5 /* ClipEmbeddings */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ClipEmbeddings; path = Bricky/Resources/ClipEmbeddings; sourceTree = SOURCE_ROOT; };
+		CB01E3A1F1D2A4B5C6E7F8A7 /* LegoClipVision.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; name = LegoClipVision.mlpackage; path = Bricky/Resources/LegoClipVision.mlpackage; sourceTree = SOURCE_ROOT; };
 		E3DC66A819E7BB6589233FB1 /* MeshBoundaryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBoundaryStrategy.swift; sourceTree = "<group>"; };
 		E4A65D6ED759B64E735B3094 /* InventoryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryExporter.swift; sourceTree = "<group>"; };
 		E7C22C576F6796C97771247C /* SprintHFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintHFeatureTests.swift; sourceTree = "<group>"; };
@@ -572,6 +580,8 @@
 				686081141A769871976AC3BC /* TipManager.swift */,
 				C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */,
 				E08CADD2A44DD4D7843C645D /* TorsoEmbeddingService.swift */,
+				CB01E3A1F1D2A4B5C6E7F8A1 /* ClipEmbeddingService.swift */,
+				CB01E3A1F1D2A4B5C6E7F8A3 /* ClipEmbeddingIndex.swift */,
 				1B25B8819718427E5CFF4386 /* TorsoVisualSignature.swift */,
 				8DEC8B9D627AC7883789D989 /* UserCorrectionReranker.swift */,
 				CE2D8454F143148278DCEAF8 /* UserFigureImageStorage.swift */,
@@ -793,6 +803,8 @@
 				2E2375924C87F31026F188BC /* LDraw */,
 				21E8CE05EE2EE49A13C94740 /* MinifigImages */,
 				123F995AA8F75504CFC230AD /* TorsoEmbeddings */,
+				CB01E3A1F1D2A4B5C6E7F8A5 /* ClipEmbeddings */,
+				CB01E3A1F1D2A4B5C6E7F8A7 /* LegoClipVision.mlpackage */,
 				0CE1E19F0B3165DA297EB54B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -918,6 +930,8 @@
 				E38B834A2CA583E76569107B /* MinifigureCatalog.json.gz in Resources */,
 				596B31199D8F6C0CFBE08C7D /* PrivacyInfo.xcprivacy in Resources */,
 				B800A875E3447B5FFF0B2C16 /* TorsoEmbeddings in Resources */,
+				CB01E3A1F1D2A4B5C6E7F8A4 /* ClipEmbeddings in Resources */,
+				CB01E3A1F1D2A4B5C6E7F8A6 /* LegoClipVision.mlpackage in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1079,6 +1093,8 @@
 				2032055BD21AC987D2909A61 /* TopographicMeshRenderer.swift in Sources */,
 				F07E1F1A2C5A2D5024262204 /* TorsoEmbeddingIndex.swift in Sources */,
 				0C7D3214D53EFAA6814CF678 /* TorsoEmbeddingService.swift in Sources */,
+				CB01E3A1F1D2A4B5C6E7F8A0 /* ClipEmbeddingService.swift in Sources */,
+				CB01E3A1F1D2A4B5C6E7F8A2 /* ClipEmbeddingIndex.swift in Sources */,
 				CFD1204784694CADDE4EE36A /* TorsoVisualSignature.swift in Sources */,
 				D3DF56FF4989EB410B41B9D7 /* UIImage+Orientation.swift in Sources */,
 				88FB7C217814121301D6FB88 /* UserCorrectionReranker.swift in Sources */,
