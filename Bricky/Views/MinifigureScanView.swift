@@ -95,11 +95,18 @@ struct MinifigureScanView: View {
                 // top-right placement outside the visible frame on the
                 // direct-scan entry path.
                 if enhanceWasApplied {
-                    enhancedBadge
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 40)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    GeometryReader { geo in
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                enhancedBadge
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.bottom, geo.safeAreaInsets.bottom + 12)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
         }

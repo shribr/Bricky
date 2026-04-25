@@ -103,13 +103,15 @@ final class ClipEmbeddingIndex {
         let floats: [Float] = rawData.withUnsafeBytes { raw -> [Float] in
             let halfPtr = raw.baseAddress!.assumingMemoryBound(to: UInt16.self)
             var out = [Float](repeating: 0, count: totalElements)
-            var src = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: halfPtr),
-                                    height: 1, width: vImagePixelCount(totalElements),
-                                    rowBytes: totalElements * MemoryLayout<UInt16>.size)
-            var dst = vImage_Buffer(data: &out,
-                                    height: 1, width: vImagePixelCount(totalElements),
-                                    rowBytes: totalElements * MemoryLayout<Float>.size)
-            vImageConvert_Planar16FtoPlanarF(&src, &dst, 0)
+            out.withUnsafeMutableBufferPointer { outBuf in
+                var src = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: halfPtr),
+                                        height: 1, width: vImagePixelCount(totalElements),
+                                        rowBytes: totalElements * MemoryLayout<UInt16>.size)
+                var dst = vImage_Buffer(data: outBuf.baseAddress!,
+                                        height: 1, width: vImagePixelCount(totalElements),
+                                        rowBytes: totalElements * MemoryLayout<Float>.size)
+                vImageConvert_Planar16FtoPlanarF(&src, &dst, 0)
+            }
             return out
         }
 

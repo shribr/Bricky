@@ -91,10 +91,23 @@ enum ScanImageEnhancer {
     // MARK: - Step 1b: Straighten
 
     /// Detect the dominant tilt angle of the figure and rotate to upright.
-    /// Uses Vision's horizon detection to find the angle, then applies a
-    /// CIImage affine rotation. Returns nil if the figure is already
-    /// nearly upright (within ±2°) or if detection fails.
+    /// Uses a multi-strategy approach:
+    ///   1. Vision's contour detection on the saliency mask — finds the
+    ///      figure's principal axis via the bounding box of the largest
+    ///      contour, which is much more reliable for small objects like
+    ///      LEGO minifigures than horizon detection.
+    ///   2. Fallback: Vision's horizon detection — works well when there
+    ///      are strong horizontal/vertical lines in the scene.
+    /// Returns nil if the figure is already nearly upright (within ±2°)
+    /// or if detection fails.
     private static func straighten(cgImage: CGImage) -> CGImage? {
+        // Strategy 1: Use saliency + contour to find the figure's tilt.
+        if let angle = figureTiltAngle(cgImage: cgImage),
+           abs(angle) > 2.0, abs(angle) < 45.0 {
+            return applyRotation(to: cgImage, angleDegrees: angle)
+        }
+
+        // Strategy 2: Fallback to horizon detection.
         let request = VNDetectHorizonRequest()
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
         do {
@@ -105,23 +118,94 @@ enum ScanImageEnhancer {
         guard let observation = request.results?.first else { return nil }
 
         let angleDegrees = observation.angle * 180.0 / .pi
-        // Skip tiny tilts — resampling costs quality when not needed.
         guard abs(angleDegrees) > 2.0 && abs(angleDegrees) < 45.0 else { return nil }
+        return applyRotation(to: cgImage, angleDegrees: angleDegrees)
+    }
 
-        // Rotate the image to correct the tilt.
+    /// Estimate the figure's tilt angle by finding the saliency mask's
+    /// principal axis. Returns the tilt in degrees (positive = clockwise)
+    /// that should be SUBTRACTED to make the figure upright.
+    private static func figureTiltAngle(cgImage: CGImage) -> Double? {
+        // Get attention-based saliency to isolate the figure.
+        let salReq = VNGenerateAttentionBasedSaliencyImageRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+        do {
+            try handler.perform([salReq])
+        } catch { return nil }
+
+        guard let salObs = salReq.results?.first else { return nil }
+        let salMap = salObs.pixelBuffer
+
+        // Detect contours on the saliency map.
+        let contourReq = VNDetectContoursRequest()
+        contourReq.contrastAdjustment = 1.0
+        contourReq.maximumImageDimension = 256
+        let contourHandler = VNImageRequestHandler(cvPixelBuffer: salMap, orientation: .up, options: [:])
+        do {
+            try contourHandler.perform([contourReq])
+        } catch { return nil }
+
+        guard let contourObs = contourReq.results?.first,
+              contourObs.contourCount > 0 else { return nil }
+
+        // Find the largest contour (most likely the figure).
+        var bestContour: VNContour?
+        var bestPointCount = 0
+        for i in 0..<contourObs.contourCount {
+            if let c = try? contourObs.contour(at: i),
+               c.normalizedPoints.count > bestPointCount {
+                bestPointCount = c.normalizedPoints.count
+                bestContour = c
+            }
+        }
+        guard let contour = bestContour, bestPointCount >= 8 else { return nil }
+
+        // Compute the principal axis of the contour points using PCA.
+        // The eigenvector of the largest eigenvalue gives the figure's
+        // long axis. We want the angle between that axis and vertical.
+        let points = contour.normalizedPoints
+        let n = Double(points.count)
+        var mx = 0.0, my = 0.0
+        for p in points { mx += Double(p.x); my += Double(p.y) }
+        mx /= n; my /= n
+
+        var cxx = 0.0, cyy = 0.0, cxy = 0.0
+        for p in points {
+            let dx = Double(p.x) - mx
+            let dy = Double(p.y) - my
+            cxx += dx * dx
+            cyy += dy * dy
+            cxy += dx * dy
+        }
+
+        // Principal axis angle: atan2(2*cxy, cxx - cyy) / 2
+        // This gives the angle of the major axis from the X-axis.
+        let theta = atan2(2 * cxy, cxx - cyy) / 2.0
+        // Convert to tilt from vertical: vertical axis is at 90° from X.
+        // The figure's long axis should be vertical (90°), so tilt = theta - 90°.
+        var tiltDegrees = theta * 180.0 / .pi
+        // Normalize: we want the angle that makes the major axis vertical.
+        // If the major axis angle is near 90°, tilt is near 0°.
+        // Adjust so that tiltDegrees represents deviation from vertical.
+        if tiltDegrees > 45 { tiltDegrees -= 90 }
+        else if tiltDegrees < -45 { tiltDegrees += 90 }
+
+        return tiltDegrees
+    }
+
+    /// Apply a rotation correction and crop to remove edge artifacts.
+    private static func applyRotation(to cgImage: CGImage, angleDegrees: Double) -> CGImage? {
+        let angleRadians = angleDegrees * .pi / 180.0
         let ci = CIImage(cgImage: cgImage)
-        let rotated = ci.transformed(by: CGAffineTransform(rotationAngle: -observation.angle))
+        let rotated = ci.transformed(by: CGAffineTransform(rotationAngle: CGFloat(-angleRadians)))
 
         // Crop to the inscribed rectangle to remove rotation artifacts
         // (black triangles at corners). Use a conservative inset.
         let extent = rotated.extent
-        let inset = abs(sin(observation.angle)) * min(extent.width, extent.height) * 0.1
+        let inset = abs(sin(angleRadians)) * min(Double(extent.width), Double(extent.height)) * 0.1
         let cropped = rotated.cropped(to: extent.insetBy(dx: inset, dy: inset))
 
-        guard let result = ciContext.createCGImage(cropped, from: cropped.extent) else {
-            return nil
-        }
-        return result
+        return ciContext.createCGImage(cropped, from: cropped.extent)
     }
 
     // MARK: - Step 1: Auto-crop
