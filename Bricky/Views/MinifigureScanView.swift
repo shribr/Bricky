@@ -71,8 +71,17 @@ struct MinifigureScanView: View {
                 VStack(spacing: 24) {
                     MinifigureScanStatusView(
                         overrideMessage: enhanceOverrideMessage,
-                        showCloudValidation: identificationService.scanPhase == .cloudValidation
+                        showCloudValidation: false
                     )
+                }
+                // Cloud validation banner pinned to top of screen
+                if identificationService.scanPhase == .cloudValidation {
+                    VStack {
+                        cloudValidationTopBanner
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.easeInOut(duration: 0.3), value: identificationService.scanPhase)
                 }
                 // Persistent badge in bottom-right so the user always has
                 // visual confirmation the auto-enhance pipeline ran.
@@ -366,11 +375,13 @@ struct MinifigureScanView: View {
             capturedImage = oriented
         }
 
-        // Run identification and a minimum-duration timer in parallel so
-        // the user always sees the full 6-phase animation cycle (~9 s),
-        // even when the on-device pipeline finishes in milliseconds.
+        // Run identification and a short minimum-duration timer in parallel.
+        // Adaptive timing: the pipeline result is shown as soon as it's
+        // ready, but we enforce a 2-second floor so the user sees the
+        // "Identifying…" animation at least briefly. The old 9-second
+        // fixed floor was unnecessarily slow now that CLIP is fast.
         let started = Date()
-        let minimumDuration: TimeInterval = 9.0
+        let minimumDuration: TimeInterval = 2.0
 
         do {
             // Snapshot the (possibly enhanced) image as a `let` for the
@@ -700,6 +711,32 @@ struct MinifigureScanView: View {
                       status == .failed ? .orange.opacity(0.08) :
                       .gray.opacity(0.06))
         )
+    }
+
+    /// Top-of-screen banner shown during active cloud validation.
+    /// Pinned to top so it's always visible above the scan animation.
+    private var cloudValidationTopBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "icloud.and.arrow.up")
+                .font(.subheadline.weight(.semibold))
+                .symbolEffect(.pulse, options: .repeating)
+            Text("Checking with Brickognize cloud…")
+                .font(.subheadline.weight(.medium))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(.cyan.opacity(0.5), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 56) // clear the status bar / dynamic island
     }
 
     private func analysisBanner(_ analysis: HybridFigureAnalyzer.Analysis) -> some View {

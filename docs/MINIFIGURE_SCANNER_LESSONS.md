@@ -296,3 +296,92 @@ identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionRe
 - **Minidoll detection / branching.** Friends/Disney Princess figures
   use a different anatomy and currently mis-rank against minifigure
   catalog entries.
+
+---
+
+## 7. What Do All These Terms Mean? (The 10-Year-Old Version)
+
+The scanner pipeline logs use a lot of math-sounding words. Here's
+what they actually mean in plain English.
+
+### Cosine Similarity
+
+Imagine you and your friend are both pointing at something. If you're
+pointing in *exactly* the same direction, that's a cosine of **1.0**
+(perfect match). If you're pointing at totally different things, that's
+**0.0** (no match at all).
+
+When CLIP says "cosine = 0.86" for a minifigure, it means the photo
+you scanned and the catalog picture are pointing in almost the same
+direction — they look really similar.
+
+### Cosine Range
+
+This is the lowest and highest scores the model gives across all
+candidates. DINOv2's range was 0.63–0.67, like a teacher who gives
+every student between a B- and a B. CLIP's range is 0.71–0.86 — that
+teacher gives C's, B's, *and* A's. You can actually tell who did best.
+
+### Spread (Discrimination Score)
+
+Take the top 5 candidates and measure the gap between the #1 score and
+the #5 score. If those 5 kids are all 4'10" to 4'11", you can barely
+tell who's tallest — that's DINOv2 (spread ≈ 0.03). But if they range
+from 4'2" to 5'0", the tallest kid is obvious — that's CLIP (spread up
+to 0.072).
+
+In the debug log this appears as:
+```
+Discrimination (top1−top5): 0.0720 — GOOD
+```
+- **> 0.06** → GOOD — the model is confident about its #1 pick.
+- **0.03–0.06** → MODERATE — probably right, but hedging.
+- **< 0.03** → POOR — the model can't really tell them apart.
+
+### Clustering
+
+When all the scores bunch up in a narrow range, that's clustering.
+Like if every kid in your class got 85% on a test — you can't tell
+who's smartest. DINOv2's scores cluster tightly (everything between
+0.63 and 0.67). CLIP's scores spread out, so the right answer stands
+above the rest.
+
+### Embedding
+
+An embedding is a list of numbers that describes what a picture "looks
+like" to the AI. Think of it like a recipe — instead of saying "this
+minifigure has a red torso, blue legs, and a white helmet," the model
+writes a recipe of 512 numbers that capture all of those visual details
+at once. Two figures that look similar will have similar recipes
+(high cosine); two that look different will have different recipes
+(low cosine).
+
+- **DINOv2**: 384 numbers per figure (generic recipe — trained on
+  cats, cars, houses, everything)
+- **CLIP**: 512 numbers per figure (LEGO-specific recipe — trained on
+  12,966 minifigure images)
+
+### Injection vs Boosting
+
+When the embedding model finds a match:
+- **Boosting** means a candidate that was *already* in the list (from
+  the color cascade) gets a confidence bump because the embedding model
+  agrees. Like getting extra credit — your grade goes up.
+- **Injection** means the embedding found a figure that the color
+  cascade *missed entirely*, so it gets added to the list as a new
+  candidate. Like a transfer student joining the class.
+
+### CLIP vs DINOv2 — Why CLIP Wins
+
+| | DINOv2 | CLIP |
+|---|--------|------|
+| **Trained on** | ImageNet (generic photos) | 12,966 LEGO minifigure images |
+| **Embedding size** | 384-D | 512-D |
+| **Cosine range** | 0.63 – 0.67 (narrow) | 0.71 – 0.86 (wide) |
+| **Spread** | ~0.03 (POOR) | up to 0.072 (GOOD) |
+| **Analogy** | A teacher who's never seen LEGO | A LEGO expert |
+
+DINOv2 is like asking someone who's never played with LEGO to sort your
+minifigures — they'll get the obvious ones right (red vs blue) but
+struggle with similar-looking figures. CLIP is like asking a LEGO fan
+who's memorized the catalog — they spot the tiny differences instantly.
