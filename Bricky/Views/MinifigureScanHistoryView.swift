@@ -280,6 +280,7 @@ private struct MinifigureScanHistoryDetailSheet: View {
     var onRescan: ((MinifigureScanHistoryStore.ScanEntry) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var showFullScreenImage = false
+    @State private var showDebugLog = false
 
     private var hasCapturedImage: Bool {
         MinifigureScanHistoryStore.shared.capturedImage(for: entry) != nil
@@ -377,6 +378,39 @@ private struct MinifigureScanHistoryDetailSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+
+                    // Debug log (collapsible)
+                    if !entry.debugLog.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showDebugLog.toggle()
+                                }
+                            } label: {
+                                HStack {
+                                    Label("Pipeline Debug Log", systemImage: "doc.text.magnifyingglass")
+                                        .font(.subheadline.weight(.medium))
+                                    Spacer()
+                                    Image(systemName: showDebugLog ? "chevron.up" : "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if showDebugLog {
+                                ScrollView(.horizontal, showsIndicators: true) {
+                                    Text(entry.debugLog)
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                                .frame(maxHeight: 300)
+                            }
+                        }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+                    }
 
                     // Re-scan button
                     if hasCapturedImage {

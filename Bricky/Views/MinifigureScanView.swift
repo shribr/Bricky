@@ -461,6 +461,7 @@ struct MinifigureScanView: View {
             // rejecting are lost — and the user explicitly asked that
             // ALL scans be saved with delete-one and clear-all controls.
             let topCandidate = result.first
+            let debugLog = MinifigureIdentificationService.shared.lastScanDebugLog
             MinifigureScanHistoryStore.shared.record(
                 figure: topCandidate?.figure,
                 candidateName: topCandidate?.modelName ?? "No match",
@@ -469,7 +470,8 @@ struct MinifigureScanView: View {
                 capturedImage: oriented,
                 confirmed: false,
                 analysisSummary: hybridAnalysis?.summary ?? "",
-                analysisDetail: hybridAnalysis?.detail ?? ""
+                analysisDetail: hybridAnalysis?.detail ?? "",
+                debugLog: debugLog
             )
 
             showResults = true
@@ -569,7 +571,8 @@ struct MinifigureScanView: View {
                             capturedImage: capturedImage,
                             confirmed: true,
                             analysisSummary: hybridAnalysis?.summary ?? "",
-                            analysisDetail: hybridAnalysis?.detail ?? ""
+                            analysisDetail: hybridAnalysis?.detail ?? "",
+                            debugLog: MinifigureIdentificationService.shared.lastScanDebugLog
                         )
                         // Also feed the confirmation into the training
                         // store so the correction reranker can boost this
@@ -606,7 +609,8 @@ struct MinifigureScanView: View {
                             capturedImage: capturedImage,
                             confirmed: false,
                             analysisSummary: hybridAnalysis?.summary ?? "",
-                            analysisDetail: hybridAnalysis?.detail ?? ""
+                            analysisDetail: hybridAnalysis?.detail ?? "",
+                            debugLog: MinifigureIdentificationService.shared.lastScanDebugLog
                         )
                     },
                     onSelectAlternative: { newCandidate in

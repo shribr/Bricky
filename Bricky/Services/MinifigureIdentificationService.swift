@@ -62,6 +62,11 @@ final class MinifigureIdentificationService: ObservableObject {
     }
     @Published private(set) var lastCloudStatus: CloudStatus = .notUsed
 
+    /// Cleaned-up debug log from the most recent identification run.
+    /// Views should read this after `identify()` returns to attach it
+    /// to the scan history entry.
+    @Published private(set) var lastScanDebugLog: String = ""
+
     enum IdentificationError: LocalizedError {
         case noResults
         case underlying(Error)
@@ -103,6 +108,17 @@ final class MinifigureIdentificationService: ObservableObject {
         scanPhase = .colorCascade
         lastCloudStatus = .notUsed
 
+        // ── Debug log accumulator ──
+        let scanStart = Date()
+        var logLines: [String] = []
+        func logAppend(_ line: String) { logLines.append(line) }
+        let dateFmt = DateFormatter()
+        dateFmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        logLines.append("═══════════════════════════════════════")
+        logLines.append("  Minifigure Scan Debug Log")
+        logLines.append("  \(dateFmt.string(from: scanStart))")
+        logLines.append("═══════════════════════════════════════")
+
         // Snapshot the catalog on the MainActor BEFORE going to background.
         // Calling MainActor.assumeIsolated from a detached task would crash.
         let catalogSnapshot = MinifigureCatalog.shared.allFigures
@@ -113,12 +129,16 @@ final class MinifigureIdentificationService: ObservableObject {
         }.value
 
         Self.logger.info("Fast phase returned \(fastResults.count) candidates")
+        logAppend("")
+        logAppend("▸ Phase 1 — Color Cascade")
+        logAppend("  Candidates: \(fastResults.count)")
         if !fastResults.isEmpty {
             let top5 = fastResults.prefix(5).compactMap { c -> String? in
                 guard let fig = c.figure else { return nil }
                 return "\(fig.id)(\(String(format: "%.2f", c.confidence)))"
             }.joined(separator: ", ")
             Self.logger.info("[Phase1] top-5: \(top5)")
+            logAppend("  Top-5: \(top5)")
         }
 
         guard !fastResults.isEmpty else {
@@ -138,6 +158,10 @@ final class MinifigureIdentificationService: ObservableObject {
         let clipAvailable = ClipEmbeddingService.shared.isAvailable
         Self.logger.info("[Phase1.5] CLIP available=\(clipAvailable), TorsoEmbedding available=\(TorsoEmbeddingService.shared.isAvailable), FaceEmbedding available=\(FaceEmbeddingService.shared.isAvailable)")
 
+        logAppend("")
+        logAppend("▸ Phase 1.5 — Embedding Retrieval")
+        logAppend("  CLIP: \(clipAvailable ? "available" : "unavailable") | TorsoEmbed: \(TorsoEmbeddingService.shared.isAvailable ? "available" : "unavailable") | FaceEmbed: \(FaceEmbeddingService.shared.isAvailable ? "available" : "unavailable")")
+
         let embeddingResult: (candidates: [ResolvedCandidate], rawCosines: [String: Float], embeddingDiscrimination: Double)
         if clipAvailable {
             embeddingResult = await mergeWithClipHits(
@@ -145,16 +169,29 @@ final class MinifigureIdentificationService: ObservableObject {
                 fastResults: fastResults
             )
             Self.logger.info("[Phase1.5] CLIP embedding merge complete — \(embeddingResult.candidates.count) candidates (was \(fastResults.count))")
+            logAppend("  Model: CLIP (LEGO-finetuned, 512-D)")
         } else {
             embeddingResult = await mergeWithEmbeddingHits(
                 cgImage: cgImage,
                 fastResults: fastResults
             )
             Self.logger.info("[Phase1.5] DINOv2 fallback merge complete — \(embeddingResult.candidates.count) candidates (was \(fastResults.count))")
+            logAppend("  Model: DINOv2 (generic fallback, 384-D)")
         }
         let mergedFastResults = embeddingResult.candidates
         let rawEmbeddingCosines = embeddingResult.rawCosines
         let embeddingDiscrimination = embeddingResult.embeddingDiscrimination
+
+        // Log embedding details
+        let injectedCount = mergedFastResults.count - fastResults.count
+        logAppend("  Injected: \(injectedCount) new candidate(s) | Total: \(mergedFastResults.count)")
+        if !rawEmbeddingCosines.isEmpty {
+            let topCosines = rawEmbeddingCosines.sorted { $0.value > $1.value }.prefix(5)
+            let cosineStr = topCosines.map { "\($0.key)=\(String(format: "%.3f", $0.value))" }.joined(separator: ", ")
+            logAppend("  Top-5 cosines: \(cosineStr)")
+        }
+        let discQuality = embeddingDiscrimination > 0.06 ? "GOOD" : embeddingDiscrimination > 0.03 ? "MODERATE" : "POOR"
+        logAppend("  Discrimination (top1−top5): \(String(format: "%.4f", embeddingDiscrimination)) — \(discQuality)")
 
         scanPhase = .visualRefinement
 
@@ -178,19 +215,24 @@ final class MinifigureIdentificationService: ObservableObject {
         timeout.cancel()
 
         let baseResult = refined.isEmpty ? mergedFastResults : refined
+        logAppend("")
+        logAppend("▸ Phase 2 — Visual Refinement")
         if !refined.isEmpty {
             let top5 = refined.prefix(5).compactMap { c -> String? in
                 guard let fig = c.figure else { return nil }
                 return "\(fig.id)(\(String(format: "%.2f", c.confidence)))"
             }.joined(separator: ", ")
             Self.logger.info("[Phase2] refined top-5: \(top5)")
+            logAppend("  Top-5: \(top5)")
             // Log discrimination: how much confidence gap between #1 and #2
             if refined.count >= 2 {
                 let gap = refined[0].confidence - refined[1].confidence
                 Self.logger.info("[Phase2] #1-#2 gap: \(String(format: "%.3f", gap)) — \(gap > 0.08 ? "good discrimination" : "POOR discrimination")")
+                logAppend("  #1-#2 gap: \(String(format: "%.3f", gap)) — \(gap > 0.08 ? "good discrimination" : "POOR discrimination")")
             }
         } else {
             Self.logger.info("[Phase2] no refinement (no local refs or timed out)")
+            logAppend("  Skipped (no local reference images or timed out)")
         }
 
         // ── Phase 3: Cloud fallback (Brickognize API) ──
@@ -199,6 +241,15 @@ final class MinifigureIdentificationService: ObservableObject {
         // high-confidence match, inject or boost that figure.
         let topConfidenceForCloud = baseResult.first?.confidence ?? 0
         let willTryCloud = ScanSettings.shared.cloudFallbackEnabled && topConfidenceForCloud < 0.80
+        logAppend("")
+        logAppend("▸ Phase 3 — Cloud Validation")
+        if !ScanSettings.shared.cloudFallbackEnabled {
+            logAppend("  Status: disabled by user")
+        } else if !willTryCloud {
+            logAppend("  Status: skipped (local confidence \(String(format: "%.2f", topConfidenceForCloud)) ≥ 0.80)")
+        } else {
+            logAppend("  Status: attempting (local confidence \(String(format: "%.2f", topConfidenceForCloud)) < 0.80)")
+        }
         if willTryCloud {
             scanPhase = .cloudValidation
         } else if !ScanSettings.shared.cloudFallbackEnabled {
@@ -209,6 +260,15 @@ final class MinifigureIdentificationService: ObservableObject {
             localCandidates: baseResult
         )
 
+        // Log cloud outcome
+        if willTryCloud {
+            if cloudEnhanced.first?.figure?.id != baseResult.first?.figure?.id {
+                logAppend("  Cloud changed #1 candidate")
+            } else {
+                logAppend("  Cloud did not change ranking")
+            }
+        }
+
         // Apply the user-correction reranker: if the current captured
         // image looks like a past scan the user manually corrected,
         // inject or boost the figure(s) they confirmed for that scan.
@@ -218,6 +278,22 @@ final class MinifigureIdentificationService: ObservableObject {
             capturedImage: torsoImage,
             currentCandidates: cloudEnhanced
         )
+
+        // ── Build final log section ──
+        logAppend("")
+        logAppend("▸ Final Result")
+        for (idx, c) in final.prefix(5).enumerated() {
+            if let fig = c.figure {
+                logAppend("  #\(idx + 1): \(fig.id) \"\(fig.name)\" conf=\(String(format: "%.2f", c.confidence))")
+            }
+        }
+        let elapsed = Date().timeIntervalSince(scanStart)
+        logAppend("")
+        logAppend("  Total candidates: \(final.count)")
+        logAppend("  Elapsed: \(String(format: "%.2f", elapsed))s")
+        logAppend("═══════════════════════════════════════")
+
+        lastScanDebugLog = logLines.joined(separator: "\n")
 
         if let top = final.first, let fig = top.figure {
             Self.logger.info("[Final] #1: \(fig.id) \"\(fig.name)\" conf=\(String(format: "%.2f", top.confidence))")

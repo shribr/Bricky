@@ -29,6 +29,8 @@ final class MinifigureScanHistoryStore: ObservableObject {
         let analysisSummary: String
         /// Longer analysis explanation (what the AI observed about each region).
         let analysisDetail: String
+        /// Debug log from the identification pipeline (phases, cosines, timing).
+        let debugLog: String
 
         /// Local file name for the captured scan image (e.g. "{id}.jpg").
         var capturedImageFilename: String { "\(id.uuidString).jpg" }
@@ -48,12 +50,13 @@ final class MinifigureScanHistoryStore: ObservableObject {
             confirmed = try c.decode(Bool.self, forKey: .confirmed)
             analysisSummary = (try? c.decode(String.self, forKey: .analysisSummary)) ?? ""
             analysisDetail = (try? c.decode(String.self, forKey: .analysisDetail)) ?? ""
+            debugLog = (try? c.decode(String.self, forKey: .debugLog)) ?? ""
         }
 
         init(id: UUID, date: Date, minifigureId: String?, minifigureName: String,
              theme: String, year: Int, confidence: Double, reasoning: String,
              imageURL: URL?, confirmed: Bool, analysisSummary: String = "",
-             analysisDetail: String = "") {
+             analysisDetail: String = "", debugLog: String = "") {
             self.id = id
             self.date = date
             self.minifigureId = minifigureId
@@ -66,6 +69,7 @@ final class MinifigureScanHistoryStore: ObservableObject {
             self.confirmed = confirmed
             self.analysisSummary = analysisSummary
             self.analysisDetail = analysisDetail
+            self.debugLog = debugLog
         }
     }
 
@@ -96,7 +100,8 @@ final class MinifigureScanHistoryStore: ObservableObject {
         capturedImage: UIImage?,
         confirmed: Bool,
         analysisSummary: String = "",
-        analysisDetail: String = ""
+        analysisDetail: String = "",
+        debugLog: String = ""
     ) {
         let entry = ScanEntry(
             id: UUID(),
@@ -110,7 +115,8 @@ final class MinifigureScanHistoryStore: ObservableObject {
             imageURL: figure?.imageURL,
             confirmed: confirmed,
             analysisSummary: analysisSummary,
-            analysisDetail: analysisDetail
+            analysisDetail: analysisDetail,
+            debugLog: debugLog
         )
 
         entries.insert(entry, at: 0)
