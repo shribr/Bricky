@@ -1073,7 +1073,25 @@ final class MinifigureIdentificationService: ObservableObject {
             self.cropToSalientSubject(cgImage) ?? cgImage
         }.value
 
-        let hits = await clipService.nearestFigures(for: subject, topK: 40)
+        // Kick off CLIP and Face inference in PARALLEL. The face crop
+        // is independent of CLIP results — it only boosts existing
+        // candidates afterward. Running them concurrently saves the
+        // face encoder's ~30-80ms latency.
+        let faceService = FaceEmbeddingService.shared
+        let faceAvailable = faceService.isAvailable
+
+        async let clipHitsTask = clipService.nearestFigures(for: subject, topK: 40)
+        async let faceResultTask: [FaceEmbeddingIndex.Hit] = {
+            guard faceAvailable else { return [] }
+            let faceCG = await Task.detached(priority: .userInitiated) { [self] in
+                // Reuse the already-computed subject crop instead of
+                // calling cropToSalientSubject a second time.
+                self.cropVerticalBand(subject, top: 0.17, bottom: 0.35)
+            }.value
+            return await faceService.nearestFigures(for: faceCG, topK: 12)
+        }()
+
+        let hits = await clipHitsTask
         guard !hits.isEmpty else {
             return (fastResults, [:], 0.0)
         }
@@ -1140,17 +1158,11 @@ final class MinifigureIdentificationService: ObservableObject {
             ))
         }
 
-        // Also run face embeddings if available for additional boosting.
-        let faceService = FaceEmbeddingService.shared
-        if faceService.isAvailable {
-            let faceCG = await Task.detached(priority: .userInitiated) { [self] in
-                let subj = self.cropToSalientSubject(cgImage) ?? cgImage
-                return self.cropVerticalBand(subj, top: 0.17, bottom: 0.35)
-            }.value
-
-            let faceHits = await faceService.nearestFigures(for: faceCG, topK: 12)
+        // Apply face embedding boosts from the parallel inference.
+        let faceHitsResult = await faceResultTask
+        if faceAvailable && !faceHitsResult.isEmpty {
             let faceThreshold: Float = 0.40
-            let usefulFaceHits = faceHits.filter { $0.cosine >= faceThreshold }
+            let usefulFaceHits = faceHitsResult.filter { $0.cosine >= faceThreshold }
             let faceHitIds = Set(usefulFaceHits.map(\.figureId))
 
             for i in merged.indices {
@@ -1610,18 +1622,26 @@ final class MinifigureIdentificationService: ObservableObject {
         let visualWeight: Double
         if embeddingDiscrimination > 0.05 {
             // Strong discrimination — trust embeddings heavily.
-            embeddingWeight = 0.55
-            visualWeight = 0.45
+            embeddingWeight = 0.50
+            visualWeight = 0.35
         } else if embeddingDiscrimination > 0.03 {
             // Moderate discrimination — balanced blend.
-            embeddingWeight = 0.40
-            visualWeight = 0.60
+            embeddingWeight = 0.35
+            visualWeight = 0.50
         } else {
             // Poor discrimination — embeddings are noise, trust visual.
-            embeddingWeight = 0.20
-            visualWeight = 0.80
+            embeddingWeight = 0.15
+            visualWeight = 0.70
         }
-        print("[Phase2] embedding discrimination=\(String(format: "%.4f", embeddingDiscrimination)) → visual weight=\(String(format: "%.0f%%", visualWeight * 100)), embedding weight=\(String(format: "%.0f%%", embeddingWeight * 100))")
+        // Color cascade weight: Phase 1+1.5 performed careful color
+        // analysis (torso primary match, headgear, head, legs scoring
+        // plus CLIP/DINOv2 boosting). Carrying this forward prevents
+        // Phase 2's noisy visual scoring from burying correct color
+        // matches. Without this, a Red Classic Spaceman scan can lose
+        // to a Yellow or White figure that happens to have a marginally
+        // better VNFeaturePrint distance despite being the wrong color.
+        let colorCascadeWeight: Double = 0.15
+        print("[Phase2] embedding discrimination=\(String(format: "%.4f", embeddingDiscrimination)) → visual weight=\(String(format: "%.0f%%", visualWeight * 100)), embedding weight=\(String(format: "%.0f%%", embeddingWeight * 100)), color cascade weight=\(String(format: "%.0f%%", colorCascadeWeight * 100))")
 
         // ── EMBEDDING-AWARE PRE-SORT ──
         //
@@ -1650,11 +1670,16 @@ final class MinifigureIdentificationService: ObservableObject {
             }()
             let eConf = embeddingConfMap[fig.id] ?? 0.0
             let hasEmb = eConf > 0.05
+            // Normalize Phase 1+1.5 color confidence to 0–1 scale.
+            // Phase 1 cascade hits: 0.55–0.85, CLIP-boosted: up to 0.98,
+            // joint inference: 0.20–0.62, CLIP-injected: 0.60–0.95.
+            // Normalize so 0.30 → 0.0, 0.85+ → 1.0.
+            let colorNorm = max(0, min(1, (colorConf - 0.30) / 0.55))
             let blended: Double
             if hasEmb {
-                blended = visualWeight * vConf + embeddingWeight * eConf
+                blended = visualWeight * vConf + embeddingWeight * eConf + colorCascadeWeight * colorNorm
             } else {
-                blended = vConf
+                blended = (visualWeight + embeddingWeight) * vConf + colorCascadeWeight * colorNorm
             }
             return ScoredEntry(
                 figure: fig,
@@ -1673,11 +1698,11 @@ final class MinifigureIdentificationService: ObservableObject {
 
         // Diagnostic: show how the pre-sort reorders vs pure visual.
         if let topByBlend = sortedByBlend.first {
-            print("[Phase2-PreSort] #1 by blend: \(topByBlend.figure.id) blend=\(String(format: "%.3f", topByBlend.blendedConf)) vis=\(String(format: "%.3f", topByBlend.visualConf)) emb=\(String(format: "%.3f", topByBlend.embConf)) dist=\(String(format: "%.2f", topByBlend.distance))")
+            print("[Phase2-PreSort] #1 by blend: \(topByBlend.figure.id) blend=\(String(format: "%.3f", topByBlend.blendedConf)) vis=\(String(format: "%.3f", topByBlend.visualConf)) emb=\(String(format: "%.3f", topByBlend.embConf)) color=\(String(format: "%.3f", topByBlend.colorConfidence)) dist=\(String(format: "%.2f", topByBlend.distance))")
         }
         if sortedByBlend.count >= 2 {
             let e = sortedByBlend[1]
-            print("[Phase2-PreSort] #2 by blend: \(e.figure.id) blend=\(String(format: "%.3f", e.blendedConf)) vis=\(String(format: "%.3f", e.visualConf)) emb=\(String(format: "%.3f", e.embConf)) dist=\(String(format: "%.2f", e.distance))")
+            print("[Phase2-PreSort] #2 by blend: \(e.figure.id) blend=\(String(format: "%.3f", e.blendedConf)) vis=\(String(format: "%.3f", e.visualConf)) emb=\(String(format: "%.3f", e.embConf)) color=\(String(format: "%.3f", e.colorConfidence)) dist=\(String(format: "%.2f", e.distance))")
         }
         // Show what pure-visual would have picked
         if let topByVis = allEntries.min(by: { $0.distance < $1.distance }), topByVis.figure.id != sortedByBlend.first?.figure.id {

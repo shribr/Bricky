@@ -1,3 +1,4 @@
+import Accelerate
 import CoreML
 import Foundation
 import OSLog
@@ -126,10 +127,11 @@ final class ClipEmbeddingService {
 
         // Safety re-normalization to unit sphere.
         var norm: Float = 0
-        for v in out { norm += v * v }
+        vDSP_dotpr(out, 1, out, 1, &norm, vDSP_Length(count))
         norm = max(sqrt(norm), 1e-8)
         if abs(norm - 1.0) > 1e-3 {
-            for i in 0..<count { out[i] /= norm }
+            var scale = 1.0 / norm
+            vDSP_vsmul(out, 1, &scale, &out, 1, vDSP_Length(count))
         }
         return out
     }

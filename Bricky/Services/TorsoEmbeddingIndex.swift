@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 import OSLog
 
@@ -178,12 +179,13 @@ final class TorsoEmbeddingIndex {
         let query: [Float]
         if let mv = meanVec {
             var centered = [Float](repeating: 0, count: dim)
-            for d in 0..<dim { centered[d] = rawQuery[d] - mv[d] }
+            vDSP_vsub(mv, 1, rawQuery, 1, &centered, 1, vDSP_Length(dim))
             // Re-normalize to unit length.
             var norm: Float = 0
-            for d in 0..<dim { norm += centered[d] * centered[d] }
+            vDSP_dotpr(centered, 1, centered, 1, &norm, vDSP_Length(dim))
             norm = max(sqrt(norm), 1e-8)
-            for d in 0..<dim { centered[d] /= norm }
+            var scale = 1.0 / norm
+            vDSP_vsmul(centered, 1, &scale, &centered, 1, vDSP_Length(dim))
             query = centered
         } else {
             query = rawQuery
@@ -203,9 +205,7 @@ final class TorsoEmbeddingIndex {
                 for row in 0..<count {
                     var dot: Float = 0
                     let base = row * dim
-                    for d in 0..<dim {
-                        dot += m[base + d] * q[d]
-                    }
+                    vDSP_dotpr(m + base, 1, q, 1, &dot, vDSP_Length(dim))
                     if best.count < topK {
                         best.append((row, dot))
                         if best.count == topK {

@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 import OSLog
 
@@ -97,12 +98,18 @@ final class ClipEmbeddingIndex {
             return
         }
 
-        // Convert Float16 → Float32 once at load time.
+        // Convert Float16 → Float32 once at load time using Accelerate.
+        let totalElements = count * dim
         let floats: [Float] = rawData.withUnsafeBytes { raw -> [Float] in
-            let half = raw.bindMemory(to: Float16.self)
-            var out = [Float]()
-            out.reserveCapacity(half.count)
-            for v in half { out.append(Float(v)) }
+            let halfPtr = raw.baseAddress!.assumingMemoryBound(to: UInt16.self)
+            var out = [Float](repeating: 0, count: totalElements)
+            var src = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: halfPtr),
+                                    height: 1, width: vImagePixelCount(totalElements),
+                                    rowBytes: totalElements * MemoryLayout<UInt16>.size)
+            var dst = vImage_Buffer(data: &out,
+                                    height: 1, width: vImagePixelCount(totalElements),
+                                    rowBytes: totalElements * MemoryLayout<Float>.size)
+            vImageConvert_Planar16FtoPlanarF(&src, &dst, 0)
             return out
         }
 
@@ -128,9 +135,10 @@ final class ClipEmbeddingIndex {
                 for row in 0..<count {
                     let base = row * dim
                     var dot: Float = 0
-                    for d in 0..<dim {
-                        dot += mptr[base + d] * qptr[d]
-                    }
+                    // Use Accelerate for SIMD-optimized dot product.
+                    vDSP_dotpr(mptr.baseAddress! + base, 1,
+                               qptr.baseAddress!, 1,
+                               &dot, vDSP_Length(dim))
                     if best.count < topK {
                         best.append((row, dot))
                         if best.count == topK {
