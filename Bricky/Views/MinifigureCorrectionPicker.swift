@@ -497,7 +497,7 @@ struct CorrectionFigureProfileView: View {
                     HStack(spacing: 12) {
                         Label(figure.theme, systemImage: "tag.fill")
                         if figure.year > 0 {
-                            Label("\(figure.year)", systemImage: "calendar")
+                            Label(String(figure.year), systemImage: "calendar")
                         }
                         Label("\(figure.partCount) parts", systemImage: "cube.fill")
                     }

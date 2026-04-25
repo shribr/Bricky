@@ -205,7 +205,7 @@ struct MinifigureScanHistoryView: View {
                         Text("·")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("\(entry.year)")
+                        Text(String(entry.year))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -342,7 +342,7 @@ private struct MinifigureScanHistoryDetailSheet: View {
                                 Label(entry.theme, systemImage: "tag.fill")
                             }
                             if entry.year > 0 {
-                                Label("\(entry.year)", systemImage: "calendar")
+                                Label(String(entry.year), systemImage: "calendar")
                             }
                             Label("\(Int(entry.confidence * 100))% match",
                                   systemImage: "checkmark.seal.fill")

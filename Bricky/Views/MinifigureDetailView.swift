@@ -104,7 +104,7 @@ struct MinifigureDetailView: View {
 
             HStack(spacing: 12) {
                 tag(figure.theme, icon: "tag.fill")
-                if figure.year > 0 { tag("\(figure.year)", icon: "calendar") }
+                if figure.year > 0 { tag(String(figure.year), icon: "calendar") }
                 tag("\(figure.partCount) parts", icon: "cube.fill")
             }
 

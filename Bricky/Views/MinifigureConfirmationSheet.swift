@@ -235,7 +235,7 @@ struct MinifigureConfirmationSheet: View {
             HStack(spacing: 8) {
                 Label(figure.theme, systemImage: "tag.fill")
                 if figure.year > 0 {
-                    Label("\(figure.year)", systemImage: "calendar")
+                    Label(String(figure.year), systemImage: "calendar")
                 }
                 Label("\(Int(candidate.confidence * 100))% match",
                       systemImage: "checkmark.seal.fill")

@@ -283,7 +283,7 @@ struct SetDetailView: View {
         Section {
             LabeledContent("Set Number", value: "#\(legoSet.setNumber)")
             LabeledContent("Theme", value: legoSet.theme)
-            LabeledContent("Year", value: "\(legoSet.year)")
+            LabeledContent("Year", value: String(legoSet.year))
             LabeledContent("Pieces", value: "\(legoSet.pieceCount)")
         } header: {
             Text("Details")
