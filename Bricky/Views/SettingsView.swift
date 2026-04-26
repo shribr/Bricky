@@ -202,19 +202,44 @@ struct SettingsView: View {
 
                 Divider()
 
-                // Cloud Identification
-                Text("Cloud Identification")
+                // Scanner Identification Mode
+                Text("Scanner Identification Mode")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                Toggle(isOn: $scanSettings.cloudFallbackEnabled) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Brickognize Cloud Fallback")
-                            .font(.subheadline)
-                        Text("Uses the Brickognize API when offline identification confidence is low. Requires internet.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                ForEach(ScanSettings.IdentificationMode.allCases) { mode in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            scanSettings.identificationMode = mode
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: mode.iconName)
+                                .font(.title3)
+                                .foregroundStyle(scanSettings.identificationMode == mode ? .blue : .secondary)
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(mode.rawValue)
+                                    .font(.subheadline)
+                                    .fontWeight(scanSettings.identificationMode == mode ? .semibold : .regular)
+                                    .foregroundStyle(.primary)
+                                Text(mode.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if scanSettings.identificationMode == mode {
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
+                Text("Strict Offline blocks all network-backed scan help. Offline First allows previously cached references but no new downloads during a scan. Assisted enables on-demand reference fetches and Brickognize verification.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 } label: {
                     Label("Scanning", systemImage: "viewfinder")
                 }

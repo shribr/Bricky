@@ -62,10 +62,66 @@ final class MinifigureIdentificationService: ObservableObject {
     }
     @Published private(set) var lastCloudStatus: CloudStatus = .notUsed
 
+    struct ScanProvenance: Equatable {
+        let mode: ScanSettings.IdentificationMode
+        var userReferenceCount: Int = 0
+        var bundledReferenceCount: Int = 0
+        var cachedReferenceCount: Int = 0
+        var fetchedReferenceCount: Int = 0
+        var usedCloudFallback: Bool = false
+
+        var localReferenceSummary: String {
+            "user=\(userReferenceCount), bundled=\(bundledReferenceCount), cached=\(cachedReferenceCount), fetched=\(fetchedReferenceCount)"
+        }
+
+        var statusMessage: String {
+            switch mode {
+            case .strictOffline:
+                return "Strict offline mode — bundled and user-owned local references only"
+            case .offlineFirst:
+                if cachedReferenceCount > 0 {
+                    return "Offline-first mode — local results with cached references"
+                }
+                return "Offline-first mode — local results only"
+            case .assisted:
+                if usedCloudFallback {
+                    return "Results verified by Brickognize cloud service"
+                }
+                if fetchedReferenceCount > 0 {
+                    return "Assisted mode — local results with downloaded references"
+                }
+                if cachedReferenceCount > 0 {
+                    return "Assisted mode — local results with cached references"
+                }
+                return "Assisted mode — identified locally, cloud not needed"
+            }
+        }
+    }
+
+    @Published private(set) var lastScanProvenance = ScanProvenance(mode: .offlineFirst)
+
     /// Cleaned-up debug log from the most recent identification run.
     /// Views should read this after `identify()` returns to attach it
     /// to the scan history entry.
     @Published private(set) var lastScanDebugLog: String = ""
+
+    private struct RefinementOutcome {
+        let candidates: [ResolvedCandidate]
+        let userReferenceCount: Int
+        let bundledReferenceCount: Int
+        let cachedReferenceCount: Int
+        let fetchedReferenceCount: Int
+        let fetchSkippedDueToMode: Bool
+
+        static let empty = RefinementOutcome(
+            candidates: [],
+            userReferenceCount: 0,
+            bundledReferenceCount: 0,
+            cachedReferenceCount: 0,
+            fetchedReferenceCount: 0,
+            fetchSkippedDueToMode: false
+        )
+    }
 
     enum IdentificationError: LocalizedError {
         case noResults
@@ -87,26 +143,29 @@ final class MinifigureIdentificationService: ObservableObject {
 
     /// Identify a minifigure from a captured photo.
     ///
-    /// Two-phase strategy (offline-first):
+    /// Two-phase strategy (mode-aware):
     /// 1. **Fast phase** (always runs, completes in <1s): color-based
     ///    catalog filtering returns a list of candidates immediately.
     /// 2. **Refinement phase** (best-effort, capped at 6s): re-ranks
-    ///    candidates by visual similarity using LOCALLY AVAILABLE images
-    ///    only (memory cache, disk cache, or bundled assets). No network
-    ///    downloads — the app works fully offline.
+    ///    candidates by visual similarity using reference images allowed by
+    ///    the active scan mode (strict local-only, offline-first, or assisted).
     ///
     /// The function ALWAYS returns results — it never throws unless the
     /// catalog is empty or the image is unreadable.
     func identify(torsoImage: UIImage) async throws -> [ResolvedCandidate] {
         await MinifigureCatalog.shared.load()
 
-        guard let cgImage = torsoImage.cgImage else {
+        let scanImage = torsoImage.normalizedOrientation()
+        guard let cgImage = scanImage.cgImage else {
             throw IdentificationError.noResults
         }
 
         Self.logger.info("Identification started")
+        let identificationMode = ScanSettings.shared.identificationMode
         scanPhase = .colorCascade
-        lastCloudStatus = .notUsed
+        lastCloudStatus = identificationMode.allowsCloudFallback ? .notUsed : .disabled
+        var provenance = ScanProvenance(mode: identificationMode)
+        lastScanProvenance = provenance
 
         // ── Debug log accumulator ──
         let scanStart = Date()
@@ -118,6 +177,7 @@ final class MinifigureIdentificationService: ObservableObject {
         logLines.append("  Minifigure Scan Debug Log")
         logLines.append("  \(dateFmt.string(from: scanStart))")
         logLines.append("═══════════════════════════════════════")
+        logLines.append("  Scan mode: \(identificationMode.rawValue)")
 
         // Snapshot the catalog on the MainActor BEFORE going to background.
         // Calling MainActor.assumeIsolated from a detached task would crash.
@@ -197,28 +257,46 @@ final class MinifigureIdentificationService: ObservableObject {
 
         // ── Phase 2: Refinement using locally-available reference images ──
         let phase1Ids = Set(fastResults.compactMap { $0.figure?.id })
-        let refinement = Task<[ResolvedCandidate], Never> { [mergedFastResults, phase1Ids] in
-            await self.refineWithLocalReferenceImages(
-                cgImage: cgImage,
-                fastCandidates: mergedFastResults,
-                rawEmbeddingCosines: rawEmbeddingCosines,
-                embeddingDiscrimination: embeddingDiscrimination,
-                phase1Ids: phase1Ids
-            )
+        let refinementOutcome = await withTaskGroup(of: RefinementOutcome.self) { group in
+            group.addTask { [self, mergedFastResults, phase1Ids] in
+                await self.refineWithLocalReferenceImages(
+                    cgImage: cgImage,
+                    fastCandidates: mergedFastResults,
+                    rawEmbeddingCosines: rawEmbeddingCosines,
+                    embeddingDiscrimination: embeddingDiscrimination,
+                    phase1Ids: phase1Ids
+                )
+            }
+            group.addTask { [mergedFastResults] in
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                return RefinementOutcome(
+                    candidates: mergedFastResults,
+                    userReferenceCount: 0,
+                    bundledReferenceCount: 0,
+                    cachedReferenceCount: 0,
+                    fetchedReferenceCount: 0,
+                    fetchSkippedDueToMode: false
+                )
+            }
+
+            let first = await group.next() ?? .empty
+            group.cancelAll()
+            return first
         }
 
-        let timeout = Task<[ResolvedCandidate], Never> { [mergedFastResults] in
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
-            refinement.cancel()
-            return mergedFastResults
-        }
+        provenance.userReferenceCount = refinementOutcome.userReferenceCount
+        provenance.bundledReferenceCount = refinementOutcome.bundledReferenceCount
+        provenance.cachedReferenceCount = refinementOutcome.cachedReferenceCount
+        provenance.fetchedReferenceCount = refinementOutcome.fetchedReferenceCount
 
-        let refined = await refinement.value
-        timeout.cancel()
-
+        let refined = refinementOutcome.candidates
         let baseResult = refined.isEmpty ? mergedFastResults : refined
         logAppend("")
         logAppend("▸ Phase 2 — Visual Refinement")
+        logAppend("  Reference sources: \(provenance.localReferenceSummary)")
+        if refinementOutcome.fetchSkippedDueToMode {
+            logAppend("  Network fetches skipped by \(identificationMode.rawValue) mode")
+        }
         if !refined.isEmpty {
             let top5 = refined.prefix(5).compactMap { c -> String? in
                 guard let fig = c.figure else { return nil }
@@ -246,7 +324,7 @@ final class MinifigureIdentificationService: ObservableObject {
         logAppend("")
         logAppend("▸ Phase 3 — Cloud Validation")
         if !ScanSettings.shared.cloudFallbackEnabled {
-            logAppend("  Status: disabled by user")
+            logAppend("  Status: blocked by \(identificationMode.rawValue) mode")
         } else if !willTryCloud {
             logAppend("  Status: skipped (local confidence \(String(format: "%.2f", topConfidenceForCloud)) ≥ 0.80)")
         } else {
@@ -258,9 +336,10 @@ final class MinifigureIdentificationService: ObservableObject {
             lastCloudStatus = .disabled
         }
         let cloudEnhanced = await cloudFallbackIfNeeded(
-            torsoImage: torsoImage,
+            torsoImage: scanImage,
             localCandidates: baseResult
         )
+        provenance.usedCloudFallback = lastCloudStatus == .used
 
         // Log cloud outcome
         if willTryCloud {
@@ -277,7 +356,7 @@ final class MinifigureIdentificationService: ObservableObject {
         // This is what makes manual catalog selections actually carry
         // forward to future scans without a model retrain.
         let final = await UserCorrectionReranker.shared.rerank(
-            capturedImage: torsoImage,
+            capturedImage: scanImage,
             currentCandidates: cloudEnhanced
         )
 
@@ -295,6 +374,7 @@ final class MinifigureIdentificationService: ObservableObject {
         logAppend("  Elapsed: \(String(format: "%.2f", elapsed))s")
         logAppend("═══════════════════════════════════════")
 
+        lastScanProvenance = provenance
         lastScanDebugLog = logLines.joined(separator: "\n")
 
         if let top = final.first, let fig = top.figure {
@@ -900,7 +980,7 @@ final class MinifigureIdentificationService: ObservableObject {
         // Check setting
         let cloudEnabled = ScanSettings.shared.cloudFallbackEnabled
         guard cloudEnabled else {
-            Self.logger.info("[Phase3] Cloud fallback disabled by user")
+            Self.logger.info("[Phase3] Cloud fallback blocked by \(ScanSettings.shared.identificationMode.rawValue) mode")
             lastCloudStatus = .disabled
             return localCandidates
         }
@@ -1069,11 +1149,14 @@ final class MinifigureIdentificationService: ObservableObject {
             return (fastResults, [:], 0.0)
         }
 
-        // CLIP processes the full figure image — no need for torso/face
-        // cropping since it was trained on whole minifigure images.
-        let subject = await Task.detached(priority: .userInitiated) { [self] in
-            self.cropToSalientSubject(cgImage) ?? cgImage
+        // Live camera photos are much less controlled than catalog renders:
+        // saliency can choose the full figure, a torso crop, or too much desk.
+        // Embed a few cheap crop variants and merge by best cosine so strict
+        // offline scans still get a broad candidate pool from fresh photos.
+        let clipInputs = await Task.detached(priority: .userInitiated) { [self] in
+            self.clipCandidateCrops(cgImage: cgImage)
         }.value
+        let subject = clipInputs.first ?? cgImage
 
         // Kick off CLIP and Face inference in PARALLEL. The face crop
         // is independent of CLIP results — it only boosts existing
@@ -1082,7 +1165,7 @@ final class MinifigureIdentificationService: ObservableObject {
         let faceService = FaceEmbeddingService.shared
         let faceAvailable = faceService.isAvailable
 
-        async let clipHitsTask = clipService.nearestFigures(for: subject, topK: 40)
+        async let clipHitsTask = clipService.nearestFigures(for: clipInputs, topK: 60)
         async let faceResultTask: [FaceEmbeddingIndex.Hit] = {
             guard faceAvailable else { return [] }
             let faceCG = await Task.detached(priority: .userInitiated) { [self] in
@@ -1108,7 +1191,7 @@ final class MinifigureIdentificationService: ObservableObject {
 
         // CLIP injection threshold — lower than DINOv2 because CLIP's
         // domain-specific training produces more spread in cosine scores.
-        let injectionThreshold: Float = 0.30
+        let injectionThreshold: Float = 0.24
         let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
         print("[CLIPEmbed] \(usefulHits.count)/\(hits.count) hits pass threshold \(injectionThreshold)")
 
@@ -1185,6 +1268,56 @@ final class MinifigureIdentificationService: ObservableObject {
             "CLIP embedding retrieval injected \(merged.count - fastResults.count) candidate(s)"
         )
         return (merged, rawCosineMap, embeddingDiscrimination)
+    }
+
+    /// Candidate crops for CLIP retrieval from fresh camera photos.
+    ///
+    /// The shipped index is built from clean catalog-like figure renders, but
+    /// live scans can include background, skew, and either torso-only or full-
+    /// figure framing. Querying several deterministic crops and taking each
+    /// figure's best cosine improves offline recall without any network call.
+    nonisolated private func clipCandidateCrops(cgImage: CGImage) -> [CGImage] {
+        var crops: [CGImage] = [cgImage]
+
+        let best = bestSubjectCrop(cgImage: cgImage)
+        crops.append(best)
+
+        if let salient = cropToSalientSubject(cgImage) {
+            crops.append(salient)
+        }
+
+        if let center = cropCenter(cgImage: cgImage, widthRatio: 0.72, heightRatio: 0.92) {
+            crops.append(center)
+        }
+
+        if let tightCenter = cropCenter(cgImage: best, widthRatio: 0.86, heightRatio: 0.92) {
+            crops.append(tightCenter)
+        }
+
+        var seen = Set<String>()
+        return crops.filter { crop in
+            let key = "\(crop.width)x\(crop.height)"
+            return seen.insert(key).inserted
+        }
+    }
+
+    nonisolated private func cropCenter(
+        cgImage: CGImage,
+        widthRatio: CGFloat,
+        heightRatio: CGFloat
+    ) -> CGImage? {
+        let w = CGFloat(cgImage.width)
+        let h = CGFloat(cgImage.height)
+        let cropW = max(20, min(w, w * widthRatio))
+        let cropH = max(20, min(h, h * heightRatio))
+        let cropRect = CGRect(
+            x: (w - cropW) / 2,
+            y: (h - cropH) / 2,
+            width: cropW,
+            height: cropH
+        ).integral
+        guard cropRect.width > 10 && cropRect.height > 10 else { return nil }
+        return cgImage.cropping(to: cropRect)
     }
 
     // MARK: - Phase 1.5: DINOv2 Embedding Retrieval (Fallback)
@@ -1342,20 +1475,19 @@ final class MinifigureIdentificationService: ObservableObject {
         return (merged, rawCosineMap, embeddingDiscrimination)
     }
 
-    /// Re-rank fast-phase candidates by visual similarity using ONLY
-    /// reference images that are already available locally (memory cache,
-    /// disk cache, or bundled assets). Skips any figure whose image isn't
-    /// on-device — never makes a network request.
+    /// Re-rank fast-phase candidates by visual similarity using reference
+    /// images permitted by the active scan mode.
     ///
-    /// If no candidates have a local image, returns empty (caller will
-    /// keep the fast-phase results).
+    /// If no candidates have an allowed local image, returns an empty
+    /// candidate list and the caller keeps the fast-phase results.
     private func refineWithLocalReferenceImages(
         cgImage: CGImage,
         fastCandidates: [ResolvedCandidate],
         rawEmbeddingCosines: [String: Float] = [:],
         embeddingDiscrimination: Double = 0.0,
         phase1Ids: Set<String> = []
-    ) async -> [ResolvedCandidate] {
+    ) async -> RefinementOutcome {
+        let identificationMode = ScanSettings.shared.identificationMode
         // Generate the captured-image feature prints off the main actor.
         // Two prints: one over the full subject (silhouette / overall
         // figure shape — useful for general visual similarity) and one
@@ -1382,7 +1514,7 @@ final class MinifigureIdentificationService: ObservableObject {
             return (fullPrint, torsoPrint, sig, torsoBandCG)
         }.value
 
-        guard let capturedFullPrint = captured.full else { return [] }
+        guard let capturedFullPrint = captured.full else { return .empty }
         let capturedTorsoPrint = captured.torso
         let capturedTorsoSignature = captured.signature
 
@@ -1393,6 +1525,11 @@ final class MinifigureIdentificationService: ObservableObject {
         let cache = MinifigureImageCache.shared
         let bundled = MinifigureReferenceImageStore.shared
         let userImages = UserFigureImageStorage.shared
+        var userReferenceCount = 0
+        var bundledReferenceCount = 0
+        var cachedReferenceCount = 0
+        var fetchedReferenceCount = 0
+        var fetchSkippedDueToMode = false
         var localPairs: [(figure: Minifigure, image: UIImage, colorConfidence: Double)] = []
         var colorOnly: [ResolvedCandidate] = []
         var missingForFetch: [(figure: Minifigure, url: URL, colorConfidence: Double)] = []
@@ -1402,14 +1539,19 @@ final class MinifigureIdentificationService: ObservableObject {
             if MinifigureCatalog.isUserFigureId(fig.id),
                let img = userImages.image(for: fig.id) {
                 localPairs.append((fig, img, candidate.confidence))
+                userReferenceCount += 1
                 continue
             }
             if let img = bundled.image(for: fig.id) {
                 localPairs.append((fig, img, candidate.confidence))
+                bundledReferenceCount += 1
                 continue
             }
-            if let url = fig.imageURL, let img = cache.image(for: url) {
+            if identificationMode.allowsDiskCachedReferenceImages,
+               let url = fig.imageURL,
+               let img = cache.image(for: url) {
                 localPairs.append((fig, img, candidate.confidence))
+                cachedReferenceCount += 1
                 continue
             }
             // No local image yet. If the figure has an HTTP(S) image
@@ -1441,7 +1583,7 @@ final class MinifigureIdentificationService: ObservableObject {
         // existing color-only behavior.
         let MAX_FETCH = 16
         let FETCH_TIMEOUT: TimeInterval = 2.5
-        if !missingForFetch.isEmpty {
+        if !missingForFetch.isEmpty && identificationMode.allowsNetworkReferenceFetch {
             // DIVERSITY-AWARE FETCH: Instead of purely taking the top-K
             // by confidence (which clusters on figures with identical
             // colors), spread fetches across different themes and years.
@@ -1475,6 +1617,7 @@ final class MinifigureIdentificationService: ObservableObject {
             if !fetchedImages.isEmpty {
                 Self.logger.info("Opportunistically fetched \(fetchedImages.count) reference image(s)")
             }
+            fetchedReferenceCount = fetchedImages.count
             // Promote any successfully-fetched figures from colorOnly
             // into localPairs so they get torso-band-reranked.
             for (figId, image, colorConf) in fetchedImages {
@@ -1487,11 +1630,20 @@ final class MinifigureIdentificationService: ObservableObject {
             // through to the color-only injection branch below.
             let fetchedIds = Set(fetchedImages.map { $0.0 })
             colorOnly = colorOnly.filter { ($0.figure?.id).map { !fetchedIds.contains($0) } ?? true }
+        } else if !missingForFetch.isEmpty {
+            fetchSkippedDueToMode = true
         }
 
         guard !localPairs.isEmpty else {
             Self.logger.info("No local reference images available; skipping refinement")
-            return []
+            return RefinementOutcome(
+                candidates: [],
+                userReferenceCount: userReferenceCount,
+                bundledReferenceCount: bundledReferenceCount,
+                cachedReferenceCount: cachedReferenceCount,
+                fetchedReferenceCount: fetchedReferenceCount,
+                fetchSkippedDueToMode: fetchSkippedDueToMode
+            )
         }
 
         Self.logger.info("Refining with \(localPairs.count) locally-available reference images")
@@ -1570,7 +1722,16 @@ final class MinifigureIdentificationService: ObservableObject {
             return results
         }.value
 
-        guard !scored.isEmpty else { return [] }
+        guard !scored.isEmpty else {
+            return RefinementOutcome(
+                candidates: [],
+                userReferenceCount: userReferenceCount,
+                bundledReferenceCount: bundledReferenceCount,
+                cachedReferenceCount: cachedReferenceCount,
+                fetchedReferenceCount: fetchedReferenceCount,
+                fetchSkippedDueToMode: fetchSkippedDueToMode
+            )
+        }
 
         // Confidence calibration based on EMPIRICAL Vision feature-print
         // distances on minifigure photos:
@@ -1782,10 +1943,19 @@ final class MinifigureIdentificationService: ObservableObject {
             visualResults.append(contentsOf: topColorOnly)
         }
 
-        return visualResults
+        let finalCandidates = visualResults
             .sorted { $0.confidence > $1.confidence }
             .prefix(8)
             .map { $0 }
+
+        return RefinementOutcome(
+            candidates: finalCandidates,
+            userReferenceCount: userReferenceCount,
+            bundledReferenceCount: bundledReferenceCount,
+            cachedReferenceCount: cachedReferenceCount,
+            fetchedReferenceCount: fetchedReferenceCount,
+            fetchSkippedDueToMode: fetchSkippedDueToMode
+        )
     }
 
     // MARK: - On-demand reference image fetch

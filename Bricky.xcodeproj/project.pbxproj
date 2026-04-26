@@ -137,6 +137,8 @@
 		9D4BF5EFCBD72FE6B6938D38 /* ScanCoverageTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94EC4AD6FE61E96D5770C947 /* ScanCoverageTracker.swift */; };
 		9D4E66576DC6EAD0900368CE /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07195E19B1F9923CF7B7ADD7 /* SubscriptionManager.swift */; };
 		A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* ScanSettingsModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* ScanSettingsModeTests.swift */; };
+		A1B2C3D4E5F60718293A4B5E /* ClipEmbeddingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5F /* ClipEmbeddingServiceTests.swift */; };
 		E5F6A7B8C9D0E1F2A3B4C5D6 /* BrickognizeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */; };
 		A2CB46692366042DFA24D41E /* BrickLinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F6129A14CE15B1121EE20A /* BrickLinkService.swift */; };
 		DB07DA353E9CDAEA8FB2B686 /* BrickognizeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECCE9EC5FE1D40FE4CB2747 /* BrickognizeService.swift */; };
@@ -462,6 +464,8 @@
 		FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkURLTests.swift; sourceTree = "<group>"; };
 		C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickognizeServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* ScanSettingsModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSettingsModeTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5F /* ClipEmbeddingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEmbeddingServiceTests.swift; sourceTree = "<group>"; };
 		FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiScanFindResultsView.swift; sourceTree = "<group>"; };
 		FEBA2383E14AA9320FADB141 /* UIImage+Orientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Orientation.swift"; sourceTree = "<group>"; };
 		FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTipView.swift; sourceTree = "<group>"; };
@@ -652,6 +656,8 @@
 				6BE7607A39AAA879183E0FA9 /* ARCameraManagerTests.swift */,
 				C4E2B1A83F5D9B7E1A2C3D4E /* BrickognizeServiceTests.swift */,
 				FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */,
+				A1B2C3D4E5F60718293A4B5D /* ScanSettingsModeTests.swift */,
+				A1B2C3D4E5F60718293A4B5F /* ClipEmbeddingServiceTests.swift */,
 				7258A02119F014757C85ED01 /* BuildSuggestionEngineTests.swift */,
 				ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */,
 				CDAF34A45E595FE235AD9969 /* CameraViewModelARTests.swift */,
@@ -1113,6 +1119,8 @@
 			files = (
 				2DFD33D8232F79446647AD78 /* ARCameraManagerTests.swift in Sources */,
 				A21BEB63D9C0B51123E2464F /* BrickLinkURLTests.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* ScanSettingsModeTests.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5E /* ClipEmbeddingServiceTests.swift in Sources */,
 				E5F6A7B8C9D0E1F2A3B4C5D6 /* BrickognizeServiceTests.swift in Sources */,
 				B0066CB4D6BA178BD42560C5 /* BuildSuggestionEngineTests.swift in Sources */,
 				AE1E9995F023E40405113741 /* BuildSuggestionsViewModelTests.swift in Sources */,

@@ -85,14 +85,53 @@ final class ClipEmbeddingService {
     /// Embed the image and return the top-K nearest catalog figures.
     /// Returns `[]` if the feature is disabled or inference fails.
     func nearestFigures(for cgImage: CGImage, topK: Int = 16) async -> [ClipEmbeddingIndex.Hit] {
+        await nearestFigures(for: [cgImage], topK: topK)
+    }
+
+    /// Embed multiple query crops and merge nearest-neighbor hits by each
+    /// figure's best cosine. This is designed for live camera photos, where a
+    /// single saliency crop can be too loose, too tight, or torso-only.
+    func nearestFigures(for cgImages: [CGImage], topK: Int = 16) async -> [ClipEmbeddingIndex.Hit] {
         guard isAvailable, let visionModel else { return [] }
+        let images = Array(cgImages.prefix(5))
+        guard !images.isEmpty else { return [] }
 
-        let embedding: [Float]? = await Task.detached(priority: .userInitiated) {
-            Self.runEncoder(visionModel: visionModel, image: cgImage)
-        }.value
-        guard let embedding else { return [] }
+        let embeddings: [[Float]] = await withTaskGroup(of: [Float]?.self) { group in
+            for image in images {
+                group.addTask(priority: .userInitiated) {
+                    Self.runEncoder(visionModel: visionModel, image: image)
+                }
+            }
 
-        return ClipEmbeddingIndex.shared.nearestNeighbors(of: embedding, topK: topK)
+            var values: [[Float]] = []
+            for await embedding in group {
+                if let embedding { values.append(embedding) }
+            }
+            return values
+        }
+
+        let hitBatches = embeddings.map {
+            ClipEmbeddingIndex.shared.nearestNeighbors(of: $0, topK: topK)
+        }
+        return Self.mergeHits(hitBatches, topK: topK)
+    }
+
+    static func mergeHits(
+        _ hitBatches: [[ClipEmbeddingIndex.Hit]],
+        topK: Int
+    ) -> [ClipEmbeddingIndex.Hit] {
+        guard topK > 0 else { return [] }
+        var bestByFigure: [String: Float] = [:]
+        for batch in hitBatches {
+            for hit in batch {
+                bestByFigure[hit.figureId] = max(bestByFigure[hit.figureId] ?? -.greatestFiniteMagnitude, hit.cosine)
+            }
+        }
+        return bestByFigure
+            .map { ClipEmbeddingIndex.Hit(figureId: $0.key, cosine: $0.value) }
+            .sorted { $0.cosine > $1.cosine }
+            .prefix(topK)
+            .map { $0 }
     }
 
     /// Run the CLIP vision encoder and return the L2-normalized 512-D embedding.

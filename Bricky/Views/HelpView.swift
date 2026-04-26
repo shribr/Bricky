@@ -267,7 +267,7 @@ private let helpSections: [HelpSection] = [
                      answer: "AR mode uses augmented reality to track pieces in 3D space. It shows bounding boxes anchored to real-world positions. Works best on devices with LiDAR (iPad Pro, iPhone Pro). Falls back to standard camera if AR isn't available."),
             HelpItem(icon: "wifi.slash",
                      question: "Can I scan without internet?",
-                     answer: "Yes! Offline mode uses on-device AI that works without any internet connection. Switch analysis modes in Settings or tap the mode indicator during scanning."),
+                     answer: "Yes, but there are now three scan modes. Strict Offline uses only bundled and user-owned local assets. Offline First can also use references that were already cached on your device, but it never downloads new ones during a scan. Assisted mode can download missing references and check Brickognize when local confidence is low."),
         ]
     ),
     HelpSection(

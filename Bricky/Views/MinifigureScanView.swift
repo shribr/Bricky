@@ -3,7 +3,7 @@ import UIKit
 
 /// Full-screen camera view dedicated to identifying minifigures by torso scan.
 /// The user frames the figure's torso inside a silhouette guide, taps the
-/// shutter, and gets up to 3 ranked candidates from the cloud model.
+/// shutter, and gets ranked candidates from the local or assisted scanner pipeline.
 struct MinifigureScanView: View {
     /// Image captured during pre-scan analysis — auto-starts identification.
     var preCapturedImage: UIImage? = nil
@@ -655,34 +655,35 @@ struct MinifigureScanView: View {
     @ViewBuilder
     private var cloudStatusBanner: some View {
         let status = identificationService.lastCloudStatus
+        let provenance = identificationService.lastScanProvenance
         HStack(spacing: 8) {
             switch status {
             case .used:
                 Image(systemName: "icloud.fill")
                     .font(.caption)
                     .foregroundStyle(.cyan)
-                Text("Results verified by Brickognize cloud service")
+                Text(provenance.statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .notUsed:
-                Image(systemName: "iphone")
+                Image(systemName: provenance.mode == .assisted ? "iphone" : "wifi.slash")
                     .font(.caption)
                     .foregroundStyle(.green)
-                Text("Identified locally — high confidence")
+                Text(provenance.statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .disabled:
-                Image(systemName: "icloud.slash")
+                Image(systemName: provenance.mode == .strictOffline ? "lock.iphone" : "icloud.slash")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Cloud verification disabled in settings")
+                Text(provenance.statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .failed:
                 Image(systemName: "exclamationmark.icloud")
                     .font(.caption)
                     .foregroundStyle(.orange)
-                Text("Cloud verification failed — showing local results")
+                Text("Assisted mode — cloud verification failed, showing local results")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

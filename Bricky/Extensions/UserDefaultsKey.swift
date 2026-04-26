@@ -48,6 +48,7 @@ enum UserDefaultsKey {
         static let locationCaptureEnabled = "ScanSettings.locationCaptureEnabled"
         static let locationConsentPrompted = "ScanSettings.locationConsentPrompted"
         static let locationFilterRadiusKm = "ScanSettings.locationFilterRadiusKm"
+        static let identificationMode = "ScanSettings.identificationMode"
         static let locationSnapshotsEnabled = "ScanSettings.locationSnapshotsEnabled"
         static let meshColorRamp = "ScanSettings.meshColorRamp"
         static let meshResolution = "ScanSettings.meshResolution"

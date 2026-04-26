@@ -51,6 +51,52 @@ final class ScanSettings: ObservableObject {
         }
     }
 
+    // MARK: - Identification Mode
+
+    enum IdentificationMode: String, CaseIterable, Identifiable {
+        case strictOffline = "Strict Offline"
+        case offlineFirst = "Offline First"
+        case assisted = "Assisted"
+
+        var id: String { rawValue }
+
+        var description: String {
+            switch self {
+            case .strictOffline:
+                return "On-device models plus bundled or user-owned local references only"
+            case .offlineFirst:
+                return "On-device analysis plus previously cached references, but no new network calls"
+            case .assisted:
+                return "Local analysis with on-demand reference fetches and Brickognize fallback"
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .strictOffline: return "lock.iphone"
+            case .offlineFirst: return "iphone"
+            case .assisted: return "icloud"
+            }
+        }
+
+        var allowsDiskCachedReferenceImages: Bool {
+            switch self {
+            case .strictOffline:
+                return false
+            case .offlineFirst, .assisted:
+                return true
+            }
+        }
+
+        var allowsNetworkReferenceFetch: Bool {
+            self == .assisted
+        }
+
+        var allowsCloudFallback: Bool {
+            self == .assisted
+        }
+    }
+
     /// Scan workflow mode: regular (auto-capture) or detailed (guided segments)
     @Published var scanMode: ScanMode {
         didSet { UserDefaults.standard.set(scanMode.rawValue, forKey: UserDefaultsKey.ScanSettings.scanMode) }
@@ -59,6 +105,18 @@ final class ScanSettings: ObservableObject {
     /// Spatial tracking approach: 2D screen-space (current) or AR world tracking (future)
     @Published var trackingMode: TrackingMode {
         didSet { UserDefaults.standard.set(trackingMode.rawValue, forKey: UserDefaultsKey.ScanSettings.trackingMode) }
+    }
+
+    /// Scanner operating policy: strictly local, offline-first with cached
+    /// assets, or assisted with network-backed verification.
+    @Published var identificationMode: IdentificationMode {
+        didSet {
+            let defaults = UserDefaults.standard
+            defaults.set(identificationMode.rawValue, forKey: UserDefaultsKey.ScanSettings.identificationMode)
+            // Keep the legacy key in sync so older code paths and tests
+            // that still look for the cloud toggle remain stable.
+            defaults.set(identificationMode.allowsCloudFallback, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
+        }
     }
 
     // MARK: - Published Settings
@@ -91,11 +149,21 @@ final class ScanSettings: ObservableObject {
 
     // MARK: - Cloud Identification
 
-    /// When enabled, the scanner uses the Brickognize cloud API as a
-    /// fallback when local identification confidence is low. Requires
-    /// network connectivity. Default: true (opt-out via Settings).
-    @Published var cloudFallbackEnabled: Bool {
-        didSet { UserDefaults.standard.set(cloudFallbackEnabled, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) }
+    /// Whether the active scanner mode allows Brickognize as a fallback.
+    var cloudFallbackEnabled: Bool {
+        identificationMode.allowsCloudFallback
+    }
+
+    /// Whether the active scanner mode may use previously downloaded
+    /// reference images from the disk cache.
+    var allowsDiskCachedReferenceImages: Bool {
+        identificationMode.allowsDiskCachedReferenceImages
+    }
+
+    /// Whether the active scanner mode may fetch new reference images
+    /// or otherwise use the network during a scan.
+    var allowsNetworkReferenceFetch: Bool {
+        identificationMode.allowsNetworkReferenceFetch
     }
 
     // MARK: - Geolocation (Sprint C)
@@ -201,11 +269,22 @@ final class ScanSettings: ObservableObject {
         self.segmentGridSize = max(3, min(10, defaults.integer(forKey: UserDefaultsKey.ScanSettings.segmentGridSize)))
         self.autoDetectGridSize = defaults.bool(forKey: UserDefaultsKey.ScanSettings.autoDetectGridSize)
 
-        // Cloud fallback — default: enabled
-        if defaults.object(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) == nil {
-            defaults.set(true, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
-        }
-        self.cloudFallbackEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
+        // Identification mode.
+        // Migration: preserve existing users' cloud toggle choice.
+        // New installs default to Offline First to avoid hidden network use.
+        let migratedIdentificationMode: IdentificationMode = {
+            if let raw = defaults.string(forKey: UserDefaultsKey.ScanSettings.identificationMode),
+               let mode = IdentificationMode(rawValue: raw) {
+                return mode
+            }
+            if defaults.object(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) != nil {
+                return defaults.bool(forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled) ? .assisted : .offlineFirst
+            }
+            return .offlineFirst
+        }()
+        self.identificationMode = migratedIdentificationMode
+        defaults.set(migratedIdentificationMode.rawValue, forKey: UserDefaultsKey.ScanSettings.identificationMode)
+        defaults.set(migratedIdentificationMode.allowsCloudFallback, forKey: UserDefaultsKey.ScanSettings.cloudFallbackEnabled)
 
         // Geolocation (Sprint C) — defaults: capture off, never prompted, 0.5 km radius.
         self.locationCaptureEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationCaptureEnabled)
