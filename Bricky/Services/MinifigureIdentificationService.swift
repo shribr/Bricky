@@ -113,6 +113,10 @@ final class MinifigureIdentificationService: ObservableObject {
         let fetchedReferenceCount: Int
         let fetchSkippedDueToMode: Bool
 
+        var totalReferenceCount: Int {
+            userReferenceCount + bundledReferenceCount + cachedReferenceCount + fetchedReferenceCount
+        }
+
         static let empty = RefinementOutcome(
             candidates: [],
             userReferenceCount: 0,
@@ -138,6 +142,10 @@ final class MinifigureIdentificationService: ObservableObject {
     }
 
     private init() {}
+
+    private nonisolated static var useLegacyScannerCore: Bool {
+        UserDefaults.standard.bool(forKey: "Bricky.UseLegacyMinifigureScannerCore")
+    }
 
     // MARK: - Public API
 
@@ -182,6 +190,18 @@ final class MinifigureIdentificationService: ObservableObject {
         // Snapshot the catalog on the MainActor BEFORE going to background.
         // Calling MainActor.assumeIsolated from a detached task would crash.
         let catalogSnapshot = MinifigureCatalog.shared.allFigures
+
+        if !Self.useLegacyScannerCore {
+            return try await identifyWithEvidenceCore(
+                scanImage: scanImage,
+                cgImage: cgImage,
+                catalogSnapshot: catalogSnapshot,
+                identificationMode: identificationMode,
+                provenance: provenance,
+                scanStart: scanStart,
+                logLines: logLines
+            )
+        }
 
         // ── Phase 1: Fast color-based candidates (no network, <1s) ──
         let fastResults = await Task.detached(priority: .userInitiated) { [self, catalogSnapshot] in
@@ -290,7 +310,13 @@ final class MinifigureIdentificationService: ObservableObject {
         provenance.fetchedReferenceCount = refinementOutcome.fetchedReferenceCount
 
         let refined = refinementOutcome.candidates
-        let baseResult = refined.isEmpty ? mergedFastResults : refined
+        let baseResult = refined.isEmpty
+            ? calibrateUnrefinedCandidates(
+                mergedFastResults,
+                refinementOutcome: refinementOutcome,
+                embeddingDiscrimination: embeddingResult.embeddingDiscrimination
+            )
+            : refined
         logAppend("")
         logAppend("▸ Phase 2 — Visual Refinement")
         logAppend("  Reference sources: \(provenance.localReferenceSummary)")
@@ -313,6 +339,10 @@ final class MinifigureIdentificationService: ObservableObject {
         } else {
             Self.logger.info("[Phase2] no refinement (no local refs or timed out)")
             logAppend("  Skipped (no local reference images or timed out)")
+            if refinementOutcome.totalReferenceCount == 0,
+               embeddingResult.embeddingDiscrimination < 0.03 {
+                logAppend("  Confidence cap: no reference images and poor embedding discrimination")
+            }
         }
 
         // ── Phase 3: Cloud fallback (Brickognize API) ──
@@ -381,6 +411,157 @@ final class MinifigureIdentificationService: ObservableObject {
             Self.logger.info("[Final] #1: \(fig.id) \"\(fig.name)\" conf=\(String(format: "%.2f", top.confidence))")
         }
         Self.logger.info("Identification complete: returning \(final.count) candidates")
+        scanPhase = .done
+        return final
+    }
+
+    private func identifyWithEvidenceCore(
+        scanImage: UIImage,
+        cgImage: CGImage,
+        catalogSnapshot: [Minifigure],
+        identificationMode: ScanSettings.IdentificationMode,
+        provenance initialProvenance: ScanProvenance,
+        scanStart: Date,
+        logLines initialLogLines: [String]
+    ) async throws -> [ResolvedCandidate] {
+        var provenance = initialProvenance
+        var logLines = initialLogLines
+        func logAppend(_ line: String) { logLines.append(line) }
+
+        scanPhase = .embeddingRetrieval
+        let clipAvailable = ClipEmbeddingService.shared.isAvailable
+        let evidence = await Task.detached(priority: .userInitiated) { [self] in
+            self.extractScanColorEvidence(from: cgImage)
+        }.value
+        let clipHits: [ClipEmbeddingIndex.Hit]
+        if clipAvailable {
+            let crops = clipCandidateCrops(cgImage: cgImage)
+            clipHits = await ClipEmbeddingService.shared.nearestFigures(
+                for: crops,
+                topK: 160
+            )
+        } else {
+            clipHits = []
+        }
+
+        let ranked = await Task.detached(priority: .userInitiated) { [self, catalogSnapshot, evidence, clipHits] in
+            self.rankWithEvidenceCore(
+                allFigures: catalogSnapshot,
+                evidence: evidence,
+                clipHits: clipHits
+            )
+        }.value
+
+        let clipCosines = Dictionary(uniqueKeysWithValues: clipHits.map { ($0.figureId, $0.cosine) })
+        let clipDiscrimination: Double = {
+            guard clipHits.count >= 5 else { return 0 }
+            return Double(clipHits[0].cosine - clipHits[4].cosine)
+        }()
+
+        guard !ranked.isEmpty else {
+            scanPhase = .done
+            throw IdentificationError.noResults
+        }
+
+        logAppend("")
+        logAppend("▸ Scanner Core — Embedding + Color Evidence")
+        logAppend("  Legacy cascade: bypassed")
+        logAppend("  CLIP: \(clipAvailable ? "available" : "unavailable")")
+        logAppend("  Captured colors: \(evidence.debugSummary)")
+        if !clipHits.isEmpty {
+            let topCosines = clipHits.prefix(5).map {
+                "\($0.figureId)=\(String(format: "%.3f", $0.cosine))"
+            }.joined(separator: ", ")
+            logAppend("  Top-5 cosines: \(topCosines)")
+        }
+        let top5 = ranked.prefix(5).compactMap { c -> String? in
+            guard let fig = c.figure else { return nil }
+            return "\(fig.id)(\(String(format: "%.2f", c.confidence)))"
+        }.joined(separator: ", ")
+        logAppend("  Top-5: \(top5)")
+
+        scanPhase = .visualRefinement
+        logAppend("")
+        logAppend("▸ Phase 2 — Visual Refinement")
+        let refinementOutcome = await refineWithLocalReferenceImages(
+            cgImage: cgImage,
+            fastCandidates: ranked,
+            rawEmbeddingCosines: clipCosines,
+            embeddingDiscrimination: clipDiscrimination
+        )
+        provenance.userReferenceCount = refinementOutcome.userReferenceCount
+        provenance.bundledReferenceCount = refinementOutcome.bundledReferenceCount
+        provenance.cachedReferenceCount = refinementOutcome.cachedReferenceCount
+        provenance.fetchedReferenceCount = refinementOutcome.fetchedReferenceCount
+        logAppend("  Reference sources: \(provenance.localReferenceSummary)")
+
+        let refined: [ResolvedCandidate]
+        if refinementOutcome.candidates.isEmpty {
+            refined = ranked
+            logAppend("  Status: skipped (no local reference images or visual comparison failed)")
+            if refinementOutcome.fetchSkippedDueToMode {
+                logAppend("  Note: additional reference fetches blocked by \(identificationMode.rawValue) mode")
+            }
+        } else {
+            refined = refinementOutcome.candidates
+            logAppend("  Status: applied to \(refinementOutcome.totalReferenceCount) reference image(s)")
+            if let top = refined.first, let fig = top.figure {
+                let visualConfidence = String(format: "%.2f", top.confidence)
+                logAppend("  Visual #1: \(fig.id) conf=\(visualConfidence)")
+            }
+        }
+
+        let topConfidenceForCloud = refined.first?.confidence ?? 0
+        let willTryCloud = ScanSettings.shared.cloudFallbackEnabled && topConfidenceForCloud < 0.72
+        logAppend("")
+        logAppend("▸ Phase 3 — Cloud Validation")
+        if !ScanSettings.shared.cloudFallbackEnabled {
+            lastCloudStatus = .disabled
+            logAppend("  Status: blocked by \(identificationMode.rawValue) mode")
+        } else if !willTryCloud {
+            lastCloudStatus = .notUsed
+            logAppend("  Status: skipped (local confidence \(String(format: "%.2f", topConfidenceForCloud)) ≥ 0.72)")
+        } else {
+            scanPhase = .cloudValidation
+            logAppend("  Status: attempting (local confidence \(String(format: "%.2f", topConfidenceForCloud)) < 0.72)")
+        }
+
+        let cloudEnhanced = await cloudFallbackIfNeeded(
+            torsoImage: scanImage,
+            localCandidates: refined
+        )
+        provenance.usedCloudFallback = lastCloudStatus == .used
+        if willTryCloud {
+            if cloudEnhanced.first?.figure?.id != refined.first?.figure?.id {
+                logAppend("  Cloud changed #1 candidate")
+            } else {
+                logAppend("  Cloud did not change ranking")
+            }
+        }
+
+        let final = await UserCorrectionReranker.shared.rerank(
+            capturedImage: scanImage,
+            currentCandidates: cloudEnhanced
+        )
+
+        logAppend("")
+        logAppend("▸ Final Result")
+        for (idx, c) in final.prefix(5).enumerated() {
+            if let fig = c.figure {
+                logAppend("  #\(idx + 1): \(fig.id) \"\(fig.name)\" conf=\(String(format: "%.2f", c.confidence))")
+            }
+        }
+        let elapsed = Date().timeIntervalSince(scanStart)
+        logAppend("")
+        logAppend("  Total candidates: \(final.count)")
+        logAppend("  Elapsed: \(String(format: "%.2f", elapsed))s")
+        logAppend("═══════════════════════════════════════")
+
+        lastScanProvenance = provenance
+        lastScanDebugLog = logLines.joined(separator: "\n")
+        if let top = final.first, let fig = top.figure {
+            Self.logger.info("[Final/Core] #1: \(fig.id) \"\(fig.name)\" conf=\(String(format: "%.2f", top.confidence))")
+        }
         scanPhase = .done
         return final
     }
@@ -564,6 +745,18 @@ final class MinifigureIdentificationService: ObservableObject {
                   let mapped = closestLegoColor(r: firstLeg.r, g: firstLeg.g, b: firstLeg.b)?.color
             else { return nil }
             return (mapped == .yellow && hasGenericHead) ? nil : mapped
+        }()
+
+        let capturedClassicSpaceSuitColor: LegoColor? = {
+            guard hasGenericHead,
+                  torsoIsPatterned,
+                  let helmetColor = headgearColor,
+                  torsoBandColors.contains(helmetColor)
+            else { return nil }
+            let classicSuitColors: Set<LegoColor> = [.red, .blue, .white, .yellow, .black, .green, .orange, .brown, .pink]
+            guard classicSuitColors.contains(helmetColor) else { return nil }
+            if let legsPrimary, legsPrimary != helmetColor { return nil }
+            return helmetColor
         }()
 
         var matches: [(figure: Minifigure, composite: Double, scores: PartScores, torsoConfident: Bool)] = []
@@ -787,10 +980,21 @@ final class MinifigureIdentificationService: ObservableObject {
                 }
             }
 
+            var classicSpaceBoost: Double = 0.0
+            if let suitColor = capturedClassicSpaceSuitColor,
+               let candidateSuitColor = classicSpaceSuitColor(for: fig),
+               candidateSuitColor == suitColor {
+                let torsoName = fig.torsoPart?.displayName.lowercased() ?? ""
+                classicSpaceBoost = torsoName.contains("classic space logo") ? 0.35 : 0.12
+            }
+
             if composite > 0 && s.torso > 0 {
-                let finalComposite = min(composite + ocrBoost, 1.0)
+                let finalComposite = min(composite + ocrBoost + classicSpaceBoost, 1.0)
                 if ocrBoost > 0 {
                     print("[TorsoOCR] boost \(fig.id) '\(fig.name)' +\(String(format: "%.2f", ocrBoost)) → \(String(format: "%.3f", finalComposite))")
+                }
+                if classicSpaceBoost > 0 {
+                    print("[ClassicSpace] boost \(fig.id) '\(fig.name)' +\(String(format: "%.2f", classicSpaceBoost)) → \(String(format: "%.3f", finalComposite))")
                 }
                 matches.append((fig, finalComposite, s, torsoConfident))
             }
@@ -863,8 +1067,14 @@ final class MinifigureIdentificationService: ObservableObject {
         // the correct one can easily fall outside a fixed-60 window.
         // Use a larger pool in the joint-inference case so Phase 2's
         // visual comparison has a fighting chance.
+        let ambiguousCascadeTie: Bool = {
+            guard let bestComposite = matches.first?.composite else { return false }
+            let nearBest = matches.prefix(160).filter { bestComposite - $0.composite < 0.015 }.count
+            return anyCascadeHit && nearBest >= 40
+        }()
         let poolSize: Int = {
             if anyCascadeHit {
+                if ambiguousCascadeTie { return 160 }
                 return 60       // cascade narrows well — 60 is plenty
             }
             if lowQualityScan {
@@ -1165,7 +1375,7 @@ final class MinifigureIdentificationService: ObservableObject {
         let faceService = FaceEmbeddingService.shared
         let faceAvailable = faceService.isAvailable
 
-        async let clipHitsTask = clipService.nearestFigures(for: clipInputs, topK: 60)
+        async let clipHitsTask = clipService.nearestFigures(for: clipInputs, topK: 36)
         async let faceResultTask: [FaceEmbeddingIndex.Hit] = {
             guard faceAvailable else { return [] }
             let faceCG = await Task.detached(priority: .userInitiated) { [self] in
@@ -1191,7 +1401,7 @@ final class MinifigureIdentificationService: ObservableObject {
 
         // CLIP injection threshold — lower than DINOv2 because CLIP's
         // domain-specific training produces more spread in cosine scores.
-        let injectionThreshold: Float = 0.24
+        let injectionThreshold: Float = 0.30
         let usefulHits = hits.filter { $0.cosine >= injectionThreshold }
         print("[CLIPEmbed] \(usefulHits.count)/\(hits.count) hits pass threshold \(injectionThreshold)")
 
@@ -1267,6 +1477,10 @@ final class MinifigureIdentificationService: ObservableObject {
         Self.logger.info(
             "CLIP embedding retrieval injected \(merged.count - fastResults.count) candidate(s)"
         )
+        merged.sort { lhs, rhs in
+            if lhs.confidence != rhs.confidence { return lhs.confidence > rhs.confidence }
+            return (lhs.figure?.year ?? 0) > (rhs.figure?.year ?? 0)
+        }
         return (merged, rawCosineMap, embeddingDiscrimination)
     }
 
@@ -1277,21 +1491,11 @@ final class MinifigureIdentificationService: ObservableObject {
     /// figure framing. Querying several deterministic crops and taking each
     /// figure's best cosine improves offline recall without any network call.
     nonisolated private func clipCandidateCrops(cgImage: CGImage) -> [CGImage] {
-        var crops: [CGImage] = [cgImage]
-
         let best = bestSubjectCrop(cgImage: cgImage)
-        crops.append(best)
-
-        if let salient = cropToSalientSubject(cgImage) {
-            crops.append(salient)
-        }
+        var crops: [CGImage] = [best]
 
         if let center = cropCenter(cgImage: cgImage, widthRatio: 0.72, heightRatio: 0.92) {
             crops.append(center)
-        }
-
-        if let tightCenter = cropCenter(cgImage: best, widthRatio: 0.86, heightRatio: 0.92) {
-            crops.append(tightCenter)
         }
 
         var seen = Set<String>()
@@ -1321,6 +1525,61 @@ final class MinifigureIdentificationService: ObservableObject {
     }
 
     // MARK: - Phase 1.5: DINOv2 Embedding Retrieval (Fallback)
+
+    private func calibrateUnrefinedCandidates(
+        _ candidates: [ResolvedCandidate],
+        refinementOutcome: RefinementOutcome,
+        embeddingDiscrimination: Double
+    ) -> [ResolvedCandidate] {
+        guard refinementOutcome.totalReferenceCount == 0,
+              embeddingDiscrimination < 0.03
+        else { return candidates }
+
+        return candidates.map { candidate in
+            let isEmbeddingSupported = candidate.reasoning.contains("CLIP")
+                || candidate.reasoning.contains("embedding")
+            let isClassicSpaceSupported = candidate.figure.map { classicSpaceSuitColor(for: $0) != nil } ?? false
+            guard !isEmbeddingSupported, !isClassicSpaceSupported else { return candidate }
+            let cappedConfidence = min(candidate.confidence, 0.58)
+            guard cappedConfidence < candidate.confidence else { return candidate }
+            return ResolvedCandidate(
+                figure: candidate.figure,
+                modelName: candidate.modelName,
+                confidence: cappedConfidence,
+                reasoning: candidate.reasoning + " Confidence capped: no local references and poor embedding discrimination."
+            )
+        }.sorted { lhs, rhs in
+            if lhs.confidence != rhs.confidence { return lhs.confidence > rhs.confidence }
+            return (lhs.figure?.year ?? 0) > (rhs.figure?.year ?? 0)
+        }
+    }
+
+    nonisolated private func classicSpaceSuitColor(for figure: Minifigure) -> LegoColor? {
+        let name = figure.name.lowercased()
+        guard name.contains("classic spaceman")
+            || name.contains("classic spacewoman")
+            || name.contains("classic space figure")
+            || name.contains("classic space, white")
+        else { return nil }
+        guard let torsoPart = figure.torsoPart else { return nil }
+        let torsoName = torsoPart.displayName.lowercased()
+        guard torsoName.contains("classic space logo") else { return nil }
+        return LegoColor(fromString: torsoPart.color)
+    }
+
+    nonisolated private func isRedWhiteClassicSpaceVariant(_ figure: Minifigure) -> Bool {
+        guard let suitColor = classicSpaceSuitColor(for: figure), suitColor == .red else {
+            return false
+        }
+        let name = figure.name.lowercased()
+        if name.contains("white") { return true }
+        return figure.parts.contains { part in
+            guard [.torso, .legLeft, .legRight, .hips].contains(part.slot) else {
+                return false
+            }
+            return LegoColor(fromString: part.color) == .white
+        }
+    }
 
     /// Merge color-cascade candidates with DINOv2 embedding hits.
     /// Used as a fallback when CLIP embeddings are not available.
@@ -1778,25 +2037,6 @@ final class MinifigureIdentificationService: ObservableObject {
             return m
         }()
 
-        // Determine embedding weight based on discrimination quality.
-        // When DINOv2 top-5 cosines are tightly clustered (<0.03 spread),
-        // the model can't tell figures apart — embedding is noise.
-        // When spread is high (>0.05), DINOv2 has a strong opinion.
-        let embeddingWeight: Double
-        let visualWeight: Double
-        if embeddingDiscrimination > 0.05 {
-            // Strong discrimination — trust embeddings heavily.
-            embeddingWeight = 0.50
-            visualWeight = 0.35
-        } else if embeddingDiscrimination > 0.03 {
-            // Moderate discrimination — balanced blend.
-            embeddingWeight = 0.35
-            visualWeight = 0.50
-        } else {
-            // Poor discrimination — embeddings are noise, trust visual.
-            embeddingWeight = 0.15
-            visualWeight = 0.70
-        }
         // Color cascade weight: Phase 1 performed careful color analysis
         // (torso primary match, headgear, head, legs scoring). Carrying
         // this forward prevents Phase 2's noisy visual scoring from
@@ -2218,6 +2458,374 @@ final class MinifigureIdentificationService: ObservableObject {
         var head: Double = 0
         var hair: Double = 0
         var legs: Double = 0
+    }
+
+    struct ScanColorEvidence: Equatable {
+        let weights: [LegoColor: Double]
+        let dominantColors: [LegoColor]
+
+        var redWeight: Double {
+            (weights[.red] ?? 0) + (weights[.darkRed] ?? 0)
+        }
+
+        var whiteWeight: Double { weights[.white] ?? 0 }
+        var yellowWeight: Double { weights[.yellow] ?? 0 }
+
+        var hasStrongRed: Bool { redWeight >= 0.08 }
+        var hasStrongWhite: Bool { whiteWeight >= 0.08 }
+
+        var looksLikeClassicSpacePalette: Bool {
+            hasStrongRed && hasStrongWhite && yellowWeight >= 0.03
+        }
+
+        var debugSummary: String {
+            dominantColors.prefix(6).map { color in
+                "\(color.rawValue)=\(String(format: "%.2f", weights[color] ?? 0))"
+            }.joined(separator: ", ")
+        }
+    }
+
+    nonisolated func rankWithEvidenceCore(
+        allFigures: [Minifigure],
+        evidence: ScanColorEvidence,
+        clipHits: [ClipEmbeddingIndex.Hit]
+    ) -> [ResolvedCandidate] {
+        let clipById = Dictionary(uniqueKeysWithValues: clipHits.map { ($0.figureId, $0.cosine) })
+        let clipDiscrimination: Double = {
+            guard clipHits.count >= 5 else { return 0 }
+            return Double(clipHits[0].cosine - clipHits[4].cosine)
+        }()
+        let requiredPrimaryFamilies = requiredPrimaryColorFamilies(for: evidence)
+
+        let ranked = allFigures.compactMap { figure -> (ResolvedCandidate, Double)? in
+            guard figure.imageURL != nil else { return nil }
+            let figureColors = weightedFigureColors(for: figure)
+            guard !failsPrimaryColorGate(
+                figureColors: figureColors,
+                requiredFamilies: requiredPrimaryFamilies
+            ) else { return nil }
+            let colorScore = colorAgreementScore(
+                figureColors: figureColors,
+                evidence: evidence
+            )
+            let hasRed = figureColors.contains { color, _ in
+                color == .red || color == .darkRed
+            }
+            let hasWhite = figureColors.contains { color, _ in color == .white }
+            let redVeto = evidence.hasStrongRed && !hasRed
+            let whitePenalty = evidence.hasStrongWhite && !hasWhite ? 0.10 : 0.0
+
+            let clipCosine = clipById[figure.id]
+            let clipScore = clipCosine.map { normalizedClipScore($0) } ?? 0
+            let hasClipSignal = clipCosine != nil
+
+            var score = hasClipSignal
+                ? 0.58 * clipScore + 0.42 * colorScore
+                : colorScore
+
+            let redWhiteClassicVariant = evidence.looksLikeClassicSpacePalette
+                && isRedWhiteClassicSpaceVariant(figure)
+
+            if evidence.hasStrongRed && hasRed { score += 0.18 }
+            if evidence.hasStrongWhite && hasWhite { score += 0.12 }
+            if evidence.looksLikeClassicSpacePalette,
+               let suitColor = classicSpaceSuitColor(for: figure),
+               suitColor == .red {
+                score += 0.28
+            }
+            if redWhiteClassicVariant {
+                score += 0.16
+            }
+            score -= whitePenalty
+            if redVeto { score *= 0.18 }
+            score = min(max(score, 0), 1)
+
+            var confidence = 0.24 + 0.52 * score
+            let colorAndClipAgree = colorScore >= 0.42 && clipScore >= 0.50
+            if colorAndClipAgree && clipDiscrimination >= 0.045 {
+                confidence += 0.08
+            }
+            if evidence.looksLikeClassicSpacePalette,
+               classicSpaceSuitColor(for: figure) == .red {
+                confidence += 0.06
+            }
+            if redWhiteClassicVariant {
+                confidence += 0.04
+            }
+            if redVeto {
+                confidence = min(confidence, 0.34)
+            } else if colorScore < 0.20 {
+                confidence = min(confidence, 0.44)
+            } else if !colorAndClipAgree {
+                confidence = min(confidence, 0.62)
+            }
+            let confidenceCeiling = redWhiteClassicVariant ? 0.90 : 0.86
+            confidence = min(max(confidence, 0.05), confidenceCeiling)
+
+            let reasoning: String
+            if redVeto {
+                reasoning = "Color conflict: scan contains strong red, but this candidate has no red catalog parts."
+            } else if colorAndClipAgree {
+                reasoning = "Embedding and captured colors agree."
+            } else if hasClipSignal {
+                reasoning = "Embedding candidate with limited color support — confidence capped."
+            } else {
+                reasoning = "Color evidence candidate — confidence capped until visual agreement improves."
+            }
+
+            return (
+                ResolvedCandidate(
+                    figure: figure,
+                    modelName: hasClipSignal ? "clip+color" : "color-evidence",
+                    confidence: confidence,
+                    reasoning: reasoning
+                ),
+                score
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.0.confidence != rhs.0.confidence { return lhs.0.confidence > rhs.0.confidence }
+            if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+            return (lhs.0.figure?.year ?? 0) > (rhs.0.figure?.year ?? 0)
+        }
+
+        return ranked.prefix(160).map(\.0)
+    }
+
+    nonisolated private func requiredPrimaryColorFamilies(for evidence: ScanColorEvidence) -> [Set<LegoColor>] {
+        let families: [Set<LegoColor>] = [
+            [.green, .darkGreen, .lime],
+            [.red, .darkRed],
+            [.blue, .darkBlue, .lightBlue],
+            [.orange],
+            [.purple, .pink],
+            [.brown, .tan]
+        ]
+        let weightedFamilies = families
+            .map { family in
+                (family: family, weight: family.reduce(0.0) { $0 + (evidence.weights[$1] ?? 0) })
+            }
+            .sorted { $0.weight > $1.weight }
+        guard let strongest = weightedFamilies.first,
+              strongest.weight >= 0.16
+        else { return [] }
+
+        let second = weightedFamilies.dropFirst().first?.weight ?? 0
+        guard strongest.weight >= second + 0.06 || strongest.weight >= 0.28 else { return [] }
+        return [strongest.family]
+    }
+
+    nonisolated private func failsPrimaryColorGate(
+        figureColors: [(LegoColor, Double)],
+        requiredFamilies: [Set<LegoColor>]
+    ) -> Bool {
+        guard !requiredFamilies.isEmpty else { return false }
+        let candidateColors = Set(figureColors.map(\.0))
+        return requiredFamilies.contains { family in
+            family.allSatisfy { !candidateColors.contains($0) }
+        }
+    }
+
+    nonisolated func extractScanColorEvidence(from cgImage: CGImage) -> ScanColorEvidence {
+        let subject = foregroundEvidenceCrop(cgImage: cgImage) ?? bestSubjectCrop(cgImage: cgImage)
+        let size = 72
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return ScanColorEvidence(weights: [:], dominantColors: [])
+        }
+
+        context.interpolationQuality = .medium
+        context.draw(subject, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        var counts: [LegoColor: Double] = [:]
+        var total = 0.0
+        for offset in stride(from: 0, to: pixelData.count, by: bytesPerPixel) {
+            let r = pixelData[offset]
+            let g = pixelData[offset + 1]
+            let b = pixelData[offset + 2]
+            guard let mapped = mapForegroundLegoColor(r: r, g: g, b: b) else { continue }
+            let weight = foregroundPixelWeight(r: r, g: g, b: b, color: mapped)
+            counts[mapped, default: 0] += weight
+            total += weight
+        }
+
+        guard total > 0 else {
+            return ScanColorEvidence(weights: [:], dominantColors: [])
+        }
+
+        let weights = counts.mapValues { $0 / total }
+        let dominant = weights.sorted { $0.value > $1.value }.map(\.key)
+        return ScanColorEvidence(weights: weights, dominantColors: dominant)
+    }
+
+    nonisolated private func weightedFigureColors(for figure: Minifigure) -> [(LegoColor, Double)] {
+        figure.parts.compactMap { part in
+            guard let color = LegoColor(fromString: part.color) else { return nil }
+            let weight: Double
+            switch part.slot {
+            case .torso: weight = 0.45
+            case .hairOrHeadgear: weight = 0.16
+            case .head: weight = color == .yellow ? 0.06 : 0.12
+            case .hips, .legLeft, .legRight: weight = 0.09
+            case .armLeft, .armRight, .handLeft, .handRight: weight = 0.04
+            case .accessory: weight = 0.03
+            }
+            return (color, weight)
+        }
+    }
+
+    nonisolated private func colorAgreementScore(
+        figureColors: [(LegoColor, Double)],
+        evidence: ScanColorEvidence
+    ) -> Double {
+        var score = 0.0
+        var maxPossible = 0.0
+        for (color, weight) in figureColors {
+            maxPossible += weight
+            score += weight * (evidence.weights[color] ?? 0)
+        }
+        guard maxPossible > 0 else { return 0 }
+        return min(score / maxPossible * 2.8, 1.0)
+    }
+
+    nonisolated private func normalizedClipScore(_ cosine: Float) -> Double {
+        min(max((Double(cosine) - 0.55) / 0.27, 0), 1)
+    }
+
+    nonisolated private func mapForegroundLegoColor(r: UInt8, g: UInt8, b: UInt8) -> LegoColor? {
+        let maxChannel = max(r, g, b)
+        let minChannel = min(r, g, b)
+        let saturation = Int(maxChannel) - Int(minChannel)
+        let brightness = (Int(r) + Int(g) + Int(b)) / 3
+
+        if r > 115,
+           Int(r) > Int(g) + 35,
+           Int(r) > Int(b) + 35,
+           saturation > 45 {
+            return brightness < 90 ? .darkRed : .red
+        }
+
+        if saturation < 18 && brightness >= 218 { return .white }
+        if saturation <= 42 && brightness >= 188 { return .white }
+        if saturation < 18 && brightness >= 45 && brightness <= 218 { return nil }
+        if brightness < 10 && saturation < 8 { return nil }
+
+        guard let nearest = LegoColor.closest(r: r, g: g, b: b),
+              nearest.distance <= 110
+        else { return nil }
+        if [.gray, .darkGray, .tan, .brown].contains(nearest.color),
+           saturation < 58 {
+            return nil
+        }
+        return nearest.color
+    }
+
+    nonisolated private func foregroundEvidenceCrop(cgImage: CGImage) -> CGImage? {
+        let size = 96
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        var minX = size
+        var minY = size
+        var maxX = 0
+        var maxY = 0
+        var count = 0
+        for y in 0..<size {
+            for x in 0..<size {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let r = pixelData[offset]
+                let g = pixelData[offset + 1]
+                let b = pixelData[offset + 2]
+                guard isFigureForegroundPixel(r: r, g: g, b: b) else { continue }
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+                count += 1
+            }
+        }
+
+        guard count >= 16, maxX > minX, maxY > minY else { return nil }
+        let scaleX = CGFloat(cgImage.width) / CGFloat(size)
+        let scaleY = CGFloat(cgImage.height) / CGFloat(size)
+        var rect = CGRect(
+            x: CGFloat(minX) * scaleX,
+            y: CGFloat(minY) * scaleY,
+            width: CGFloat(maxX - minX + 1) * scaleX,
+            height: CGFloat(maxY - minY + 1) * scaleY
+        )
+        rect = rect.insetBy(dx: -max(rect.width * 0.35, scaleX * 5),
+                            dy: -max(rect.height * 0.35, scaleY * 5))
+        rect.origin.x = max(0, rect.origin.x)
+        rect.origin.y = max(0, rect.origin.y)
+        rect.size.width = min(CGFloat(cgImage.width) - rect.origin.x, rect.width)
+        rect.size.height = min(CGFloat(cgImage.height) - rect.origin.y, rect.height)
+        let areaRatio = (rect.width * rect.height) / CGFloat(cgImage.width * cgImage.height)
+        guard areaRatio >= 0.03 && areaRatio <= 0.65 else { return nil }
+        return cgImage.cropping(to: rect.integral)
+    }
+
+    nonisolated private func isFigureForegroundPixel(r: UInt8, g: UInt8, b: UInt8) -> Bool {
+        let maxChannel = max(r, g, b)
+        let minChannel = min(r, g, b)
+        let saturation = Int(maxChannel) - Int(minChannel)
+        let brightness = (Int(r) + Int(g) + Int(b)) / 3
+        if brightness < 12 { return false }
+        if r > 105 && Int(r) > Int(g) + 28 && Int(r) > Int(b) + 28 { return true }
+        if g > 125 && Int(g) > Int(r) + 20 && Int(g) > Int(b) + 20 { return true }
+        if r > 175 && g > 125 && b < 120 { return true }
+        if saturation > 62 && brightness > 28 { return true }
+        if saturation < 35 && brightness > 205 { return true }
+        if brightness < 65 && saturation > 18 { return true }
+        return false
+    }
+
+    nonisolated private func foregroundPixelWeight(
+        r: UInt8,
+        g: UInt8,
+        b: UInt8,
+        color: LegoColor
+    ) -> Double {
+        let maxChannel = max(r, g, b)
+        let minChannel = min(r, g, b)
+        let saturation = Double(Int(maxChannel) - Int(minChannel)) / 255.0
+        switch color {
+        case .red, .darkRed:
+            return 1.8 + saturation
+        case .white:
+            return 0.85
+        case .yellow:
+            return 0.75 + saturation * 0.4
+        default:
+            return 0.70 + saturation * 0.6
+        }
     }
 
     /// Captured-torso pattern signature, derived from the torso band

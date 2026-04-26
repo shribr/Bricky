@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Embed every catalog minifigure image with the LEGO-specific CLIP encoder.
+"""Embed minifigure datasets with the LEGO-specific CLIP encoder.
 
 Model: Armaggheddon/clip-vit-base-patch32_lego-minifigure
   - Fine-tuned CLIP ViT-B/32 on 12,966 LEGO minifigure images
@@ -9,6 +9,11 @@ Model: Armaggheddon/clip-vit-base-patch32_lego-minifigure
 Produces the same .bin + .json layout that the iOS runtime expects
 (see Bricky/Services/TorsoEmbeddingIndex.swift), so the CLIP embeddings
 can be loaded by the same index class with minimal Swift changes.
+
+By default this builds a unified index from:
+    - Bundled catalog renders in Bricky/Resources/MinifigImages/
+    - HuggingFace caption-dataset images that fill missing catalog IDs
+    - Reviewed real phone photos from Tools/dinov2-embeddings/real_photos/mapping.json
 
 Output (to Bricky/Resources/ClipEmbeddings/):
     clip_embeddings.bin          — Float16 matrix, row-major, count × 512
@@ -23,9 +28,8 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
-import struct
-import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -36,24 +40,116 @@ BRICKY_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = BRICKY_ROOT / "Bricky" / "Resources" / "MinifigureCatalog.json.gz"
 IMAGES_ROOT = BRICKY_ROOT / "Bricky" / "Resources" / "MinifigImages"
 DEFAULT_OUT = BRICKY_ROOT / "Bricky" / "Resources" / "ClipEmbeddings"
+DEFAULT_HF_DATASET = BRICKY_ROOT / "Tools" / "datasets" / "huggingface-lego-captions"
+DEFAULT_REAL_PHOTO_MAPPING = BRICKY_ROOT / "Tools" / "dinov2-embeddings" / "real_photos" / "mapping.json"
+DEFAULT_REAL_PHOTO_DIR = BRICKY_ROOT / "images" / "figurines"
 
 MODEL_NAME = "Armaggheddon/clip-vit-base-patch32_lego-minifigure"
 EMBEDDING_DIM = 512
 INPUT_SIZE = 224
 
 
-def load_catalog_ids() -> list[tuple[str, Path]]:
+@dataclass(frozen=True)
+class ImageEntry:
+    figure_id: str
+    image_path: Path
+    source: str
+
+
+def detect_figure_bbox(img: Image.Image) -> tuple[int, int, int, int]:
+    """Return a foreground crop for real photos with visible background."""
+    arr = np.asarray(img.convert("RGB"), dtype=np.float32)
+    corners = np.concatenate([
+        arr[0:5].reshape(-1, 3),
+        arr[-5:].reshape(-1, 3),
+        arr[:, 0:5].reshape(-1, 3),
+        arr[:, -5:].reshape(-1, 3),
+    ])
+    bg = corners.mean(axis=0)
+    dist = np.sqrt(((arr - bg) ** 2).sum(axis=2))
+    ys, xs = np.where(dist > 50)
+    if len(xs) == 0:
+        return (0, 0, img.width, img.height)
+    pad = 8
+    return (
+        max(0, int(xs.min()) - pad),
+        max(0, int(ys.min()) - pad),
+        min(img.width, int(xs.max()) + pad),
+        min(img.height, int(ys.max()) + pad),
+    )
+
+
+def load_catalog_ids() -> list[ImageEntry]:
     """Return (fig_id, image_path) for every figure with a bundled image."""
     with gzip.open(CATALOG_PATH, "rb") as f:
         data = json.load(f)
     figs = data["figures"] if isinstance(data, dict) else data
-    out: list[tuple[str, Path]] = []
+    out: list[ImageEntry] = []
     for fig in figs:
         fid = fig["id"]
         p = IMAGES_ROOT / f"{fid}.jpg"
         if p.exists():
-            out.append((fid, p))
+            out.append(ImageEntry(fid, p, "catalog_render"))
     return out
+
+
+def load_huggingface_gap_fill_ids(existing_ids: set[str], dataset_dir: Path) -> list[ImageEntry]:
+    """Return HuggingFace images for catalog IDs missing from bundled renders.
+
+    The HuggingFace caption dataset mostly mirrors Rebrickable renders, so
+    duplicates add index noise rather than new training signal. Missing IDs are
+    still useful because they expand offline coverage.
+    """
+    metadata_path = dataset_dir / "metadata.json"
+    images_dir = dataset_dir / "images"
+    if not metadata_path.exists() or not images_dir.exists():
+        return []
+
+    metadata = json.loads(metadata_path.read_text())
+    out: list[ImageEntry] = []
+    seen: set[str] = set()
+    for row in metadata:
+        fid = row.get("fig_num")
+        filename = row.get("filename")
+        if not fid or not filename or fid in existing_ids or fid in seen:
+            continue
+        image_path = images_dir / filename
+        if image_path.exists():
+            out.append(ImageEntry(fid, image_path, "huggingface_gap_fill"))
+            seen.add(fid)
+    return out
+
+
+def load_real_photo_ids(mapping_path: Path, photos_dir: Path) -> list[ImageEntry]:
+    """Return reviewed real-photo entries from an ingest_real_photos mapping."""
+    if not mapping_path.exists() or not photos_dir.exists():
+        return []
+
+    mapping = json.loads(mapping_path.read_text())
+    out: list[ImageEntry] = []
+    for row in mapping:
+        fid = row.get("figure_id")
+        filename = row.get("filename")
+        if not fid or not filename:
+            continue
+        image_path = photos_dir / filename
+        if image_path.exists():
+            out.append(ImageEntry(fid, image_path, "real_photo"))
+    return out
+
+
+def load_entries(args: argparse.Namespace) -> list[ImageEntry]:
+    catalog_entries = load_catalog_ids()
+    entries = list(catalog_entries)
+    existing_ids = {entry.figure_id for entry in catalog_entries}
+
+    if args.include_huggingface:
+        entries.extend(load_huggingface_gap_fill_ids(existing_ids, Path(args.huggingface_dataset)))
+
+    if args.include_real_photos:
+        entries.extend(load_real_photo_ids(Path(args.real_photo_mapping), Path(args.real_photo_dir)))
+
+    return entries
 
 
 def main():
@@ -62,6 +158,14 @@ def main():
     parser.add_argument("--device", type=str, default="auto",
                         choices=["auto", "cpu", "cuda", "mps"])
     parser.add_argument("--output", type=str, default=str(DEFAULT_OUT))
+    parser.add_argument("--no-huggingface", dest="include_huggingface", action="store_false",
+                        help="Do not include HuggingFace gap-fill images.")
+    parser.add_argument("--huggingface-dataset", type=str, default=str(DEFAULT_HF_DATASET))
+    parser.add_argument("--no-real-photos", dest="include_real_photos", action="store_false",
+                        help="Do not include reviewed real-phone photos.")
+    parser.add_argument("--real-photo-mapping", type=str, default=str(DEFAULT_REAL_PHOTO_MAPPING))
+    parser.add_argument("--real-photo-dir", type=str, default=str(DEFAULT_REAL_PHOTO_DIR))
+    parser.set_defaults(include_huggingface=True, include_real_photos=True)
     args = parser.parse_args()
 
     out_dir = Path(args.output)
@@ -87,9 +191,14 @@ def main():
     model.eval()
     model.to(device)
 
-    # Load catalog
-    entries = load_catalog_ids()
-    print(f"Found {len(entries)} figures with images")
+    # Load datasets
+    entries = load_entries(args)
+    source_counts: dict[str, int] = {}
+    for entry in entries:
+        source_counts[entry.source] = source_counts.get(entry.source, 0) + 1
+    print(f"Found {len(entries)} images")
+    for source, count in sorted(source_counts.items()):
+        print(f"  {source}: {count}")
 
     # Process in batches
     all_ids: list[str] = []
@@ -101,13 +210,15 @@ def main():
         batch = entries[batch_start:batch_start + batch_size]
         images = []
         ids = []
-        for fid, img_path in batch:
+        for entry in batch:
             try:
-                img = Image.open(img_path).convert("RGB")
+                img = Image.open(entry.image_path).convert("RGB")
+                if entry.source == "real_photo":
+                    img = img.crop(detect_figure_bbox(img))
                 images.append(img)
-                ids.append(fid)
+                ids.append(entry.figure_id)
             except Exception as e:
-                print(f"  SKIP {fid}: {e}")
+                print(f"  SKIP {entry.figure_id} ({entry.image_path}): {e}")
                 continue
 
         if not images:
@@ -154,6 +265,8 @@ def main():
         "count": len(all_ids),
         "dtype": "float16",
         "ids": all_ids,
+        "sources": source_counts,
+        "duplicate_ids_are_additional_views": True,
     }
     json_path = out_dir / "clip_embeddings_index.json"
     with open(json_path, "w") as f:
@@ -163,12 +276,20 @@ def main():
     elapsed = time.time() - t0
     print(f"\nDone: {len(all_ids)} embeddings × {EMBEDDING_DIM}D in {elapsed:.1f}s")
 
-    # Quick validation: check a few cosine similarities
+    # Quick validation: check the saved Float16 matrix and a few cosine similarities.
+    validation_matrix = matrix_f16.astype(np.float32)
+    if not np.isfinite(validation_matrix).all():
+        raise RuntimeError("Generated CLIP matrix contains NaN or Inf values")
+    norms = np.linalg.norm(validation_matrix, axis=1)
+    bad_norms = int(((norms < 0.98) | (norms > 1.02)).sum())
+    if bad_norms:
+        raise RuntimeError(f"Generated CLIP matrix has {bad_norms} non-normalized row(s)")
+
     print("\nValidation — top-3 nearest neighbors for first 3 figures:")
     for i in range(min(3, len(all_ids))):
-        query = matrix[i]
+        query = validation_matrix[i]
         # Cosine similarity (already L2-normalized, so dot product)
-        sims = matrix @ query
+        sims = validation_matrix @ query
         top_indices = np.argsort(-sims)[1:4]  # skip self
         print(f"  {all_ids[i]}:")
         for j in top_indices:

@@ -1,7 +1,53 @@
 # Scanner Accuracy DEVLOG
 
+<!-- markdownlint-disable MD022 MD032 MD036 MD040 -->
+
 > **Goal:** Near 100% minifigure identification accuracy under every major condition.
 > **Baseline:** Real-photo recall@1 = 0.040 (4%). Synthetic recall@1 = 0.239.
+
+---
+
+## 2026-04-26 Failure Handoff
+
+The most recent scanner rescue work did not solve the actual live-photo
+accuracy problem. The code builds and the focused scanner tests pass,
+but the user continued to see bad real scans and explicitly reported
+that the changes made the scanner worse. Treat the latest scanner
+changes as an unvalidated experiment, not as a completed fix.
+
+### What Was Attempted
+
+| Area | Change | Outcome |
+| --- | --- | --- |
+| Default scanner core | Added a new CLIP + foreground color evidence path in `MinifigureIdentificationService.identifyWithEvidenceCore(...)`; legacy path remains behind `Bricky.UseLegacyMinifigureScannerCore`. | Did not produce acceptable live-photo results. |
+| CLIP index | Rebuilt `Bricky/Resources/ClipEmbeddings/` from catalog renders, HuggingFace gap-fill images, and a small reviewed real-photo set. | Helped tiny local eval metrics but did not validate newly taken live photos. |
+| Visual refinement | Reattached `refineWithLocalReferenceImages(...)` after the replacement core skipped it. | Corrected an implementation omission, but user still reported failed scans. |
+| Candidate pool | Increased CLIP/candidate pool size so refinement could see more candidates. | More candidates did not solve ranking correctness. |
+| Color gating | Added a dominant primary-color gate after green subjects returned red-heavy results. | A reactive rule that passed synthetic tests; not proven in live use. |
+| Tests | Added synthetic evidence-core tests, including a green-dominant regression. | Tests verify the patched ranking rules, not real-world scanner accuracy. |
+| Image enhancement/UI | Made straightening conservative, showed enhanced image before identification, refreshed scan history immediately. | Useful UX changes, but separate from recognition accuracy. |
+
+### Current Assessment
+
+- Do not assume the scanner is fixed because `xcodebuild` and the
+  focused scanner tests passed.
+- Do not assume the latest dominant-color gate is the right architecture.
+  It was added because the scanner produced obviously wrong colors, but
+  it is still another rule layered onto an unvalidated pipeline.
+- Do not keep tuning confidence numbers, thresholds, and color-family
+  exceptions without a real live-photo dataset.
+- The code in `MinifigureIdentificationService.swift` is now carrying a
+  large amount of patch logic around the underlying problem: the app
+  still lacks a reliable, measured end-to-end path for newly captured
+  photos.
+
+### Recommended Next Step
+
+Stop patching the ranker first. Build a ground-truth harness from actual
+failed live scans, run the exact app pipeline against it, and measure
+recall@1 and recall@5. Only then decide whether to keep any of the CLIP
+evidence core, restore the legacy cascade, or rewrite around proper
+segmentation and torso-first retrieval.
 
 ---
 

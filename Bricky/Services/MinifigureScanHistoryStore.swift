@@ -119,6 +119,14 @@ final class MinifigureScanHistoryStore: ObservableObject {
             debugLog: debugLog
         )
 
+        if let image = capturedImage {
+            let url = imageURL(for: entry)
+            let downscaled = Self.downscale(image, maxEdge: maxImageEdge)
+            if let data = downscaled.jpegData(compressionQuality: jpegQuality) {
+                try? data.write(to: url, options: .atomic)
+            }
+        }
+
         entries.insert(entry, at: 0)
 
         // Trim old entries
@@ -130,18 +138,6 @@ final class MinifigureScanHistoryStore: ObservableObject {
 
         save()
 
-        // Save captured image to disk off the main thread
-        if let image = capturedImage {
-            let url = imageURL(for: entry)
-            let maxEdge = maxImageEdge
-            let quality = jpegQuality
-            let downscaled = Self.downscale(image, maxEdge: maxEdge)
-            Task.detached(priority: .utility) {
-                if let data = downscaled.jpegData(compressionQuality: quality) {
-                    try? data.write(to: url, options: .atomic)
-                }
-            }
-        }
     }
 
     /// Load the captured scan image for a history entry.

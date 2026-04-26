@@ -1,10 +1,30 @@
-# External Dataset Import Plan — DINOv2 Minifigure Embeddings
+# External Dataset Import Plan — CLIP Minifigure Embeddings
 
-> **Status:** Draft → **Under critical review**  
+<!-- markdownlint-disable MD013 -->
+
+> **Status:** Implemented for current local sources  
 > **Created:** 2026-04-23  
-> **Updated:** 2026-04-23 — Critical review: cut scope, eliminated redundancy, focused on what actually moves the needle  
+> **Updated:** 2026-04-25 — CLIP generator now builds a unified multi-source index  
 > **Scope:** Import external LEGO minifigure image datasets to improve real-photo retrieval accuracy  
-> **Current real-photo recall@1:** 0.040 (baseline to beat)
+> **Current real-photo recall@1:** 0.846 on reviewed local real-photo eval after adding real-photo views
+
+---
+
+## 2026-04-25 Implementation Update
+
+`Tools/embed_clip_catalog.py` now builds the shipped CLIP index from multiple sources by default:
+
+- `Bricky/Resources/MinifigImages/`: 14,175 bundled catalog render vectors.
+- `Tools/datasets/huggingface-lego-captions/`: 587 gap-fill render vectors for figure IDs missing from the bundled image set.
+- `images/figurines/` via `Tools/dinov2-embeddings/real_photos/mapping.json`: 26 reviewed real-photo vectors across 22 figure IDs.
+
+The regenerated `Bricky/Resources/ClipEmbeddings/` index now contains 14,788 vectors for 14,763 unique figure IDs. Duplicate IDs are intentional for real photos: they give nearest-neighbor search an additional live-photo-like view of the same catalog figure.
+
+Validation after regeneration:
+
+- Matrix is finite and normalized: 0 NaN rows, 0 Inf rows, 0 bad-norm rows.
+- `real_photos_eval`: recall@1 = 0.846, recall@5 = 0.962.
+- CLIP utility tests, model-backed smoke tests, and focused Swift scanner tests pass.
 
 ---
 
@@ -57,16 +77,16 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 0. [CRITICAL ISSUES FOUND IN REVIEW](#critical-issues-found-in-review) — **Read this first**
 1. [Current State Summary](#1-current-state-summary)
 2. [Dataset Inventory & Analysis](#2-dataset-inventory--analysis)
-3. [Download & Storage Plan (Revised)](#3-download--storage-plan-revised)
-4. [ID Mapping Strategy (Revised)](#4-id-mapping-strategy-revised)
-5. [Image Processing Pipeline](#5-image-processing-pipeline)
-6. [Training & Indexing Strategy](#6-training--indexing-strategy)
-7. [Pipeline Changes (Revised — Minimal)](#7-pipeline-changes-scripts--notebooks)
-8. [Validation & Testing (Revised)](#8-validation--testing-revised--practical-only)
-9. [Risk & Mitigations](#9-risk--mitigations)
-10. [Implementation Order (Revised — Minimal)](#10-implementation-order-revised--minimal-viable-path)
-11. [External Tools & Architectural Insights](#11-external-tools--architectural-insights)
-12. [Datasets Reviewed & Excluded](#12-datasets-reviewed--excluded)
+3. Download & Storage Plan (Revised)
+4. ID Mapping Strategy (Revised)
+5. Image Processing Pipeline
+6. Training & Indexing Strategy
+7. Pipeline Changes (Revised — Minimal)
+8. Validation & Testing (Revised)
+9. Risk & Mitigations
+10. Implementation Order (Revised — Minimal)
+11. External Tools & Architectural Insights
+12. Datasets Reviewed & Excluded
 
 ---
 
@@ -75,7 +95,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### Catalog & Renders
 
 | Metric | Value |
-|---|---|
+| --- | --- |
 | Catalog figures | 15,789 (`Bricky/Resources/MinifigureCatalog.json.gz`) |
 | Catalog renders on disk | 14,113 (`Bricky/Resources/MinifigImages/fig-NNNNNN.jpg`) |
 | Render source | Rebrickable CDN |
@@ -86,7 +106,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### Embedding Pipeline
 
 | Component | Detail |
-|---|---|
+| --- | --- |
 | Model | DINOv2 ViT-S/14 (`dinov2_vits14`) — 384-D embeddings |
 | Torso crop | Vertical band rows 30%–70%, thumbnail to 224×224, pad to square with fill `(244,244,244)` |
 | Normalization | ImageNet mean `[0.485, 0.456, 0.406]`, std `[0.229, 0.224, 0.225]` |
@@ -97,7 +117,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### Existing Cross-Source Data
 
 | Source | Count | Type | On Disk |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | BrickLink renders | 199 | CG renders (different style) | 23 MB in `Tools/dinov2-embeddings/bricklink_images/` |
 | Real iPhone photos | 27 | Real-world photos | 13 MB in `images/figurines/` |
 | Real photo mapping | 27 entries | JSON mapping file | `Tools/dinov2-embeddings/real_photos/mapping.json` |
@@ -105,7 +125,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### Key Code Files
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `embed_catalog.py` | Builds the embedding index from catalog renders |
 | `evaluate_retrieval.py` | Measures recall@{1,5,10,50} with bbox detection |
 | `ingest_real_photos.py` | Maps real photos by fuzzy filename matching, augments index, builds eval sets |
@@ -127,7 +147,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### 2.1 HuggingFace: Armaggheddon/lego_minifigure_captions
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Size | 558 MB (12,966 images) |
 | Source | Rebrickable (same as our catalog renders!) |
 | Format | Parquet dataset with JPEG images |
@@ -136,6 +156,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 | ID field | `fig_num` — this is the Rebrickable figure number, should map directly to `fig-NNNNNN` |
 
 **Critical question: overlap.** This dataset sources from Rebrickable, the same CDN as our existing 14,113 renders. The `fig_num` field should map directly to our `fig-NNNNNN` IDs. We must quantify:
+
 - How many of the 12,966 images match our existing 14,113 renders (expected: high overlap)
 - How many are net-new figures we don't have renders for (gap-fill opportunity)
 - Whether the images are identical bytes or different crops/resolutions (if identical → zero value for diversity)
@@ -145,7 +166,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### 2.2 Kaggle: ihelon/lego-minifigures-classification
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Size | 31 MB (~498 real photos) |
 | Source | Real photographs |
 | Themes | Harry Potter, Jurassic World, Marvel, Star Wars |
@@ -160,7 +181,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### 2.3 Kaggle: datasciencedonut/lego-minifigures
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Size | 475 MB (~241 images + background/modified variants) |
 | Source | Real photographs against black background |
 | Format | `raw_images/`, `modified_images/`, `background_images/` + `features.csv` metadata |
@@ -177,7 +198,7 @@ MinifigFinder uses Mask R-CNN to detect torso region precisely. Our pipeline use
 ### 2.4 BrickLink Renders (existing pipeline)
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Count | 199 fetched (of 200 targeted) |
 | Source | BrickLink CDN |
 | Format | PNG renders |
@@ -188,7 +209,7 @@ Already integrated. Can be scaled up (the script supports arbitrary `--figures` 
 ### Dataset Value Matrix (Revised)
 
 | Dataset | Image Type | Est. Net-New | ID Mapping Difficulty | Value for Real-Photo Recall | Priority |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Kaggle ihelon (real photos) | Photographs | ~498 | Medium (folder names + existing `score_match()`) | **Very High** — only real photos with labels | **P0 — DO THIS** |
 | BrickLink (scale up) | Renders | Up to ~14K | Medium (scrape mapping) | Medium (cross-render diversity) | **P1 — existing pipeline, just scale** |
 | Kaggle datasciencedonut | Real photos (black bg) | ~241 | **Very Hard** (no labels, need working embeddings first) | Medium (CC0 license) | **DEFERRED** — revisit after P0 |
@@ -200,7 +221,7 @@ Already integrated. Can be scaled up (the script supports arbitrary `--figures` 
 ### 2.5 HuggingFace: nerijs/lego-minifig-xl (Stable Diffusion Synthetic Generation)
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Type | Fine-tuned Stable Diffusion XL model (NOT a dataset) |
 | Source | [awesome-lego-machine-learning](https://github.com/360er0/awesome-lego-machine-learning) survey |
 | Purpose | Generate photorealistic synthetic images of specific LEGO minifigures |
@@ -214,6 +235,7 @@ Already integrated. Can be scaled up (the script supports arbitrary `--figures` 
 3. **Unlimited scale:** Generate as many variants as needed, with varied backgrounds, lighting, angles
 
 **Workflow:**
+
 ```python
 from diffusers import StableDiffusionXLPipeline
 pipe = StableDiffusionXLPipeline.from_pretrained("nerijs/lego-minifig-xl")
@@ -229,7 +251,7 @@ pipe = StableDiffusionXLPipeline.from_pretrained("nerijs/lego-minifig-xl")
 ### 2.6 Nature Paper / Gdansk University Dataset (Brick Parts)
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Paper | Boiński (2023), "Photos and rendered images of LEGO bricks", *Scientific Data* |
 | Size | ~155,000 real photos + ~1,500,000 renders |
 | Coverage | 447 distinct LEGO parts (NOT minifigures) |
@@ -241,6 +263,7 @@ pipe = StableDiffusionXLPipeline.from_pretrained("nerijs/lego-minifig-xl")
 **Assessment: NOT directly useful for minifigure identification.** This is the largest LEGO dataset available, but it covers individual brick/part classification for sorting machines, not assembled minifigures. The 447 parts are standard bricks, plates, slopes, technic elements, etc.
 
 **Potential indirect value:**
+
 - If the dataset includes minifigure *component* parts (torso pieces, leg assemblies, head pieces), these could supplement torso-crop training
 - The rendering pipeline (Blender + LDraw) documented in the paper and related code could be adapted to render minifigure torso crops from 3D models
 - The real-photo portion demonstrates effective camera/lighting setups for LEGO photography
@@ -252,7 +275,7 @@ pipe = StableDiffusionXLPipeline.from_pretrained("nerijs/lego-minifig-xl")
 These are not datasets but could generate synthetic training data:
 
 | Tool | Source | Description | Relevance |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **BrickRenderer** | [github.com/spencerhhubert/brick-renderer](https://github.com/spencerhhubert/brick-renderer) | Renders realistic training images from LDraw .dat files | Could render minifigure parts with varied backgrounds/lighting. Requires LDraw minifig models. |
 | **LegoSorter** | [github.com/LegoSorter](https://github.com/LegoSorter) | Full sorting machine pipeline: mobile app, rendering scripts, training backend | Rendering scripts could be adapted for minifigure torso rendering. |
 | **LegoBrickClassification** | [github.com/jtheiner/LegoBrickClassification](https://github.com/jtheiner/LegoBrickClassification) | Blender + LDraw pipeline for generating synthetic brick images (224×224) | Image generation pipeline matches our target resolution. Their eval showed significant domain gap between synthetic and real — confirms our challenge. |
@@ -264,7 +287,7 @@ These are not datasets but could generate synthetic training data:
 
 ### 3.1 Directory Structure
 
-```
+```text
 datasets/                               # At repo root (gitignored raw images)
 ├── README.md                           # License attributions
 └── kaggle_real_photos/                 # Kaggle ihelon real photos (P0)
@@ -283,6 +306,7 @@ Tools/dinov2-embeddings/
 ```
 
 **Dropped (not needed):**
+
 - ~~`datasets/huggingface_rebrickable/`~~ — Same renders we already have
 - ~~`datasets/kaggle_datasciencedonut/`~~ — No labels, deferred
 - ~~`datasets/unified_mapping.json`~~ — One source, no unification needed
@@ -290,6 +314,7 @@ Tools/dinov2-embeddings/
 ### 3.2 Download Commands
 
 **Kaggle real photos (the only download we need):**
+
 ```bash
 pip install kaggle
 kaggle datasets download -d ihelon/lego-minifigures-classification \
@@ -300,14 +325,15 @@ kaggle datasets download -d ihelon/lego-minifigures-classification \
 ### 3.3 Size Estimates & Git Implications
 
 | Dataset | Download Size | Extracted Size | Git Recommendation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Kaggle real photos (ihelon) | 31 MB | ~40 MB | `.gitignore` raw images, commit mapping.json + prepare.py |
 | BrickLink (scaled up) | Variable | ~23 MB per 200 figs | Already in `.gitignore` per existing pattern |
 
 ### 3.4 .gitignore Updates
 
 Add to root `.gitignore`:
-```
+
+```text
 datasets/kaggle_real_photos/raw/
 ```
 
@@ -320,7 +346,8 @@ Commit: `datasets/kaggle_real_photos/mapping.json`, `datasets/kaggle_real_photos
 ### 4.1 Kaggle ihelon → fig-NNNNNN (The Only Mapping We Need)
 
 The Kaggle ihelon dataset organizes images by character name in theme folders:
-```
+
+```text
 HARRY POTTER/    → contains photos of Harry Potter minifigs
 YODA/            → contains photos of Yoda minifigs  
 IRON MAN/        → contains photos of Iron Man minifigs
@@ -331,7 +358,8 @@ IRON MAN/        → contains photos of Iron Man minifigs
 **Multi-stage mapping approach:**
 
 **Stage 1 — Theme-aware catalog filtering:**
-```
+
+```text
 Folder "harry_potter" → filter catalog to theme ∈ {"Harry Potter"}
 Folder "star_wars"    → filter catalog to theme ∈ {"Star Wars"}
 Folder "marvel"       → filter catalog to theme ∈ {"Marvel", "Super Heroes"}
@@ -363,6 +391,7 @@ Same format as existing `ingest_real_photos.py` mapping. The `prepare.py` adapte
 ```
 
 **DROPPED sections:**
+
 - ~~§4.1 HuggingFace → fig-NNNNNN~~ — Dataset dropped
 - ~~§4.3 Unified Mapping File Format~~ — One source, no unification needed
 - ~~§4.4 Handling Unmappable Images~~ — Over-engineered for 50 character folders
@@ -374,7 +403,7 @@ Same format as existing `ingest_real_photos.py` mapping. The `prepare.py` adapte
 ### 5.1 Source Image Characteristics (Active Sources Only)
 
 | Source | Resolution | Background | Framing | Preprocessing Needed |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Rebrickable renders (existing) | ~200×400px | Cream/white | Tight, centered | Torso crop only |
 | BrickLink renders (existing + scale-up) | Variable | White/transparent | Different angle | Convert PNG→RGB, torso crop |
 | Kaggle real photos (NEW) | High-res | Variable (tables, floors) | Loose, variable | **Bbox detect → torso crop** |
@@ -383,11 +412,13 @@ Same format as existing `ingest_real_photos.py` mapping. The `prepare.py` adapte
 ### 5.2 Processing Strategy by Source
 
 **Renders (BrickLink):**
+
 1. Convert to RGB (handle RGBA PNGs)
 2. Apply `torso_crop()` directly
 3. No bbox detection needed
 
 **Real Photos (Kaggle, iPhone):**
+
 1. Convert to RGB
 2. Apply `detect_figure_bbox()` to locate the minifigure
 3. Crop to bbox → apply `torso_crop()`
@@ -400,6 +431,7 @@ Same format as existing `ingest_real_photos.py` mapping. The `prepare.py` adapte
 The current `detect_figure_bbox()` uses corner-sampling for background estimation + L2 threshold. This is the **most likely failure point** on real photos (see Critical Issue §6). Phase 0 validates this before investing in data.
 
 **If crop fails on real photos, possible fixes (in order of complexity):**
+
 1. Tune L2 threshold (currently 50 — may need adjustment for non-uniform backgrounds)
 2. Add minimum bbox size check (≥ 15% of image area)
 3. Use `rembg` library for background removal as preprocessing
@@ -414,6 +446,7 @@ Augmentation (using existing `build_eval_set.py` transforms) can be added in a f
 ### 5.5 Output Format
 
 All processed images must produce:
+
 - 224×224 RGB JPEG
 - Torso-cropped (vertical band 30%–70%)
 - Padded to square with fill `(244, 244, 244)`
@@ -428,6 +461,7 @@ All processed images must produce:
 **Decision: Augment the embedding index, do not fine-tune DINOv2.**
 
 Rationale:
+
 - Fine-tuning DINOv2 requires significant compute and risks catastrophic forgetting
 - The model already produces good features — the problem is that the index only contains one view (render) per figure
 - Adding real-photo and cross-source embeddings to the index gives the nearest-neighbor search multiple "anchor points" per figure, naturally bridging the domain gap
@@ -440,7 +474,7 @@ Rationale:
 Current index: 14,113 entries (1 embedding per figure)
 
 | Source | Entries to Add | Status |
-|---|---|---|
+| --- | --- | --- |
 | Kaggle ihelon real photos (P0) | ~350 (70% of 498) | **Active** |
 | BrickLink renders (P1, scale up) | ~1,800 additional | **Active — zero new code** |
 | ~~Kaggle datasciencedonut~~ | ~~~241~~ | **Deferred** — no labels |
@@ -458,7 +492,7 @@ However, for figures with real-photo embeddings, we want to ensure the real-phot
 ### 6.4 Index Size Impact (Revised)
 
 | Metric | Current | After Phase 1+2 | Delta |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Entries | 14,113 | ~16,250 | +15% |
 | `.bin` file | 10.8 MB | ~12.4 MB | +1.6 MB |
 | JSON index | ~350 KB | ~400 KB | +50 KB |
@@ -471,7 +505,7 @@ Well within the 10 MB budget. No compression or quantization needed.
 **Before/after metrics to track:**
 
 | Eval Set | Metric | Baseline | Target |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Synthetic variants (existing) | recall@1 | (current value) | ≥ maintain |
 | Synthetic variants (existing) | recall@5 | (current value) | ≥ maintain |
 | BrickLink cross-source | recall@1 | (current value) | ≥ maintain |
@@ -481,6 +515,7 @@ Well within the 10 MB budget. No compression or quantization needed.
 | Kaggle real photos (held-out) | recall@5 | N/A (new) | ≥ 0.350 |
 
 **Eval split for Kaggle real photos:**
+
 - 70% for index augmentation (~350 images)
 - 30% for held-out evaluation (~150 images)
 - Split stratified by character/theme to avoid information leakage
@@ -494,12 +529,13 @@ Well within the 10 MB budget. No compression or quantization needed.
 ### 7.1 New Scripts (Revised — Minimal)
 
 | Script | Purpose | Location |
-|---|---|---|
+| --- | --- | --- |
 | `prepare.py` | Convert Kaggle ihelon folder structure → flat mapping JSON for `ingest_real_photos.py` | `datasets/kaggle_real_photos/` |
 
 That's it. One script, ~50 lines. The existing pipeline handles everything else.
 
 **DROPPED scripts (redundant with existing tools):**
+
 - ~~`download_huggingface.py`~~ — HuggingFace dataset dropped entirely (see Critical Issues §1)
 - ~~`download_kaggle.py`~~ — Kaggle CLI one-liner, doesn't need a script
 - ~~`map_kaggle_ids.py`~~ — Absorbed into `prepare.py` using existing `score_match()`
@@ -510,22 +546,26 @@ That's it. One script, ~50 lines. The existing pipeline handles everything else.
 ### 7.2 Changes to Existing Scripts (Revised — Minimal)
 
 **`ingest_real_photos.py`:**
+
 - **No changes needed.** The `map`, `augment`, and `eval` commands already handle the full pipeline.
 - `prepare.py` adapts the Kaggle folder structure into the mapping JSON format that `ingest_real_photos.py` already expects.
 
 **`embed_catalog.py`, `evaluate_retrieval.py`, `build_eval_set.py`, `fetch_bricklink_images.py`:**
+
 - No changes needed.
 
 ### 7.3 Notebook Changes (Colab, Revised — Minimal)
 
 Add **one** new cell block to `dinov2_retrieval_prototype.ipynb`:
 
-**New Cell Block: Kaggle Real Photos (after existing BrickLink cells)**
-```
+New cell block: Kaggle real photos (after existing BrickLink cells):
+
+```text
 ## Kaggle Real Photos — Download, Map, Augment Index, Evaluate
 ```
 
 Cells to add:
+
 1. `pip install kaggle` + download ihelon dataset
 2. Run `prepare.py` to generate mapping JSON
 3. Run `ingest_real_photos.py augment` with the Kaggle mapping
@@ -534,7 +574,7 @@ Cells to add:
 
 ### 7.4 Colab Execution Flow (Revised)
 
-```
+```text
 1. Setup & Dependencies (existing)
 2. Build eval set + embed catalog (existing)
 3. Evaluate baseline (existing)
@@ -554,12 +594,14 @@ Cells to add:
 ### 8.1 Mapping Validation
 
 For the ~50 Kaggle character→figure_id mappings:
+
 - Visually inspect 2–3 sample photos per character against the catalog render
 - Fix mismatches in `mapping.json` directly (one-time manual task)
 
 ### 8.2 Embedding Sanity Checks
 
 For newly-added embeddings:
+
 1. Compute cosine similarity to the catalog render embedding for the same figure ID
 2. Expected: cosine > 0.2 for real photos
 3. Outliers (cosine < 0.15) → likely bad mapping or failed crop → fix or remove
@@ -577,10 +619,12 @@ python evaluate_retrieval.py --index index/dinov2_vits14_augmented --eval eval/ 
 ```
 
 **Acceptance criteria:**
+
 - Synthetic recall@1: no decrease > 0.02
 - Real-photo recall@1: increase from 0.040 (any measurable improvement is progress)
 
 **DROPPED over-engineering:**
+
 - ~~Perceptual hash overlap analysis~~ — HuggingFace dropped
 - ~~Visual comparison grids~~ — Manual review is sufficient for 50 mappings
 - ~~Cross-source confusion matrix~~ — Nice to have later, not needed for Phase 1
@@ -593,7 +637,7 @@ python evaluate_retrieval.py --index index/dinov2_vits14_augmented --eval eval/ 
 ### 9.1 Dataset Quality Issues (Revised)
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Kaggle real photos have poor quality (blurry, partial) | Medium | Bad embeddings pollute index | Quality filter: reject images where bbox < 15% of image area or cropped figure < 50×50px |
 | Kaggle photos contain non-minifigure content | Low | False embeddings | Cosine sanity check against catalog render |
 | Torso crop fails on real photos (wrong region) | Medium | **High** — more data won't help | Phase 0 crop audit; fix crop logic before adding data |
@@ -602,14 +646,14 @@ python evaluate_retrieval.py --index index/dinov2_vits14_augmented --eval eval/ 
 ### 9.2 ID Mapping Errors (Revised)
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Kaggle fuzzy match assigns wrong figure | Medium | Poisoned embeddings | Manual review of ~50 mappings; cosine sanity check |
 | One character folder maps to multiple valid figures | High | Ambiguous ground truth | Accept any variant as correct match |
 
 ### 9.3 Index Size Growth (Revised)
 
 | Scenario | Index Size | iOS Bundle Delta |
-|---|---|---|
+| --- | --- | --- |
 | Current | 10.8 MB | — |
 | +350 ihelon real photos | 11.1 MB | +0.3 MB |
 | +350 ihelon + 1,800 BrickLink | 12.4 MB | +1.6 MB |
@@ -619,7 +663,7 @@ Well under the 20 MB budget. Size is not a concern with the reduced scope.
 ### 9.4 Colab Compute Time
 
 | Step | Estimated Time (T4 GPU) | Estimated Time (CPU) |
-|---|---|---|
+| --- | --- | --- |
 | Embed 14K catalog renders | ~15 min | ~3 hours |
 | Embed 3K external real photos | ~3 min | ~40 min |
 | Embed 2K BrickLink renders | ~2 min | ~25 min |
@@ -629,7 +673,7 @@ Well under the 20 MB budget. Size is not a concern with the reduced scope.
 ### 9.5 License Compliance (Revised)
 
 | Dataset | License | Commercial Use | Attribution Required |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Kaggle ihelon | CC BY 4.0 | ✅ Yes | Credit original author |
 | BrickLink renders | Web scraping | ⚠️ Fair use for eval | Do not redistribute |
 
@@ -657,6 +701,7 @@ Well under the 20 MB budget. Size is not a concern with the reduced scope.
 This uses the **existing `ingest_real_photos.py` pipeline** with ONE modification: a small adapter to convert the Kaggle folder structure to the flat-file + mapping format that `ingest_real_photos.py` already expects.
 
 **Steps:**
+
 1. Download Kaggle ihelon dataset (31 MB): `kaggle datasets download -d ihelon/lego-minifigures-classification -p datasets/kaggle_real_photos/raw/ --unzip`
 2. Write a short adapter script (`datasets/kaggle_real_photos/prepare.py`, ~50 lines) that:
    - Walks the theme/character folder structure
@@ -674,6 +719,7 @@ This uses the **existing `ingest_real_photos.py` pipeline** with ONE modificatio
 **Goal:** Scale BrickLink renders from 199 → ~2,000 using the existing pipeline.
 
 **Steps:**
+
 1. Run existing `fetch_bricklink_images.py` with a higher target count
 2. Embed new BrickLink renders using existing `embed_catalog.py` patterns
 3. Run eval suite to verify cross-source recall improves
@@ -704,7 +750,7 @@ This uses the **existing `ingest_real_photos.py` pipeline** with ONE modificatio
 ### Key File Paths
 
 | Purpose | Path |
-|---|---|
+| --- | --- |
 | Catalog | `Bricky/Resources/MinifigureCatalog.json.gz` |
 | Catalog renders | `Bricky/Resources/MinifigImages/fig-NNNNNN.jpg` |
 | Embedding scripts | `Tools/dinov2-embeddings/` |
@@ -718,7 +764,7 @@ This uses the **existing `ingest_real_photos.py` pipeline** with ONE modificatio
 ### Key Functions
 
 | Function | File | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `torso_crop(img)` | `embed_catalog.py` | Vertical band 30-70%, 224×224, padded |
 | `detect_figure_bbox(img)` | `evaluate_retrieval.py`, `ingest_real_photos.py` | Corner-based background detection |
 | `embed_batch(model, batch)` | `embed_catalog.py` | L2-normalized CLS embeddings |
@@ -729,7 +775,7 @@ This uses the **existing `ingest_real_photos.py` pipeline** with ONE modificatio
 ### Size Budget
 
 | Component | Current | Budget Max |
-|---|---|---|
+| --- | --- | --- |
 | Embedding index (.bin) | 10.8 MB | 20 MB |
 | Index metadata (.json) | ~350 KB | 1 MB |
 | Total iOS bundle delta | — | ≤ 10 MB |
@@ -743,6 +789,7 @@ This uses the **existing `ingest_real_photos.py` pipeline** with ONE modificatio
 **Architecture:** Uses **Mask R-CNN** for detecting individual minifigure components (head, torso, legs) + **metric learning** for identification. This is the closest existing system to Bricky's approach.
 
 **Key insight:** Their part-detection step (separate head/torso/legs before matching) may outperform our whole-figure bbox approach. If our torso crop continues underperforming on real photos, consider:
+
 1. Training a simple object detector to locate just the torso region (instead of heuristic 30%–70% vertical band)
 2. Using separate embeddings for head, torso, and legs with a combined score
 
@@ -766,6 +813,7 @@ Their shared finding: **significant domain gap between synthetic renders and rea
 ### 11.4 Rendering Minifigures from LDraw
 
 If we can obtain LDraw (.dat) files for assembled minifigures (not just individual parts), we could render torso crops at 224×224 from multiple angles using the Blender pipelines above. This would provide:
+
 - Controlled variation in camera angle (which our single-render catalog doesn't have)
 - Background variation (our renders all have the same cream/white background)
 - Lighting variation
@@ -779,7 +827,7 @@ If we can obtain LDraw (.dat) files for assembled minifigures (not just individu
 The following datasets were identified during research (primarily from the [awesome-lego-machine-learning](https://github.com/360er0/awesome-lego-machine-learning) survey) but **excluded** from the import plan because they focus on individual brick/part classification rather than assembled minifigure identification:
 
 | Dataset | Size | Reason for Exclusion |
-|---|---|---|
+| --- | --- | --- |
 | Gdańsk/Nature paper (Boiński 2023) | 155K photos + 1.5M renders | 447 individual parts, not minifigures |
 | B200C (Kaggle ronanpickell) | 800K renders | 200 parts, not minifigures |
 | Joost Hazelzet "Images of LEGO Bricks" | 46K images, 1 GB | Standard brick images |

@@ -25,6 +25,7 @@ struct MinifigureScanView: View {
     @State private var savedFigureName: String?
     @State private var showCorrectionPicker = false
     @State private var autoEnhance: Bool = ScanImageEnhancer.isEnabled
+    @State private var scanDisplayStage: ScanDisplayStage = .idle
     @State private var enhancingInProgress = false
     /// Briefly true after enhance completes — drives the
     /// "✓ Enhanced!" confirmation message before identification stages.
@@ -33,12 +34,24 @@ struct MinifigureScanView: View {
     /// drives the persistent "✓ Auto-enhanced" badge so the user always
     /// has visual proof the step ran.
     @State private var enhanceWasApplied = false
+    @State private var lastScanWasEnhanced = false
     @State private var hybridAnalysis: HybridFigureAnalyzer.Analysis?
     @State private var showSubjectFullScreen = false
     /// True when the identify() call was triggered from a pre-captured
     /// (history re-scan) image that was already enhanced previously.
     /// Prevents double-enhancement artifacts.
     @State private var isPreCapturedScan = false
+
+    private enum ScanDisplayStage {
+        case idle
+        case captured
+        case enhancing
+        case enhancedPreview
+        case identifying
+    }
+
+    private static let capturedPreviewDelay: UInt64 = 250_000_000
+    private static let enhancedPreviewDelay: UInt64 = 850_000_000
 
     var body: some View {
         ZStack {
@@ -72,13 +85,8 @@ struct MinifigureScanView: View {
                         .scaledToFill()
                         .ignoresSafeArea()
                 }
-                Color.black.opacity(0.55).ignoresSafeArea()
-                VStack(spacing: 24) {
-                    MinifigureScanStatusView(
-                        overrideMessage: enhanceOverrideMessage,
-                        showCloudValidation: false
-                    )
-                }
+                Color.black.opacity(processingOverlayOpacity).ignoresSafeArea()
+                scanProcessingOverlay
                 // Cloud validation banner pinned to top of screen
                 if identificationService.scanPhase == .cloudValidation {
                     VStack {
@@ -95,13 +103,20 @@ struct MinifigureScanView: View {
                 // top-right placement outside the visible frame on the
                 // direct-scan entry path.
                 if enhanceWasApplied {
-                    enhancedBadge
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 50)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity,
-                               alignment: .bottomTrailing)
-                        .ignoresSafeArea()
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            enhancedBadge
+                                .fixedSize()
+                                .padding(.trailing, 20)
+                                .padding(.bottom, 72)
+                        }
+                    }
+                    .safeAreaPadding(.bottom, 10)
+                    .allowsHitTesting(false)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .zIndex(2)
                 }
             }
         }
@@ -194,13 +209,91 @@ struct MinifigureScanView: View {
     /// Status overlay's main message, derived from current pipeline phase.
     /// Returns nil to fall through to the cycling stage messages.
     private var enhanceOverrideMessage: String? {
-        if enhancingInProgress {
+        if scanDisplayStage == .enhancing || enhancingInProgress {
             return "Enhancing image — auto-cropping & adjusting lighting…"
         }
-        if enhanceJustCompleted {
+        if scanDisplayStage == .enhancedPreview || enhanceJustCompleted {
             return "✓ Enhanced! Now identifying…"
         }
         return nil
+    }
+
+    private var processingOverlayOpacity: Double {
+        switch scanDisplayStage {
+        case .captured, .enhancing, .enhancedPreview:
+            return 0.34
+        case .identifying, .idle:
+            return 0.55
+        }
+    }
+
+    @ViewBuilder
+    private var scanProcessingOverlay: some View {
+        switch scanDisplayStage {
+        case .captured:
+            scanStepMessage(
+                title: "Photo captured",
+                message: "Preparing image…",
+                systemImage: "camera.viewfinder"
+            )
+        case .enhancing:
+            scanStepMessage(
+                title: "Enhancing image",
+                message: "Auto-cropping and adjusting lighting…",
+                systemImage: "wand.and.stars",
+                showsProgress: true
+            )
+        case .enhancedPreview:
+            scanStepMessage(
+                title: "Enhanced image ready",
+                message: "Starting scan…",
+                systemImage: "checkmark.seal.fill"
+            )
+        case .identifying, .idle:
+            VStack(spacing: 24) {
+                MinifigureScanStatusView(
+                    overrideMessage: nil,
+                    showCloudValidation: false
+                )
+            }
+        }
+    }
+
+    private func scanStepMessage(
+        title: String,
+        message: String,
+        systemImage: String,
+        showsProgress: Bool = false
+    ) -> some View {
+        VStack(spacing: 14) {
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(.white)
+            } else {
+                Image(systemName: systemImage)
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.86))
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 22)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.black.opacity(0.45))
+        )
+        .padding(.horizontal, 24)
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        .animation(.easeInOut(duration: 0.25), value: scanDisplayStage)
     }
 
     /// Persistent confirmation badge shown in the bottom-right during
@@ -343,7 +436,14 @@ struct MinifigureScanView: View {
     @MainActor
     private func identify(image: UIImage) async {
         isIdentifying = true
-        defer { isIdentifying = false }
+        scanDisplayStage = .captured
+        enhanceWasApplied = false
+        enhanceJustCompleted = false
+        lastScanWasEnhanced = false
+        defer {
+            isIdentifying = false
+            scanDisplayStage = .idle
+        }
 
         // Bake EXIF orientation into the bitmap so .cgImage downstream
         // (saliency, color extraction, feature prints) sees the image
@@ -351,10 +451,15 @@ struct MinifigureScanView: View {
         // enabled (default), run our auto-crop + CoreImage enhancement
         // pipeline OFF the main actor with a visible status message.
         var oriented = image.normalizedOrientation()
+        capturedImage = oriented
+        if !isPreCapturedScan {
+            try? await Task.sleep(nanoseconds: Self.capturedPreviewDelay)
+        }
         // Skip enhancement for images from scan history — they were
         // already auto-cropped + enhanced on the original scan.
         let shouldEnhance = ScanImageEnhancer.isEnabled && !isPreCapturedScan
         if shouldEnhance {
+            scanDisplayStage = .enhancing
             enhancingInProgress = true
             // Run enhancement off the main actor. No artificial delay —
             // the pipeline is fast enough that a forced wait just feels
@@ -366,7 +471,12 @@ struct MinifigureScanView: View {
             // tone-corrected) image as the backdrop for the next phase.
             capturedImage = oriented
             enhancingInProgress = false
+            enhanceJustCompleted = true
             enhanceWasApplied = true
+            lastScanWasEnhanced = true
+            scanDisplayStage = .enhancedPreview
+            try? await Task.sleep(nanoseconds: Self.enhancedPreviewDelay)
+            enhanceJustCompleted = false
         } else if !isPreCapturedScan {
             // Even with auto-enhance off, straighten the image so the
             // figure stands upright in results.
@@ -376,6 +486,8 @@ struct MinifigureScanView: View {
         } else if oriented !== image {
             capturedImage = oriented
         }
+
+        scanDisplayStage = .identifying
 
         // Run identification with no artificial delay — show results as
         // soon as the pipeline finishes.
@@ -476,10 +588,6 @@ struct MinifigureScanView: View {
             errorMessage = error.localizedDescription
         }
         camera.capturedImage = nil
-        // Clear badge so it doesn't linger on a subsequent re-scan that
-        // takes the manual (non-enhance) path.
-        enhanceWasApplied = false
-        enhanceJustCompleted = false
     }
 
     // MARK: - Results sheet
@@ -490,6 +598,10 @@ struct MinifigureScanView: View {
                 VStack(spacing: 12) {
                     if let hybrid = hybridAnalysis {
                         analysisBanner(hybrid)
+                    }
+
+                    if lastScanWasEnhanced {
+                        enhancedResultBanner
                     }
 
                     // Always show cloud status so user knows what happened
@@ -651,6 +763,25 @@ struct MinifigureScanView: View {
     }
 
     // MARK: - Analysis banner
+
+    private var enhancedResultBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.green)
+            Text("Auto-enhanced scan — cropped, straightened, and lighting adjusted")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.green.opacity(0.08))
+        )
+    }
 
     @ViewBuilder
     private var cloudStatusBanner: some View {

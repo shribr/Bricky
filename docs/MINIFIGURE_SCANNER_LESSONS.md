@@ -13,6 +13,65 @@ amount of identity information it does. This document is the
 
 ---
 
+## 2026-04-26 handoff: scanner rescue attempt did not work
+
+This section is intentionally blunt for the next engineer or LLM. The
+recent scanner changes should not be treated as a solved implementation.
+They passed synthetic unit tests and simulator builds, but the user
+continued to report incorrect live-photo scan results, including severe
+color mismatches such as mostly green subjects returning mostly red
+figures. The live scanner accuracy problem remains unresolved.
+
+What was changed during the failed recovery attempt:
+
+- Replaced the default scanner path in
+  [Bricky/Services/MinifigureIdentificationService.swift](../Bricky/Services/MinifigureIdentificationService.swift)
+  with an evidence core that combines CLIP nearest-neighbor retrieval
+  and foreground color evidence. The legacy scanner is still behind the
+  `Bricky.UseLegacyMinifigureScannerCore` user-default flag.
+- Regenerated the CLIP embedding index with catalog renders,
+  HuggingFace gap-fill images, and a small set of reviewed real photos.
+  This improved local eval numbers for the tiny reviewed set but did
+  not prove live camera correctness.
+- Reattached `refineWithLocalReferenceImages` after noticing the
+  replacement core had skipped the old visual refinement stage. This
+  was an important bug, but fixing it did not resolve the user's live
+  scan failures.
+- Widened the candidate pool to give visual refinement more choices.
+  This is still candidate management, not a validated recognition model.
+- Added a dominant primary-color gate after the user pointed out that a
+  green figure should not return red-only results. This was a reactive
+  gate added after failure, not evidence of a robust classifier.
+- Added synthetic/ranker-level tests in
+  [BrickyTests/MinifigureIdentificationServiceTests.swift](../BrickyTests/MinifigureIdentificationServiceTests.swift),
+  including a green-dominant regression. These tests validate the new
+  scoring rules, not real camera performance.
+- Changed scan-image enhancement and scanner UI flow so the enhanced
+  image is shown before identification starts, and made straightening
+  more conservative after it produced diagonal-looking photos. These UX
+  fixes do not address recognition accuracy.
+
+Do not continue by adding more thresholds, color exceptions, confidence
+caps, or one-off gates unless they are driven by a real evaluation set.
+The current scanner code has accumulated patches around the core issue:
+there is no trustworthy end-to-end live-photo evaluation harness, no
+validated torso/part segmentation, and no measured proof that the
+ranking logic works on newly captured photos.
+
+Recommended next move:
+
+1. Freeze scanner logic changes until there is a labeled live-photo test
+   set from actual failed scans.
+2. Build an evaluation harness that runs the same image preprocessing,
+   CLIP retrieval, color extraction, refinement, cloud fallback, and
+   reranking path used in the app.
+3. Measure recall@1/recall@5 before changing logic again.
+4. Either simplify back to a clean architecture or rewrite the scanner
+   around validated segmentation plus torso-first retrieval. Avoid
+   preserving the current patch stack just because it builds.
+
+---
+
 ## 1. Discriminative power per part — research breakdown
 
 ### Torso — by far the strongest single signal
@@ -28,6 +87,7 @@ corresponding head, hair, legs, and accessory that came with it" — the
 torso is treated as the **anchor**.
 
 **For our scanner:**
+
 - Torso is the **primary classifier** — effectively the figure's primary key. The pipeline runs torso identification first, then uses other parts only as a consistency check (see §3).
 - The **front of the torso** is where almost all of the signal lives.
 - Back printing exists on ~30–40% of modern torsos and is worth
@@ -37,6 +97,7 @@ torso is treated as the **anchor**.
 ### Head (face print) — strong for licensed, weak for generics
 
 Head prints are high-variance in utility:
+
 - For **licensed IP** (specific Star Wars, Harry Potter, Marvel
   characters), the face is often unique to that one character and can
   single-handedly identify them.
@@ -51,6 +112,7 @@ needs to handle the fact that the same physical head has two valid
 prints depending on rotation.
 
 **For our scanner:**
+
 - Treat the head as a strong **disambiguator** given a torso
   hypothesis, rather than a primary classifier.
 - Head + torso together is near-deterministic for most figures.
@@ -71,6 +133,7 @@ piece adds meaningful entropy**; the same mold in black vs. dark brown
 vs. red often indicates different characters.
 
 **For our scanner:**
+
 - Treat hair as two separate features: **mold ID (silhouette/shape)
   and color**.
 - Mold is mid-tier discriminative; mold + color together is stronger.
@@ -91,6 +154,7 @@ dual-colored legs, and multi-color injected "boots pattern" legs —
 those latter two categories are where the signal is.
 
 **For our scanner:**
+
 - Run a quick **"printed vs. plain"** classifier first.
 - Plain legs → downweight the leg feature heavily.
 - Printed / dual-molded → upweight to roughly torso-tier.
@@ -103,6 +167,7 @@ but not which one. Capes and neck-bracket accessories are slightly more
 discriminative but still secondary.
 
 **For our scanner:**
+
 - Use accessories as a **weak prior**, not a classifier input.
 - Gracefully handle missing accessories since loose minifigures in the
   wild are often incomplete.
@@ -223,7 +288,8 @@ pipeline. Discrepancies between prior documentation and actual code are
 noted.
 
 ### Full pipeline flow (verified)
-```
+
+```text
 identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionReranker
 ```
 
@@ -233,10 +299,11 @@ identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionRe
    rare color). Joint-inference weights: torso 0.72, head 0.10, hair
    0.10, legs 0.04, accessories 0.02 (placeholder).
 2. **Phase 1.5** (`mergeWithEmbeddingHits`): CoreML `TorsoEncoder.mlmodelc`
-   + `FaceEncoder.mlmodelc`. **Graceful no-op** when models aren't bundled
+  and `FaceEncoder.mlmodelc`. **Graceful no-op** when models aren't bundled
    (`isAvailable` checks both model + index). Injection threshold: cosine
    >= 0.50. **Never reorders** existing candidates — only adds new ones.
 3. **Phase 2** (`refineWithLocalReferenceImages`): Three-signal blend:
+
    - `VNFeaturePrintObservation` on torso band (0.45 weight)
    - `TorsoVisualSignature` spatial descriptor (0.30 weight)
    - `VNFeaturePrintObservation` on full figure (0.25 weight)
@@ -248,6 +315,7 @@ identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionRe
    prints cluster tightly on minifig photos.
 
 ### Embedding resources (verified in bundle)
+
 - `Bricky/Resources/TorsoEmbeddings/`: `torso_embeddings.bin` (Float16),
   `torso_embeddings_index.json`, `torso_embeddings_mean.bin`
 - `Bricky/Resources/FaceEmbeddings/`: `face_embeddings.bin` (Float16),
@@ -256,6 +324,7 @@ identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionRe
   `FaceEncoder.mlmodelc` — if absent, Phase 1.5 is entirely disabled
 
 ### Test coverage (as of audit)
+
 - `fuzzyScore()`: 4 assertions
 - `MinifigurePartClassifier.slot()`: 13 assertions
 - **Core identification pipeline: ZERO test coverage**
@@ -263,6 +332,7 @@ identify(torsoImage:) → Phase 1 → Phase 1.5 → Phase 2 → UserCorrectionRe
   or end-to-end identification
 
 ### Python pipeline alignment
+
 - `embed_catalog.py` torso crop: 30-70% vertical band → 224×224 thumbnail
   → letterbox on (244,244,244) → ImageNet normalize. **Matches** Swift's
   Phase 1 crop coordinates but Swift uses `scaleFill` (not letterbox).
@@ -331,9 +401,11 @@ from 4'2" to 5'0", the tallest kid is obvious — that's CLIP (spread up
 to 0.072).
 
 In the debug log this appears as:
-```
+
+```text
 Discrimination (top1−top5): 0.0720 — GOOD
 ```
+
 - **> 0.06** → GOOD — the model is confident about its #1 pick.
 - **0.03–0.06** → MODERATE — probably right, but hedging.
 - **< 0.03** → POOR — the model can't really tell them apart.
@@ -364,6 +436,7 @@ at once. Two figures that look similar will have similar recipes
 ### Injection vs Boosting
 
 When the embedding model finds a match:
+
 - **Boosting** means a candidate that was *already* in the list (from
   the color cascade) gets a confidence bump because the embedding model
   agrees. Like getting extra credit — your grade goes up.
@@ -374,7 +447,7 @@ When the embedding model finds a match:
 ### CLIP vs DINOv2 — Why CLIP Wins
 
 | | DINOv2 | CLIP |
-|---|--------|------|
+| --- | --- | --- |
 | **Trained on** | ImageNet (generic photos) | 12,966 LEGO minifigure images |
 | **Embedding size** | 384-D | 512-D |
 | **Cosine range** | 0.63 – 0.67 (narrow) | 0.71 – 0.86 (wide) |

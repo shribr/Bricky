@@ -48,18 +48,20 @@ enum ScanImageEnhancer {
         //    scene context to detect tilt — running after autocrop
         //    strips that context away (the cropped image is mostly
         //    figure, no background lines to anchor off of).
-        let straightenedCG = straighten(cgImage: cg) ?? cg
+        let firstStraightenedCG = conservativeStraighten(cgImage: cg)
+        let straightenedCG = firstStraightenedCG ?? cg
 
         // 2. Auto-crop around the subject with padding.
         let croppedCG = autoCrop(cgImage: straightenedCG) ?? straightenedCG
+        let finalSubjectCG = croppedCG
 
         // 3. Auto-enhance with CoreImage.
-        let ci = CIImage(cgImage: croppedCG)
+        let ci = CIImage(cgImage: finalSubjectCG)
         let enhanced = applyAutoAdjustments(to: ci) ?? ci
 
         // 4. Bake back to UIImage.
         guard let finalCG = ciContext.createCGImage(enhanced, from: enhanced.extent) else {
-            return UIImage(cgImage: croppedCG)
+            return UIImage(cgImage: finalSubjectCG)
         }
         return UIImage(cgImage: finalCG, scale: oriented.scale, orientation: .up)
     }
@@ -79,7 +81,7 @@ enum ScanImageEnhancer {
     static func straightenOnly(_ image: UIImage) -> UIImage {
         let oriented = image.normalizedOrientation()
         guard let cg = oriented.cgImage else { return oriented }
-        guard let straightened = straighten(cgImage: cg) else { return oriented }
+        guard let straightened = conservativeStraighten(cgImage: cg) else { return oriented }
         return UIImage(cgImage: straightened, scale: oriented.scale, orientation: .up)
     }
 
@@ -103,6 +105,11 @@ enum ScanImageEnhancer {
     /// Returns nil if the figure is already nearly upright (within ±2°)
     /// or if detection fails.
     private static func straighten(cgImage: CGImage) -> CGImage? {
+        if let angle = foregroundTiltAngle(cgImage: cgImage),
+           abs(angle) > 2.0, abs(angle) < 45.0 {
+            return applyRotation(to: cgImage, angleDegrees: angle)
+        }
+
         // Strategy 1: Use saliency + contour to find the figure's tilt.
         if let angle = figureTiltAngle(cgImage: cgImage),
            abs(angle) > 2.0, abs(angle) < 45.0 {
@@ -122,6 +129,90 @@ enum ScanImageEnhancer {
         let angleDegrees = observation.angle * 180.0 / .pi
         guard abs(angleDegrees) > 2.0 && abs(angleDegrees) < 45.0 else { return nil }
         return applyRotation(to: cgImage, angleDegrees: angleDegrees)
+    }
+
+    private static func conservativeStraighten(cgImage: CGImage) -> CGImage? {
+        if let angle = figureTiltAngle(cgImage: cgImage),
+           abs(angle) > 3.0, abs(angle) <= 12.0 {
+            return applyRotation(to: cgImage, angleDegrees: angle)
+        }
+
+        let request = VNDetectHorizonRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        guard let observation = request.results?.first else { return nil }
+        let angleDegrees = observation.angle * 180.0 / .pi
+        guard abs(angleDegrees) > 3.0 && abs(angleDegrees) <= 8.0 else { return nil }
+        return applyRotation(to: cgImage, angleDegrees: angleDegrees)
+    }
+
+    private static func foregroundTiltAngle(cgImage: CGImage) -> Double? {
+        let size = 96
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        var points: [(x: Double, y: Double)] = []
+        points.reserveCapacity(size * size / 4)
+        for y in 0..<size {
+            for x in 0..<size {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let r = pixelData[offset]
+                let g = pixelData[offset + 1]
+                let b = pixelData[offset + 2]
+                let maxChannel = max(r, g, b)
+                let minChannel = min(r, g, b)
+                let saturation = Int(maxChannel) - Int(minChannel)
+                let brightness = (Int(r) + Int(g) + Int(b)) / 3
+
+                let isRed = r > 110 && Int(r) > Int(g) + 35 && Int(r) > Int(b) + 35
+                let isYellow = r > 180 && g > 130 && b < 100
+                let isWhite = saturation < 24 && brightness > 210
+                let isColored = saturation > 42 && brightness > 28
+                guard isRed || isYellow || isWhite || isColored else { continue }
+                points.append((Double(x), Double(y)))
+            }
+        }
+
+        guard points.count >= 40 else { return nil }
+        let n = Double(points.count)
+        let meanX = points.reduce(0) { $0 + $1.x } / n
+        let meanY = points.reduce(0) { $0 + $1.y } / n
+        var cxx = 0.0
+        var cyy = 0.0
+        var cxy = 0.0
+        for point in points {
+            let dx = point.x - meanX
+            let dy = point.y - meanY
+            cxx += dx * dx
+            cyy += dy * dy
+            cxy += dx * dy
+        }
+        guard max(cxx, cyy) > 0 else { return nil }
+
+        let theta = atan2(2 * cxy, cxx - cyy) / 2.0
+        var degrees = theta * 180.0 / .pi
+        if degrees > 45 { degrees -= 90 }
+        else if degrees < -45 { degrees += 90 }
+        return degrees
     }
 
     /// Estimate the figure's tilt angle by finding the saliency mask's
@@ -236,6 +327,11 @@ enum ScanImageEnhancer {
             return cropped
         }
 
+        if let foreground = foregroundColorRect(for: cgImage),
+           let cropped = paddedCrop(of: foreground, in: cgImage, imageW: w, imageH: h) {
+            return cropped
+        }
+
         // No reliable salient region found. Return the original image
         // rather than a blind centered crop — the figure may be off-center,
         // and clipping it out is worse than skipping the crop step.
@@ -333,6 +429,81 @@ enum ScanImageEnhancer {
             width: box.width * w,
             height: box.height * h
         )
+        return rect.integral
+    }
+
+    private static func foregroundColorRect(for cgImage: CGImage) -> CGRect? {
+        let size = 96
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        var minX = size
+        var minY = size
+        var maxX = 0
+        var maxY = 0
+        var count = 0
+
+        for y in 0..<size {
+            for x in 0..<size {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let r = pixelData[offset]
+                let g = pixelData[offset + 1]
+                let b = pixelData[offset + 2]
+                let maxChannel = max(r, g, b)
+                let minChannel = min(r, g, b)
+                let saturation = Int(maxChannel) - Int(minChannel)
+                let brightness = (Int(r) + Int(g) + Int(b)) / 3
+
+                let isRed = r > 105 && Int(r) > Int(g) + 30 && Int(r) > Int(b) + 30
+                let isYellow = r > 175 && g > 125 && b < 115
+                let isStrongColor = saturation > 52 && brightness > 30
+                guard isRed || isYellow || isStrongColor else { continue }
+
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+                count += 1
+            }
+        }
+
+        guard count >= 12, maxX > minX, maxY > minY else { return nil }
+
+        let scaleX = CGFloat(cgImage.width) / CGFloat(size)
+        let scaleY = CGFloat(cgImage.height) / CGFloat(size)
+        var rect = CGRect(
+            x: CGFloat(minX) * scaleX,
+            y: CGFloat(minY) * scaleY,
+            width: CGFloat(maxX - minX + 1) * scaleX,
+            height: CGFloat(maxY - minY + 1) * scaleY
+        )
+
+        let padX = max(rect.width * 0.45, CGFloat(cgImage.width) * 0.04)
+        let padY = max(rect.height * 0.38, CGFloat(cgImage.height) * 0.05)
+        rect = rect.insetBy(dx: -padX, dy: -padY)
+        rect.origin.x = max(0, rect.origin.x)
+        rect.origin.y = max(0, rect.origin.y)
+        rect.size.width = min(CGFloat(cgImage.width) - rect.origin.x, rect.width)
+        rect.size.height = min(CGFloat(cgImage.height) - rect.origin.y, rect.height)
+
+        let area = rect.width * rect.height
+        let imageArea = CGFloat(cgImage.width * cgImage.height)
+        guard area / imageArea >= 0.04 && area / imageArea <= 0.75 else { return nil }
         return rect.integral
     }
 

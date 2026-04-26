@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var cameraViewModel = CameraViewModel()
     @StateObject private var inventoryStore = InventoryStore.shared
     @StateObject private var scanHistory = ScanHistoryStore.shared
+    @StateObject private var minifigureScanHistory = MinifigureScanHistoryStore.shared
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var authService = AuthenticationService.shared
     @State private var showingDemoMode = false
@@ -60,7 +61,7 @@ struct HomeView: View {
                 minifiguresSection
 
                 // Minifigure scan history
-                if !MinifigureScanHistoryStore.shared.entries.isEmpty {
+                if !minifigureScanHistory.entries.isEmpty {
                     minifigureScanHistorySection
                 }
 
@@ -68,6 +69,10 @@ struct HomeView: View {
                 howItWorks
             }
             .padding()
+        }
+        .refreshable {
+            scanHistory.reload()
+            minifigureScanHistory.reload()
         }
         .navigationTitle("\(AppConfig.appName)")
         .navigationDestination(for: UUID.self) { inventoryId in
@@ -813,7 +818,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
 
-                if !MinifigureScanHistoryStore.shared.entries.isEmpty {
+                if !minifigureScanHistory.entries.isEmpty {
                     NavigationLink {
                         MinifigureScanHistoryView()
                     } label: {
@@ -898,8 +903,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var minifigureScanHistorySection: some View {
-        let historyStore = MinifigureScanHistoryStore.shared
-        let recentEntries = Array(historyStore.entries.prefix(4))
+        let recentEntries = Array(minifigureScanHistory.entries.prefix(4))
 
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -911,7 +915,7 @@ struct HomeView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "list.bullet")
-                        Text("View All (\(historyStore.entries.count))")
+                        Text("View All (\(minifigureScanHistory.entries.count))")
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.colorTheme.primary)
@@ -931,7 +935,7 @@ struct HomeView: View {
 
     private func minifigureScanEntryRow(_ entry: MinifigureScanHistoryStore.ScanEntry) -> some View {
         HStack(spacing: 12) {
-            if let img = MinifigureScanHistoryStore.shared.capturedImage(for: entry) {
+            if let img = minifigureScanHistory.capturedImage(for: entry) {
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFill()
