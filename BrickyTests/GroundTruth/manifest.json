@@ -3,9 +3,75 @@
     "description": "Ground-truth dataset for the scanner harness. Each entry maps a captured scan photo to the figure it should have identified. Filenames are resolved relative to BrickyTests/GroundTruth/images/.",
     "entry_fields": {
       "filename": "Image file under images/ (jpg/png/heic).",
-      "figure_id": "Rebrickable-style fig-NNNNNN id from MinifigureCatalog.json.gz.",
+      "figure_id": "Primary identifier used by the harness for matching. Mirrors rebrickable_id when available, otherwise bricklink_id.",
+      "rebrickable_id": "Rebrickable-style fig-NNNNNN identifier (matches Bricky's local catalog). Empty if unknown.",
+      "bricklink_id": "BrickLink figure identifier (e.g. sp002, cty0491, cas125). Empty if unknown.",
       "notes": "Optional free-form context (lighting, pose, what the scanner returned in the failed attempt, etc.)."
     }
   },
-  "entries": []
+  "entries": [
+    {
+      "filename": "lego_minifigure_arctic_explore_female_ cty0491_fig-007213.jpeg",
+      "figure_id": "fig-007213",
+      "rebrickable_id": "fig-007213",
+      "bricklink_id": "cty0491",
+      "notes": "Arctic Explore Female"
+    },
+    {
+      "filename": "lego_minifigure_blacktron_sp002_fig-000061.jpeg",
+      "figure_id": "fig-000061",
+      "rebrickable_id": "fig-000061",
+      "bricklink_id": "sp002",
+      "notes": "Blacktron"
+    },
+    {
+      "filename": "lego_minifigure_forestman_ cas125_fig-006867.jpeg",
+      "figure_id": "fig-006867",
+      "rebrickable_id": "fig-006867",
+      "bricklink_id": "cas125",
+      "notes": "Forestman"
+    },
+    {
+      "filename": "lego_minifigure_ice_planet_male_sp018_fig-000113.jpeg",
+      "figure_id": "fig-000113",
+      "rebrickable_id": "fig-000113",
+      "bricklink_id": "sp018",
+      "notes": "Ice Planet Male"
+    },
+    {
+      "filename": "lego_minifigure_imperial_guard_pi061_fig-004757.jpeg",
+      "figure_id": "fig-004757",
+      "rebrickable_id": "fig-004757",
+      "bricklink_id": "pi061",
+      "notes": "Imperial Guard"
+    },
+    {
+      "filename": "lego_minifigure_islander_king_ pi069_fig-005501.jpeg",
+      "figure_id": "fig-005501",
+      "rebrickable_id": "fig-005501",
+      "bricklink_id": "pi069",
+      "notes": "Islander King"
+    },
+    {
+      "filename": "lego_minifigure_johnny_thunder_ adv010_fig-000802.jpeg",
+      "figure_id": "fig-000802",
+      "rebrickable_id": "fig-000802",
+      "bricklink_id": "adv010",
+      "notes": "Johnny Thunder"
+    },
+    {
+      "filename": "lego_minifigure_shell_worker_ shell010 _fig-005115.jpeg",
+      "figure_id": "fig-005115",
+      "rebrickable_id": "fig-005115",
+      "bricklink_id": "shell010",
+      "notes": "Shell Worker"
+    },
+    {
+      "filename": "lego_minifigure_m_tron_sp033_fig-000065.jpeg",
+      "figure_id": "fig-000065",
+      "rebrickable_id": "fig-000065",
+      "bricklink_id": "sp033",
+      "notes": "M:Tron"
+    }
+  ]
 }

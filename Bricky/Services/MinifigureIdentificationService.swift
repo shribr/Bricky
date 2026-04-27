@@ -1490,7 +1490,10 @@ final class MinifigureIdentificationService: ObservableObject {
     /// live scans can include background, skew, and either torso-only or full-
     /// figure framing. Querying several deterministic crops and taking each
     /// figure's best cosine improves offline recall without any network call.
-    nonisolated private func clipCandidateCrops(cgImage: CGImage) -> [CGImage] {
+    /// Crops used as input to CLIP retrieval. Exposed (internal) so the
+    /// ground-truth harness can run the same retrieval that production
+    /// runs and report production-faithful CLIP rankings.
+    nonisolated func clipCandidateCrops(cgImage: CGImage) -> [CGImage] {
         let best = bestSubjectCrop(cgImage: cgImage)
         var crops: [CGImage] = [best]
 
@@ -2491,6 +2494,14 @@ final class MinifigureIdentificationService: ObservableObject {
         clipHits: [ClipEmbeddingIndex.Hit]
     ) -> [ResolvedCandidate] {
         let clipById = Dictionary(uniqueKeysWithValues: clipHits.map { ($0.figureId, $0.cosine) })
+        // CLIP retrieval gate: when CLIP returned hits, restrict ranking to
+        // figures CLIP actually retrieved. Without this, candidates that have
+        // no CLIP signal at all can outrank correct CLIP top-1 figures whenever
+        // their color-only score happens to land near the confidence cap.
+        // Ground-truth harness diagnosed this as the dominant failure mode
+        // (CLIP top-1 correct on 5/9, but pipeline returned 2/9).
+        // The Brickognize cloud fallback still covers cases where CLIP misses.
+        let clipGate: Set<String>? = clipHits.isEmpty ? nil : Set(clipHits.map { $0.figureId })
         let clipDiscrimination: Double = {
             guard clipHits.count >= 5 else { return 0 }
             return Double(clipHits[0].cosine - clipHits[4].cosine)
@@ -2499,11 +2510,24 @@ final class MinifigureIdentificationService: ObservableObject {
 
         let ranked = allFigures.compactMap { figure -> (ResolvedCandidate, Double)? in
             guard figure.imageURL != nil else { return nil }
+            if let gate = clipGate, !gate.contains(figure.id) { return nil }
             let figureColors = weightedFigureColors(for: figure)
-            guard !failsPrimaryColorGate(
+            // Primary-color gate: only used when CLIP isn't pre-filtering.
+            // The CLIP top-160 is already a strong prefilter — adding the
+            // color-family gate on top of it eliminates correct figures
+            // whenever the scan's dominant color extraction misfires
+            // (background tints, helmet visors, JPEG bleed). Ground-truth
+            // harness diagnosed this as the cause of "missing entirely"
+            // for several CLIP top-1 figures. We let the score's color
+            // weighting and bonuses do the demoting instead, which is
+            // graceful rather than binary.
+            if clipGate == nil,
+               failsPrimaryColorGate(
                 figureColors: figureColors,
                 requiredFamilies: requiredPrimaryFamilies
-            ) else { return nil }
+               ) {
+                return nil
+            }
             let colorScore = colorAgreementScore(
                 figureColors: figureColors,
                 evidence: evidence
@@ -2519,25 +2543,46 @@ final class MinifigureIdentificationService: ObservableObject {
             let clipScore = clipCosine.map { normalizedClipScore($0) } ?? 0
             let hasClipSignal = clipCosine != nil
 
+            // Heavier CLIP weighting (was 0.58/0.42). Ground-truth harness
+            // showed CLIP retrieval is correct at rank 1 for 5/9 images and
+            // within top-10 for 9/9, but the previous color bonuses (esp.
+            // +0.28 classic-space-red) routinely flipped CLIP's winner to a
+            // wrong sibling figure (Blacktron→M:Tron, Imperial Guard→Imperial
+            // Soldier II, etc.). Color now acts more like a tiebreaker.
             var score = hasClipSignal
-                ? 0.58 * clipScore + 0.42 * colorScore
+                ? 0.78 * clipScore + 0.22 * colorScore
                 : colorScore
 
             let redWhiteClassicVariant = evidence.looksLikeClassicSpacePalette
                 && isRedWhiteClassicSpaceVariant(figure)
 
-            if evidence.hasStrongRed && hasRed { score += 0.18 }
-            if evidence.hasStrongWhite && hasWhite { score += 0.12 }
+            // Bonuses scaled down so they bias the ranking without overruling
+            // a confident CLIP placement. Total possible bonus reduced from
+            // ~0.74 to ~0.30.
+            if evidence.hasStrongRed && hasRed { score += 0.08 }
+            if evidence.hasStrongWhite && hasWhite { score += 0.05 }
             if evidence.looksLikeClassicSpacePalette,
                let suitColor = classicSpaceSuitColor(for: figure),
                suitColor == .red {
-                score += 0.28
+                score += 0.10
             }
             if redWhiteClassicVariant {
-                score += 0.16
+                score += 0.07
             }
             score -= whitePenalty
-            if redVeto { score *= 0.18 }
+            // Soften the red veto when CLIP strongly endorses this figure.
+            // The scan's "strong red" detector is prone to false positives
+            // (background, helmet visors, JPEG bleed). A perfect CLIP match
+            // (cos ~0.85+) shouldn't be zeroed out by a single color heuristic.
+            if redVeto {
+                if clipScore >= 0.80 {
+                    score *= 0.85   // mild penalty, keep CLIP's voice
+                } else if clipScore >= 0.50 {
+                    score *= 0.55   // moderate penalty
+                } else {
+                    score *= 0.18   // original behaviour for low-CLIP cases
+                }
+            }
             score = min(max(score, 0), 1)
 
             var confidence = 0.24 + 0.52 * score
@@ -2553,7 +2598,15 @@ final class MinifigureIdentificationService: ObservableObject {
                 confidence += 0.04
             }
             if redVeto {
-                confidence = min(confidence, 0.34)
+                // Mirror the score-side easing: don't slam confidence to 0.34
+                // when CLIP gave a near-perfect endorsement.
+                if clipScore >= 0.80 {
+                    confidence = min(confidence, 0.78)
+                } else if clipScore >= 0.50 {
+                    confidence = min(confidence, 0.55)
+                } else {
+                    confidence = min(confidence, 0.34)
+                }
             } else if colorScore < 0.20 {
                 confidence = min(confidence, 0.44)
             } else if !colorAndClipAgree {

@@ -208,6 +208,51 @@ final class MinifigureCatalog: ObservableObject {
         figureAliases[figureID] ?? []
     }
 
+    // MARK: - BrickLink ↔ Rebrickable id mapping
+
+    /// Hand-curated BrickLink figure id → Rebrickable `fig-NNNNNN` id mapping.
+    ///
+    /// Rebrickable's bulk minifigs.csv does NOT publish BrickLink ids, and
+    /// the only programmatic source is their per-figure REST API
+    /// (`/api/v3/lego/minifigs/{id}/?key=...` → `external_ids.BrickLink`).
+    /// We keep a small, hand-verified table here so:
+    ///   - the ground-truth harness can validate that a BrickLink-tagged
+    ///     test photo resolves to a real catalog entry, and
+    ///   - downstream code (e.g. BrickognizeService) can short-circuit its
+    ///     fuzzy name lookup when a BrickLink id is already known.
+    ///
+    /// Add new entries as new ground-truth photos are imported. Keys are
+    /// lowercased for case-insensitive lookup.
+    nonisolated static let bricklinkToRebrickable: [String: String] = [
+        "cty0491": "fig-007213", // Arctic Explore Female
+        "sp002":   "fig-000061", // Blacktron
+        "cas125":  "fig-006867", // Forestman
+        "sp018":   "fig-000113", // Ice Planet Male
+        "pi061":   "fig-004757", // Imperial Guard
+        "pi069":   "fig-005501", // Islander King
+        "adv010":  "fig-000802", // Johnny Thunder
+        "shell010": "fig-005115", // Shell Worker
+        "sp033":   "fig-000065"  // M:Tron
+    ]
+
+    /// Resolve a BrickLink figure id to the corresponding catalog entry,
+    /// using the static `bricklinkToRebrickable` table. Returns nil if the
+    /// BrickLink id isn't mapped or the mapped Rebrickable id isn't in the
+    /// loaded catalog.
+    func figure(bricklinkId: String) -> Minifigure? {
+        let key = bricklinkId.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !key.isEmpty,
+              let rebrickable = Self.bricklinkToRebrickable[key] else { return nil }
+        return byId[rebrickable]
+    }
+
+    /// Static lookup that doesn't require a loaded catalog — returns the
+    /// mapped Rebrickable id or nil. Useful for tests and tooling.
+    nonisolated static func rebrickableId(forBricklinkId bricklinkId: String) -> String? {
+        let key = bricklinkId.trimmingCharacters(in: .whitespaces).lowercased()
+        return bricklinkToRebrickable[key]
+    }
+
 
     enum OwnershipFilter: String, CaseIterable {
         case all = "All"
