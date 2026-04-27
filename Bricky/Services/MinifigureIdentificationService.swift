@@ -2618,12 +2618,46 @@ final class MinifigureIdentificationService: ObservableObject {
         // Ground-truth harness diagnosed this as the dominant failure mode
         // (CLIP top-1 correct on 5/9, but pipeline returned 2/9).
         // The Brickognize cloud fallback still covers cases where CLIP misses.
-        let clipGate: Set<String>? = clipHits.isEmpty ? nil : Set(clipHits.map { $0.figureId })
+        //
+        // Color-evidence rescue lane: CLIP can miss the correct figure
+        // entirely when the catalog reference photo is low-quality (old
+        // 1989 product shots vs. modern Icons photography). To avoid
+        // permanent exclusion, also admit a small set of figures whose
+        // catalog colors strongly agree with the captured palette AND
+        // whose primary color family matches. These rescue candidates
+        // get no CLIP score, so they can only displace CLIP candidates
+        // when CLIP genuinely had no good match.
+        let clipIdSet: Set<String> = Set(clipHits.map { $0.figureId })
+        let requiredPrimaryFamilies = requiredPrimaryColorFamilies(for: evidence)
+        let colorRescueSet: Set<String> = {
+            guard !clipHits.isEmpty else { return [] }
+            // Score every figure by colorAgreement, take the top 60
+            // outside the CLIP set that pass the primary-color gate.
+            let scoredOutsideClip: [(String, Double)] = allFigures.compactMap { fig in
+                guard fig.imageURL != nil else { return nil }
+                if clipIdSet.contains(fig.id) { return nil }
+                let cols = weightedFigureColors(for: fig)
+                if failsPrimaryColorGate(
+                    figureColors: cols,
+                    requiredFamilies: requiredPrimaryFamilies
+                ) { return nil }
+                let s = colorAgreementScore(figureColors: cols, evidence: evidence)
+                guard s >= 0.55 else { return nil }
+                return (fig.id, s)
+            }
+            let topIds = scoredOutsideClip
+                .sorted { $0.1 > $1.1 }
+                .prefix(60)
+                .map { $0.0 }
+            return Set(topIds)
+        }()
+        let clipGate: Set<String>? = clipHits.isEmpty
+            ? nil
+            : clipIdSet.union(colorRescueSet)
         let clipDiscrimination: Double = {
             guard clipHits.count >= 5 else { return 0 }
             return Double(clipHits[0].cosine - clipHits[4].cosine)
         }()
-        let requiredPrimaryFamilies = requiredPrimaryColorFamilies(for: evidence)
 
         let ranked = allFigures.compactMap { figure -> (ResolvedCandidate, Double)? in
             guard figure.imageURL != nil else { return nil }
