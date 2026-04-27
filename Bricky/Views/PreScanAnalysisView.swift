@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Combine
 
 /// Pre-scan analysis view: shows a camera preview with a scan frame,
 /// lets the user tap "Start Scan" to begin type detection, then routes
@@ -462,31 +463,46 @@ struct PreScanAnalysisView: View {
     /// Applies portrait orientation since the camera sensor is landscape-native
     /// but the user is holding the phone vertically.
     private func captureFrameAsImage() async -> UIImage? {
+        // Use AVCapturePhotoOutput (full-resolution still capture) instead
+        // of grabbing a video preview frame. The preview stream caps out
+        // around 1920×1080 with no HDR / exposure lock — which is roughly
+        // 4× linear smaller than what the direct shutter path feeds the
+        // identification pipeline. That resolution gap was producing
+        // measurably worse CLIP / hat-color / hybrid-analyzer results
+        // for figures routed through the type-detection flow vs. the
+        // direct minifig scan flow.
         await withCheckedContinuation { continuation in
             var hasResumed = false
-            camera.onFrameCaptured = { pixelBuffer in
-                guard !hasResumed else { return }
-                hasResumed = true
-                self.camera.onFrameCaptured = nil
-                let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-                let context = CIContext()
-                guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                // Rear camera sensor is landscape-native; in portrait the
-                // user-facing image needs a 90° CW rotation, expressed via
-                // UIImage.Orientation.right. We then normalize so the
-                // pixel data itself is portrait (so .cgImage downstream
-                // returns a portrait bitmap for Vision processing).
-                let oriented = UIImage(cgImage: cgImage, scale: 1, orientation: .right)
-                continuation.resume(returning: oriented.normalizedOrientation())
-            }
 
+            // Watch for the photo to land on camera.capturedImage. We
+            // don't have a direct callback API on CameraManager for
+            // photo capture, so we observe the published property and
+            // resume on the first non-nil value.
+            var cancellable: AnyCancellable?
+            cancellable = camera.$capturedImage
+                .compactMap { $0 }
+                .first()
+                .sink { image in
+                    guard !hasResumed else { return }
+                    hasResumed = true
+                    cancellable?.cancel()
+                    // Bake EXIF orientation into the bitmap so .cgImage
+                    // downstream sees a portrait pixel buffer.
+                    let normalized = image.normalizedOrientation()
+                    // Clear so the next capture (re-scan) doesn't fire
+                    // the sink immediately with the stale image.
+                    self.camera.capturedImage = nil
+                    continuation.resume(returning: normalized)
+                }
+
+            camera.capturePhoto()
+
+            // Safety timeout — preserves the prior 3s ceiling so the UI
+            // never hangs forever if the photo pipeline stalls.
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 guard !hasResumed else { return }
                 hasResumed = true
-                self.camera.onFrameCaptured = nil
+                cancellable?.cancel()
                 continuation.resume(returning: nil)
             }
         }

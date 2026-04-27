@@ -439,9 +439,13 @@ final class MinifigureIdentificationService: ObservableObject {
         let clipHits: [ClipEmbeddingIndex.Hit]
         if clipAvailable {
             let crops = clipCandidateCrops(cgImage: cgImage)
+            // 240 (was 160) — wider pool gives near-twin variants
+            // (e.g. Forestman fig-006868 vs. moustache reissue) a better
+            // chance to surface when the catalog reference image quality
+            // varies between variants.
             clipHits = await ClipEmbeddingService.shared.nearestFigures(
                 for: crops,
-                topK: 160
+                topK: 240
             )
         } else {
             clipHits = []
@@ -2632,7 +2636,16 @@ final class MinifigureIdentificationService: ObservableObject {
             // for several CLIP top-1 figures. We let the score's color
             // weighting and bonuses do the demoting instead, which is
             // graceful rather than binary.
-            if clipGate == nil,
+            // Apply the primary-color gate when:
+            //  - CLIP isn't pre-filtering, OR
+            //  - one color family is overwhelmingly dominant (≥0.36)
+            //    AND it leads the next family by ≥0.20.
+            // The strong-dominance branch lets us eliminate clearly-wrong
+            // CLIP near-twins (e.g. red/white figures when the scan is
+            // unambiguously green) without harming the more typical case
+            // where dominant-color extraction is noisy.
+            let strongDominance = isStronglyDominantPalette(evidence)
+            if (clipGate == nil || strongDominance),
                failsPrimaryColorGate(
                 figureColors: figureColors,
                 requiredFamilies: requiredPrimaryFamilies
@@ -2709,22 +2722,35 @@ final class MinifigureIdentificationService: ObservableObject {
                 }
             }
 
-            // Bonuses removed entirely. The classic-space-red and red+white
-            // variant boosts were originally there to help white+red Classic
-            // Space figures beat color-only competitors when CLIP couldn't
-            // disambiguate. With the CLIP gate in place the embedding does
-            // that disambiguation directly. The whitePenalty is dropped for
-            // the same reason — it was demoting CLIP-correct figures that
-            // happened to lack white in their catalog parts list (Johnny
-            // Thunder's brown jacket).
+            // Whitepenalty stays disabled — it was demoting CLIP-correct
+            // figures that happened to lack white in their catalog parts list
+            // (Johnny Thunder's brown jacket).
             _ = whitePenalty
-            _ = redWhiteClassicVariant
-            // Soften the red veto when CLIP strongly endorses this figure.
-            // The scan's "strong red" detector is prone to false positives
-            // (background, helmet visors, JPEG bleed). A perfect CLIP match
-            // (cos ~0.85+) shouldn't be zeroed out by a single color heuristic.
+            // Re-enable the red+white classic-space variant bonus narrowly:
+            // when scan palette unmistakably looks classic-space (red+white+
+            // yellow head) and the figure is a confirmed red+white classic
+            // spaceman, give it a small boost. This is the only signal
+            // distinguishing red+white-leg variants from all-red variants
+            // when CLIP cosines are within 0.02 of each other.
+            if redWhiteClassicVariant {
+                score = min(score + 0.10, 1.0)
+            }
+            // Red veto. The scan's "strong red" detector fires at just 0.08
+            // red weight, which is too low to justify hard exclusion when
+            // some other color is actually dominant (e.g. a green figure
+            // with red plume, or a yellow scan with a red accessory bleed).
+            //  • If red is *substantially* dominant (≥0.30 weight) AND CLIP
+            //    cosine isn't a near-perfect match (≥0.85), filter the
+            //    candidate. The 0.85 cosine floor preserves the Johnny
+            //    Thunder safeguard.
+            //  • Otherwise, soft-penalize so a non-red CLIP near-twin can't
+            //    silently overtake a correct red figure.
             if redVeto {
-                if clipScore >= 0.80 {
+                let rawCosine = clipCosine.map(Double.init) ?? 0
+                let redIsDominant = evidence.redWeight >= 0.30
+                if redIsDominant && rawCosine < 0.85 {
+                    return nil      // filter — red is clearly dominant
+                } else if hasClipSignal && rawCosine >= 0.85 {
                     score *= 0.90   // mild penalty, keep CLIP's voice
                 } else if clipScore >= 0.50 {
                     score *= 0.65   // moderate penalty
@@ -2740,9 +2766,9 @@ final class MinifigureIdentificationService: ObservableObject {
                 confidence += 0.08
             }
             if redVeto {
-                // Mirror the score-side easing: don't slam confidence to 0.34
-                // when CLIP gave a near-perfect endorsement.
-                if clipScore >= 0.80 {
+                // Survivors of the red-veto filter get capped by CLIP strength.
+                let rawCosine = clipCosine.map(Double.init) ?? 0
+                if hasClipSignal && rawCosine >= 0.85 {
                     confidence = min(confidence, 0.78)
                 } else if clipScore >= 0.50 {
                     confidence = min(confidence, 0.55)
@@ -2828,6 +2854,29 @@ final class MinifigureIdentificationService: ObservableObject {
         return requiredFamilies.contains { family in
             family.allSatisfy { !candidateColors.contains($0) }
         }
+    }
+
+    /// True when one chromatic color family is overwhelmingly dominant
+    /// in the scan (≥0.36 weight AND leads the next family by ≥0.20).
+    /// Used to decide whether to enforce the primary-color gate even
+    /// when CLIP has already pre-filtered candidates — the CLIP top-K
+    /// can still surface visually-similar figures from wrong color
+    /// families when the captured subject's color is unmistakable.
+    nonisolated private func isStronglyDominantPalette(_ evidence: ScanColorEvidence) -> Bool {
+        let families: [Set<LegoColor>] = [
+            [.green, .darkGreen, .lime],
+            [.red, .darkRed],
+            [.blue, .darkBlue, .lightBlue],
+            [.orange],
+            [.purple, .pink],
+            [.brown, .tan]
+        ]
+        let weights = families
+            .map { family in family.reduce(0.0) { $0 + (evidence.weights[$1] ?? 0) } }
+            .sorted(by: >)
+        guard let strongest = weights.first, strongest >= 0.36 else { return false }
+        let second = weights.dropFirst().first ?? 0
+        return strongest >= second + 0.20
     }
 
     nonisolated func extractScanColorEvidence(from cgImage: CGImage) -> ScanColorEvidence {

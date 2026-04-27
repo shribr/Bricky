@@ -25,6 +25,9 @@ struct CameraScanView: View {
     @State private var showTrackingModeHint = false
     /// Tracks whether the view was actively scanning before navigating away
     @State private var wasScanningBeforeNav = false
+    /// Drives the pulsing opacity on the "Starting scan…" label so the
+    /// brief boundary-ready state feels alive instead of frozen.
+    @State private var startingScanPulse = false
     /// Sprint 6 / A2 — popcorn auto-stop suggestion banner.
     @StateObject private var autoStopMonitor = ScanAutoStopMonitor()
     /// Sprint C — geolocation. Shown once on the user's first scan when
@@ -789,6 +792,13 @@ struct CameraScanView: View {
                         Text("Starting scan…")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.7))
+                            .opacity(startingScanPulse ? 0.55 : 1.0)
+                            .animation(
+                                .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                                value: startingScanPulse
+                            )
+                            .onAppear { startingScanPulse = true }
+                            .onDisappear { startingScanPulse = false }
                     }
 
                 case .scanning:

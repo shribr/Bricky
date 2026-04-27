@@ -247,7 +247,8 @@ struct MinifigureScanView: View {
             scanStepMessage(
                 title: "Enhanced image ready",
                 message: "Starting scan…",
-                systemImage: "checkmark.seal.fill"
+                systemImage: "checkmark.seal.fill",
+                showsProgress: true
             )
         case .identifying, .idle:
             VStack(spacing: 24) {
@@ -1036,43 +1037,49 @@ struct SubjectFullScreenView: View {
     @State private var showShareSheet = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
-            HStack {
-                if image != nil {
+            .navigationTitle("Your scan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(.black.opacity(0.85), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
                     Button {
-                        showShareSheet = true
+                        dismiss()
                     } label: {
-                        Image(systemName: "square.and.arrow.up.circle.fill")
-                            .font(.title)
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(.white)
-                            .padding()
                     }
-                    .accessibilityLabel("Share image")
+                    .accessibilityLabel("Close")
                 }
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
-                        .padding()
+                ToolbarItem(placement: .confirmationAction) {
+                    if image != nil {
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityLabel("Share image")
+                    }
                 }
-                .accessibilityLabel("Close")
             }
-        }
-        .sheet(isPresented: $showShareSheet) {
-            if let image {
-                ShareSheet(items: [image])
+            .sheet(isPresented: $showShareSheet) {
+                if let image {
+                    ShareSheet(items: [image])
+                }
             }
         }
     }
