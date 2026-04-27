@@ -1033,9 +1033,10 @@ private struct AddToCatalogCornerButton: View {
 struct SubjectFullScreenView: View {
     let image: UIImage?
     @Environment(\.dismiss) private var dismiss
+    @State private var showShareSheet = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
             if let image {
                 Image(uiImage: image)
@@ -1043,18 +1044,40 @@ struct SubjectFullScreenView: View {
                     .scaledToFit()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white)
-                    .padding()
+            HStack {
+                if image != nil {
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up.circle.fill")
+                            .font(.title)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.white)
+                            .padding()
+                    }
+                    .accessibilityLabel("Share image")
+                }
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                        .padding()
+                }
+                .accessibilityLabel("Close")
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let image {
+                ShareSheet(items: [image])
             }
         }
     }
 }
+
 
 // MARK: - Cross-view navigation
 
