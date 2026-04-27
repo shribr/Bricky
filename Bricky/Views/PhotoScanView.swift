@@ -20,6 +20,31 @@ struct PhotoScanView: View {
     @State private var isProcessing = false
     @State private var navigateToResults = false
 
+    // MARK: - Subject routing
+
+    /// Whether the photo should be sent through the brick-pile pipeline
+    /// (`CameraViewModel.processCapture`) or the minifigure pipeline
+    /// (`MinifigureScanView` with a pre-captured image).
+    enum SubjectMode: String, CaseIterable, Identifiable {
+        case brick
+        case minifigure
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .brick: return "Brick"
+            case .minifigure: return "Minifigure"
+            }
+        }
+    }
+
+    @State private var subjectMode: SubjectMode = .brick
+    /// Result of the most recent auto-classification, used to render a hint
+    /// ("Detected: Minifigure" / "Looks like bricks" / "Couldn't tell").
+    @State private var autoDetectedSubject: PhotoSubjectClassifier.Subject?
+    @State private var isClassifying = false
+    @State private var navigateToMinifigureScan = false
+    @State private var minifigureScanImage: UIImage?
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -59,6 +84,12 @@ struct PhotoScanView: View {
             }
             .navigationDestination(isPresented: $navigateToResults) {
                 ScanResultsView(session: viewModel.scanSession)
+            }
+            .navigationDestination(isPresented: $navigateToMinifigureScan) {
+                if let image = minifigureScanImage {
+                    MinifigureScanView(preCapturedImage: image,
+                                       skipEnhancement: false)
+                }
             }
             .onChange(of: pickerItem) { _, newItem in
                 Task { await loadPickedImage(newItem) }
@@ -184,6 +215,8 @@ struct PhotoScanView: View {
                     .disabled(lassoPoints.count < 6)
                 }
             } else {
+                subjectPicker
+
                 HStack(spacing: 12) {
                     Button {
                         isTracingMode = true
@@ -195,11 +228,15 @@ struct PhotoScanView: View {
                     }
                     .buttonStyle(.bordered)
                     .tint(.white)
+                    // Tracing a freehand region only makes sense for brick
+                    // piles — minifigure ID needs the whole torso framed.
+                    .disabled(subjectMode == .minifigure)
+                    .opacity(subjectMode == .minifigure ? 0.4 : 1)
 
                     Button {
                         runScan()
                     } label: {
-                        Label("Scan Whole Photo", systemImage: "wand.and.stars")
+                        Label(scanButtonLabel, systemImage: "wand.and.stars")
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 18)
                             .padding(.vertical, 12)
@@ -214,6 +251,49 @@ struct PhotoScanView: View {
         .background(.black.opacity(0.6))
     }
 
+    // MARK: - Subject picker
+
+    @ViewBuilder
+    private var subjectPicker: some View {
+        VStack(spacing: 6) {
+            Picker("Subject", selection: $subjectMode) {
+                ForEach(SubjectMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 24)
+
+            Text(subjectHintText)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+        }
+    }
+
+    private var subjectHintText: String {
+        if isClassifying { return "Detecting subject…" }
+        guard let detected = autoDetectedSubject else {
+            return "Choose what's in the photo, then tap scan."
+        }
+        switch detected {
+        case .minifigure:
+            return "Detected: minifigure. Tap to override if wrong."
+        case .brick:
+            return "Looks like a brick or pile. Tap to override if wrong."
+        case .ambiguous:
+            return "Couldn't tell — pick the right mode before scanning."
+        }
+    }
+
+    private var scanButtonLabel: String {
+        switch subjectMode {
+        case .minifigure: return "Scan Minifigure"
+        case .brick: return "Scan Whole Photo"
+        }
+    }
+
     // MARK: - Photo loading
 
     private func loadPickedImage(_ item: PhotosPickerItem?) async {
@@ -226,6 +306,21 @@ struct PhotoScanView: View {
                     self.pickedImage = normalized
                     self.lassoPoints = []
                     self.isTracingMode = false
+                    self.autoDetectedSubject = nil
+                    self.isClassifying = true
+                }
+                let detected = await PhotoSubjectClassifier.classify(normalized)
+                await MainActor.run {
+                    self.isClassifying = false
+                    self.autoDetectedSubject = detected
+                    // Only auto-set the mode when the classifier is
+                    // confident — leave .ambiguous alone so the user's
+                    // current selection is preserved.
+                    switch detected {
+                    case .minifigure: self.subjectMode = .minifigure
+                    case .brick: self.subjectMode = .brick
+                    case .ambiguous: break
+                    }
                 }
             } else {
                 await MainActor.run { imageError = "Photo data was unreadable." }
@@ -239,6 +334,16 @@ struct PhotoScanView: View {
 
     private func runScan() {
         guard let image = pickedImage else { return }
+
+        // Minifigure mode bypasses the brick-pile pipeline entirely and
+        // hands the image to MinifigureScanView, which auto-starts
+        // identification on appear via its `preCapturedImage` path.
+        if subjectMode == .minifigure {
+            minifigureScanImage = image
+            navigateToMinifigureScan = true
+            return
+        }
+
         isProcessing = true
 
         // Reset to a fresh session — picking a photo is a brand-new scan,

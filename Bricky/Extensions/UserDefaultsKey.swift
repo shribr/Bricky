@@ -40,6 +40,7 @@ enum UserDefaultsKey {
     static let scanOverlayStyle = "scanOverlayStyle"
     static let trackingMode = "trackingMode"
     static let scanAutoEnhanceEnabled = "scanAutoEnhanceEnabled"
+    static let scanShadowRemovalEnabled = "scanShadowRemovalEnabled"
 
     // MARK: ScanSettings (owned by `ScanSettings`)
 

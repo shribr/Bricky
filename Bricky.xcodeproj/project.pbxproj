@@ -92,6 +92,7 @@
 		663A3386CF4B31EEB3652E2B /* MinifigureCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E73A004AC376E75A118FBED /* MinifigureCatalogTests.swift */; };
 		66F43C9AC2F27C6299C74CE5 /* BrickognizeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F11369AC84678F0AEA7A989 /* BrickognizeService.swift */; };
 		672E3C051DF88366CCCC04CE /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10725F43D64040D81314A92 /* PrivacyPolicyView.swift */; };
+		68F6E5869ED1BEA50EB399FC /* PhotoSubjectClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD8A66880643479583100CE /* PhotoSubjectClassifierTests.swift */; };
 		6A438D773318DDA2B50A82D9 /* MinifigureScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F5A40CFF97FF2D821A76DA /* MinifigureScanHistoryView.swift */; };
 		6AD109C830B95C194224A87E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */; };
 		6B7F5CE0D1BC6B10FB4C9134 /* CloudKitCommunityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */; };
@@ -206,6 +207,7 @@
 		DC9DE6AA5050C071A445DC36 /* PuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E97D4FC646BBBC60D65238 /* PuzzleView.swift */; };
 		DE4E2645BB357B9F065CBFE7 /* ModelViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */; };
 		DE6E3306F2E1E4474839D54F /* BrickognizeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD41E24B5621F0DC7B403E7C /* BrickognizeServiceTests.swift */; };
+		DE8C74C55C354880868F59C3 /* PhotoSubjectClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0EED3E6D1C5CC1D1FBE205 /* PhotoSubjectClassifier.swift */; };
 		E0B82ABE3C7A14FA0F45BFEC /* SprintGAppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */; };
 		E0C37997F50BF0AC3D660068 /* LegoPartsCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 8744F07950DDB3553CBB5E00 /* LegoPartsCatalog.json */; };
 		E104BAB8FB74108365A8F9F0 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99695881DBDD8B0B9F983E7F /* ThemeManager.swift */; };
@@ -290,6 +292,7 @@
 		29D1665C0A02A1A385D5E70E /* MinifigureCollectionStoreScanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreScanTests.swift; sourceTree = "<group>"; };
 		2A35CDEF9B628677047F1B04 /* AppEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEntry.swift; sourceTree = "<group>"; };
 		2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationConsentSheet.swift; sourceTree = "<group>"; };
+		2C0EED3E6D1C5CC1D1FBE205 /* PhotoSubjectClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSubjectClassifier.swift; sourceTree = "<group>"; };
 		2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
 		2D3EB71A0465BE0D3C3595F0 /* BuildProjects.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuildProjects.json; sourceTree = "<group>"; };
 		2DD6DCED0E9A382C3B24A27F /* CommunityPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPost.swift; sourceTree = "<group>"; };
@@ -377,6 +380,7 @@
 		8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryService.swift; sourceTree = "<group>"; };
 		8BD3A9F8333CC94A28950903 /* LegoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoSet.swift; sourceTree = "<group>"; };
 		8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildStepViewer.swift; sourceTree = "<group>"; };
+		8CD8A66880643479583100CE /* PhotoSubjectClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSubjectClassifierTests.swift; sourceTree = "<group>"; };
 		8DEC8B9D627AC7883789D989 /* UserCorrectionReranker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserCorrectionReranker.swift; sourceTree = "<group>"; };
 		8E984841C290B9FF9EE9A0DB /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
 		8F44C3A349FB7B59F7690004 /* FindABrickTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindABrickTests.swift; sourceTree = "<group>"; };
@@ -610,6 +614,7 @@
 				E8CCDD6FBB615821CE170B56 /* ObjectRecognitionService.swift */,
 				1F44F56B0CFE34F8018C3769 /* OrganicBoundaryTracker.swift */,
 				2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */,
+				2C0EED3E6D1C5CC1D1FBE205 /* PhotoSubjectClassifier.swift */,
 				C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */,
 				E8F803ED8C2E551A4E3616FB /* PieceLocationService.swift */,
 				4716DEF5B361CBC8B1267080 /* PileDiffService.swift */,
@@ -731,6 +736,7 @@
 				6FD3890394088A8DB19DECD5 /* MinifigureIdentificationServiceTests.swift */,
 				441BA4C0E0F0868E0AA8CDE4 /* MinifigureImageCacheTests.swift */,
 				D49447E4BE19517E0C82FC57 /* MinifigurePartClassifierTests.swift */,
+				8CD8A66880643479583100CE /* PhotoSubjectClassifierTests.swift */,
 				76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */,
 				37EB1E5C30DA1B6027B16C1F /* PileGeometryServiceTests.swift */,
 				7D48E65B45D0B22A22CF6291 /* ScanAutoStopMonitorTests.swift */,
@@ -1116,6 +1122,7 @@
 				8C9B491670DC5A477D2297D7 /* PaywallView.swift in Sources */,
 				732CC68E06EB97C3EC91BAF2 /* PerformanceMonitor.swift in Sources */,
 				D2B1A14CBB82CEB47A64BDA2 /* PhotoScanView.swift in Sources */,
+				DE8C74C55C354880868F59C3 /* PhotoSubjectClassifier.swift in Sources */,
 				093A526428BD17387406503A /* PieceCatalogView.swift in Sources */,
 				5950E537F4F82EFFAED30622 /* PieceCatalogViewModel.swift in Sources */,
 				8D3D481A194E56AB21CB7C24 /* PieceFilterSortBar.swift in Sources */,
@@ -1206,6 +1213,7 @@
 				2D10DD9EC183DBB261FBCF2D /* MinifigureIdentificationServiceTests.swift in Sources */,
 				459A330FF64F5A3758B8B288 /* MinifigureImageCacheTests.swift in Sources */,
 				05377A8DA04EE7EBB0D73A7C /* MinifigurePartClassifierTests.swift in Sources */,
+				68F6E5869ED1BEA50EB399FC /* PhotoSubjectClassifierTests.swift in Sources */,
 				CFE0338FD0406EE392C5A882 /* PieceCatalogViewModelTests.swift in Sources */,
 				ED133DF6663F69C047A0AC48 /* PileGeometryServiceTests.swift in Sources */,
 				EAA7D5B871EB1FCAB73B51F5 /* ScanAutoStopMonitorTests.swift in Sources */,

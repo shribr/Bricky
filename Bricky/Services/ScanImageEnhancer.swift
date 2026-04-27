@@ -34,6 +34,21 @@ enum ScanImageEnhancer {
     }
     private static let enabledKey = UserDefaultsKey.scanAutoEnhanceEnabled
 
+    /// User-facing toggle for the shadow-removal step. Defaults to ON.
+    /// When enabled, `enhance()` segments the figure with Vision's
+    /// foreground-instance mask and composites it over neutral white,
+    /// eliminating cast/drop shadows on the surface beneath the figure.
+    static var isShadowRemovalEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: shadowRemovalKey) == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: shadowRemovalKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: shadowRemovalKey) }
+    }
+    private static let shadowRemovalKey = UserDefaultsKey.scanShadowRemovalEnabled
+
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
     /// Apply auto-crop + enhance to a scanned image. Always returns a
@@ -53,7 +68,18 @@ enum ScanImageEnhancer {
 
         // 2. Auto-crop around the subject with padding.
         let croppedCG = autoCrop(cgImage: straightenedCG) ?? straightenedCG
-        let finalSubjectCG = croppedCG
+
+        // 2b. Drop-shadow removal: segment the minifigure with Vision's
+        //     foreground-instance mask and composite it over neutral
+        //     white. Cast shadows live on the surface (outside the
+        //     figure silhouette), so masking the background to white
+        //     eliminates them. Best-effort — falls back to the cropped
+        //     image if segmentation isn't available or fails.
+        let shadowFreeCG: CGImage = {
+            guard isShadowRemovalEnabled else { return croppedCG }
+            return removeBackgroundShadow(cgImage: croppedCG) ?? croppedCG
+        }()
+        let finalSubjectCG = shadowFreeCG
 
         // 3. Auto-enhance with CoreImage.
         let ci = CIImage(cgImage: finalSubjectCG)
@@ -507,13 +533,75 @@ enum ScanImageEnhancer {
         return rect.integral
     }
 
+    // MARK: - Step 2b: Drop-shadow removal
+
+    /// Segment the foreground (the minifigure) with Vision's
+    /// `VNGenerateForegroundInstanceMaskRequest` and composite it over a
+    /// neutral white background. Cast/drop shadows on the surface beneath
+    /// the figure are part of the *background* (they aren't on the figure
+    /// itself), so masking the background out replaces them with white.
+    ///
+    /// Returns nil if segmentation isn't available, returns no instances,
+    /// or any of the CoreImage compositing steps fail. Callers fall back
+    /// to the un-masked image, so this can never make things worse.
+    private static func removeBackgroundShadow(cgImage: CGImage) -> CGImage? {
+        let request = VNGenerateForegroundInstanceMaskRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        guard let observation = request.results?.first,
+              !observation.allInstances.isEmpty else {
+            return nil
+        }
+
+        // Generate a per-pixel mask of all foreground instances combined.
+        let maskedPixelBuffer: CVPixelBuffer
+        do {
+            maskedPixelBuffer = try observation.generateScaledMaskForImage(
+                forInstances: observation.allInstances,
+                from: handler
+            )
+        } catch {
+            return nil
+        }
+
+        let mask = CIImage(cvPixelBuffer: maskedPixelBuffer)
+        let source = CIImage(cgImage: cgImage)
+
+        // Build a neutral-white background at the source extent.
+        let white = CIImage(color: CIColor(red: 1, green: 1, blue: 1))
+            .cropped(to: source.extent)
+
+        // The mask may be smaller than the source extent on some
+        // hardware; resample it up so the blend operates on identical
+        // coordinate spaces. Use a Lanczos transform to keep edges crisp.
+        let scaledMask: CIImage = {
+            guard mask.extent.size != source.extent.size else { return mask }
+            let sx = source.extent.width / max(mask.extent.width, 1)
+            let sy = source.extent.height / max(mask.extent.height, 1)
+            return mask.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+        }()
+
+        let blend = CIFilter.blendWithMask()
+        blend.inputImage = source
+        blend.backgroundImage = white
+        blend.maskImage = scaledMask
+        guard let composited = blend.outputImage,
+              let result = ciContext.createCGImage(composited, from: source.extent) else {
+            return nil
+        }
+        return result
+    }
+
     // MARK: - Step 2: Auto-enhance
 
     /// Apply CoreImage's built-in auto-adjustment filter chain (exposure,
     /// contrast, saturation, tone curve, temperature/tint). Cheap and
     /// conservative — it's the same pipeline Photos.app's "Enhance" uses.
-    private static func applyAutoAdjustments(to image: CIImage) -> CIImage? {
-        let filters = image.autoAdjustmentFilters(options: [
+    private static func applyAutoAdjustments(to image: CIImage) -> CIImage? {        let filters = image.autoAdjustmentFilters(options: [
             .redEye: false,
             .crop: false,     // we already cropped
             .level: true,
