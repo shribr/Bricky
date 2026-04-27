@@ -46,3 +46,6 @@ Carthage/Checkouts/
 
 # Large model files
 *.pt
+
+# Ground-truth harness reports (regenerated each run)
+BrickyTests/GroundTruth/reports/*.md

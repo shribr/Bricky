@@ -1,0 +1,11 @@
+{
+  "_schema": {
+    "description": "Ground-truth dataset for the scanner harness. Each entry maps a captured scan photo to the figure it should have identified. Filenames are resolved relative to BrickyTests/GroundTruth/images/.",
+    "entry_fields": {
+      "filename": "Image file under images/ (jpg/png/heic).",
+      "figure_id": "Rebrickable-style fig-NNNNNN id from MinifigureCatalog.json.gz.",
+      "notes": "Optional free-form context (lighting, pose, what the scanner returned in the failed attempt, etc.)."
+    }
+  },
+  "entries": []
+}
