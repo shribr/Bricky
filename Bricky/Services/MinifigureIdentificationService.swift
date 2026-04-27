@@ -2543,44 +2543,42 @@ final class MinifigureIdentificationService: ObservableObject {
             let clipScore = clipCosine.map { normalizedClipScore($0) } ?? 0
             let hasClipSignal = clipCosine != nil
 
-            // Heavier CLIP weighting (was 0.58/0.42). Ground-truth harness
-            // showed CLIP retrieval is correct at rank 1 for 5/9 images and
-            // within top-10 for 9/9, but the previous color bonuses (esp.
-            // +0.28 classic-space-red) routinely flipped CLIP's winner to a
-            // wrong sibling figure (Blacktron→M:Tron, Imperial Guard→Imperial
-            // Soldier II, etc.). Color now acts more like a tiebreaker.
+            // CLIP-led blend. Color is a tiebreaker, not a flipper.
+            // The CLIP gate already restricted us to figures CLIP retrieved,
+            // so the embedding has already done the visual matching work.
+            // Heavy color weighting / bonuses were band-aids for the
+            // pre-CLIP era and now actively harm accuracy by promoting
+            // visually-unrelated figures whose catalog colors happen to
+            // overlap with the scan (e.g. Imperial Soldier II's red+white
+            // beating Johnny Thunder's correct CLIP rank-3 match).
             var score = hasClipSignal
-                ? 0.78 * clipScore + 0.22 * colorScore
+                ? 0.96 * clipScore + 0.04 * colorScore
                 : colorScore
 
             let redWhiteClassicVariant = evidence.looksLikeClassicSpacePalette
                 && isRedWhiteClassicSpaceVariant(figure)
 
-            // Bonuses scaled down so they bias the ranking without overruling
-            // a confident CLIP placement. Total possible bonus reduced from
-            // ~0.74 to ~0.30.
-            if evidence.hasStrongRed && hasRed { score += 0.08 }
-            if evidence.hasStrongWhite && hasWhite { score += 0.05 }
-            if evidence.looksLikeClassicSpacePalette,
-               let suitColor = classicSpaceSuitColor(for: figure),
-               suitColor == .red {
-                score += 0.10
-            }
-            if redWhiteClassicVariant {
-                score += 0.07
-            }
-            score -= whitePenalty
+            // Bonuses removed entirely. The classic-space-red and red+white
+            // variant boosts were originally there to help white+red Classic
+            // Space figures beat color-only competitors when CLIP couldn't
+            // disambiguate. With the CLIP gate in place the embedding does
+            // that disambiguation directly. The whitePenalty is dropped for
+            // the same reason — it was demoting CLIP-correct figures that
+            // happened to lack white in their catalog parts list (Johnny
+            // Thunder's brown jacket).
+            _ = whitePenalty
+            _ = redWhiteClassicVariant
             // Soften the red veto when CLIP strongly endorses this figure.
             // The scan's "strong red" detector is prone to false positives
             // (background, helmet visors, JPEG bleed). A perfect CLIP match
             // (cos ~0.85+) shouldn't be zeroed out by a single color heuristic.
             if redVeto {
                 if clipScore >= 0.80 {
-                    score *= 0.85   // mild penalty, keep CLIP's voice
+                    score *= 0.90   // mild penalty, keep CLIP's voice
                 } else if clipScore >= 0.50 {
-                    score *= 0.55   // moderate penalty
+                    score *= 0.65   // moderate penalty
                 } else {
-                    score *= 0.18   // original behaviour for low-CLIP cases
+                    score *= 0.25   // strong penalty for low-CLIP cases
                 }
             }
             score = min(max(score, 0), 1)
@@ -2589,13 +2587,6 @@ final class MinifigureIdentificationService: ObservableObject {
             let colorAndClipAgree = colorScore >= 0.42 && clipScore >= 0.50
             if colorAndClipAgree && clipDiscrimination >= 0.045 {
                 confidence += 0.08
-            }
-            if evidence.looksLikeClassicSpacePalette,
-               classicSpaceSuitColor(for: figure) == .red {
-                confidence += 0.06
-            }
-            if redWhiteClassicVariant {
-                confidence += 0.04
             }
             if redVeto {
                 // Mirror the score-side easing: don't slam confidence to 0.34
@@ -2608,11 +2599,14 @@ final class MinifigureIdentificationService: ObservableObject {
                     confidence = min(confidence, 0.34)
                 }
             } else if colorScore < 0.20 {
-                confidence = min(confidence, 0.44)
+                // Looser cap (was 0.44). With the CLIP gate, "low color
+                // score" usually just means catalog colors don't match
+                // — not that the figure is wrong.
+                confidence = min(confidence, 0.70)
             } else if !colorAndClipAgree {
-                confidence = min(confidence, 0.62)
+                confidence = min(confidence, 0.78)
             }
-            let confidenceCeiling = redWhiteClassicVariant ? 0.90 : 0.86
+            let confidenceCeiling = 0.92
             confidence = min(max(confidence, 0.05), confidenceCeiling)
 
             let reasoning: String
