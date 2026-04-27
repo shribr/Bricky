@@ -128,7 +128,8 @@ enum HybridFigureAnalyzer {
             return colorAnalysis
         }
 
-        guard let capturedCG = captured.cgImage else { return colorAnalysis }
+        guard let capturedCGRaw = captured.cgImage else { return colorAnalysis }
+        let capturedCG = VisionUtilities.cropToSalientSubject(capturedCGRaw) ?? capturedCGRaw
         let anchorCandidate = candidates[0]
 
         // Enhance findings with embedding-based cross-attribution for
@@ -188,8 +189,9 @@ enum HybridFigureAnalyzer {
         let faceService = FaceEmbeddingService.shared
         let torsoService = TorsoEmbeddingService.shared
         guard (faceService.isAvailable || torsoService.isAvailable),
-              let capturedCG = captured.cgImage,
+              let capturedCGRaw = captured.cgImage,
               let anchorCandidate = candidates.first else { return nil }
+        let capturedCG = VisionUtilities.cropToSalientSubject(capturedCGRaw) ?? capturedCGRaw
 
         var findings: [Analysis.RegionFinding] = []
 
@@ -324,9 +326,20 @@ enum HybridFigureAnalyzer {
     ) -> Analysis? {
         guard
             let anchorCandidate = candidates.first,
-            let capturedCG = captured.cgImage,
+            let capturedCGRaw = captured.cgImage,
             let anchorRefCG = anchorCandidate.referenceImage.cgImage
         else { return nil }
+
+        // Tighten to the figure's bounding box before band sampling.
+        // The captured photo is often letterboxed (figure occupies the
+        // central ~30–40% of the frame, with white/dark padding above
+        // and below). Without this step, the head band (relative to
+        // total image height) can land entirely on the empty padding
+        // above the figure's actual head, which then trips the
+        // missing-coverage path and falsely reports "the head appears
+        // to be missing." Saliency cropping puts the bands back on
+        // the figure where they belong.
+        let capturedCG = VisionUtilities.cropToSalientSubject(capturedCGRaw) ?? capturedCGRaw
 
         // Estimate the background color from the four corners of each
         // image. The fixed brightness/saturation rule that BandData

@@ -227,6 +227,7 @@ final class MinifigureCatalog: ObservableObject {
         "cty0491": "fig-007213", // Arctic Explore Female
         "sp002":   "fig-000061", // Blacktron
         "cas125":  "fig-006867", // Forestman
+        "cas240a": "fig-006868", // Forestman Archer
         "sp018":   "fig-000113", // Ice Planet Male
         "pi061":   "fig-004757", // Imperial Guard
         "pi069":   "fig-005501", // Islander King

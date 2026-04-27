@@ -352,6 +352,7 @@ private struct ZoomableCapturedImageView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    @State private var showShareSheet = false
 
     var body: some View {
         NavigationStack {
@@ -399,9 +400,32 @@ private struct ZoomableCapturedImageView: View {
             .toolbarBackground(.black, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.white)
+                    }
+                    .accessibilityLabel("Close")
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundStyle(.white)
+                    if image != nil {
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityLabel("Share image")
+                    }
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if let image {
+                    ShareSheet(items: [image])
                 }
             }
         }
