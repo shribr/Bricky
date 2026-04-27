@@ -433,6 +433,9 @@ final class MinifigureIdentificationService: ObservableObject {
         let evidence = await Task.detached(priority: .userInitiated) { [self] in
             self.extractScanColorEvidence(from: cgImage)
         }.value
+        let hatEvidence = await Task.detached(priority: .userInitiated) { [self] in
+            self.extractHatColorEvidence(from: cgImage)
+        }.value
         let clipHits: [ClipEmbeddingIndex.Hit]
         if clipAvailable {
             let crops = clipCandidateCrops(cgImage: cgImage)
@@ -444,11 +447,12 @@ final class MinifigureIdentificationService: ObservableObject {
             clipHits = []
         }
 
-        let ranked = await Task.detached(priority: .userInitiated) { [self, catalogSnapshot, evidence, clipHits] in
+        let ranked = await Task.detached(priority: .userInitiated) { [self, catalogSnapshot, evidence, clipHits, hatEvidence] in
             self.rankWithEvidenceCore(
                 allFigures: catalogSnapshot,
                 evidence: evidence,
-                clipHits: clipHits
+                clipHits: clipHits,
+                hatEvidence: hatEvidence
             )
         }.value
 
@@ -468,6 +472,11 @@ final class MinifigureIdentificationService: ObservableObject {
         logAppend("  Legacy cascade: bypassed")
         logAppend("  CLIP: \(clipAvailable ? "available" : "unavailable")")
         logAppend("  Captured colors: \(evidence.debugSummary)")
+        if let hat = hatEvidence {
+            logAppend("  Captured hat: \(hat.color.rawValue) (cov \(String(format: "%.2f", hat.coverage)), chromatic=\(hat.isChromatic))")
+        } else {
+            logAppend("  Captured hat: none / insufficient")
+        }
         if !clipHits.isEmpty {
             let topCosines = clipHits.prefix(5).map {
                 "\($0.figureId)=\(String(format: "%.3f", $0.cosine))"
@@ -2488,10 +2497,112 @@ final class MinifigureIdentificationService: ObservableObject {
         }
     }
 
+    /// Color signal extracted from the top "hair / hat / headgear" band
+    /// of the captured image. Used as a tiebreaker for ranking when
+    /// CLIP and torso color cannot distinguish near-identical figures
+    /// that differ only in hat color (e.g. Forestman fig-006867 with a
+    /// brown hat vs. fig-006868 with a green hat — both share the same
+    /// torso print and leg color, so neither CLIP nor generic color
+    /// agreement can break the tie).
+    struct HatColorEvidence: Equatable {
+        let color: LegoColor
+        /// 0…1 — fraction of band pixels classified as foreground.
+        let coverage: Double
+
+        /// True when the hat color carries discriminating signal —
+        /// excludes neutrals (yellow/black/white/gray) where many
+        /// catalog entries share the color and a match conveys little.
+        var isChromatic: Bool {
+            switch color {
+            case .yellow, .black, .white, .gray, .darkGray, .transparent,
+                 .transparentBlue, .transparentRed:
+                return false
+            default:
+                return true
+            }
+        }
+
+        /// Group near-equivalent LegoColors so a captured "Green" hat
+        /// matches a catalog "Dark Green" hat without penalty.
+        static func family(for c: LegoColor) -> Set<LegoColor> {
+            switch c {
+            case .red, .darkRed: return [.red, .darkRed]
+            case .green, .darkGreen, .lime: return [.green, .darkGreen, .lime]
+            case .blue, .darkBlue, .lightBlue: return [.blue, .darkBlue, .lightBlue]
+            case .brown, .tan: return [.brown, .tan]
+            case .gray, .darkGray: return [.gray, .darkGray]
+            case .purple, .pink: return [.purple, .pink]
+            default: return [c]
+            }
+        }
+    }
+
+    /// Sample the top hair/hat band of the captured image and return
+    /// the dominant LegoColor with coverage. Mirrors the band geometry
+    /// used by `HybridFigureAnalyzer` (top 12% Y, central 30–70% X)
+    /// but classifies pixels with the same `mapForegroundLegoColor`
+    /// pipeline that powers `extractScanColorEvidence`, so the two
+    /// signals stay coherent.
+    nonisolated func extractHatColorEvidence(from cgImage: CGImage) -> HatColorEvidence? {
+        let subject = foregroundEvidenceCrop(cgImage: cgImage) ?? bestSubjectCrop(cgImage: cgImage)
+        let w = subject.width
+        let h = subject.height
+        guard w > 8, h > 8 else { return nil }
+        let bandRect = CGRect(
+            x: Int(Double(w) * 0.30),
+            y: 0,
+            width: max(1, Int(Double(w) * 0.40)),
+            height: max(1, Int(Double(h) * 0.12))
+        )
+        guard let band = subject.cropping(to: bandRect) else { return nil }
+
+        let size = 48
+        let bytesPerPixel = 4
+        let bytesPerRow = size * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: size * size * bytesPerPixel)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: &pixelData,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                | CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+        context.interpolationQuality = .medium
+        context.draw(band, in: CGRect(x: 0, y: 0, width: size, height: size))
+
+        var counts: [LegoColor: Double] = [:]
+        var totalWeight = 0.0
+        var classifiedPixels = 0
+        let totalPixels = size * size
+        for offset in stride(from: 0, to: pixelData.count, by: bytesPerPixel) {
+            let r = pixelData[offset]
+            let g = pixelData[offset + 1]
+            let b = pixelData[offset + 2]
+            guard let mapped = mapForegroundLegoColor(r: r, g: g, b: b) else { continue }
+            let weight = foregroundPixelWeight(r: r, g: g, b: b, color: mapped)
+            counts[mapped, default: 0] += weight
+            totalWeight += weight
+            classifiedPixels += 1
+        }
+
+        guard totalWeight > 0,
+              let (dominant, _) = counts.max(by: { $0.value < $1.value })
+        else { return nil }
+        let coverage = Double(classifiedPixels) / Double(totalPixels)
+        return HatColorEvidence(color: dominant, coverage: coverage)
+    }
+
     nonisolated func rankWithEvidenceCore(
         allFigures: [Minifigure],
         evidence: ScanColorEvidence,
-        clipHits: [ClipEmbeddingIndex.Hit]
+        clipHits: [ClipEmbeddingIndex.Hit],
+        hatEvidence: HatColorEvidence? = nil
     ) -> [ResolvedCandidate] {
         let clipById = Dictionary(uniqueKeysWithValues: clipHits.map { ($0.figureId, $0.cosine) })
         // CLIP retrieval gate: when CLIP returned hits, restrict ranking to
@@ -2558,6 +2669,46 @@ final class MinifigureIdentificationService: ObservableObject {
             let redWhiteClassicVariant = evidence.looksLikeClassicSpacePalette
                 && isRedWhiteClassicSpaceVariant(figure)
 
+            // Hat-color tiebreaker. The torso/legs/CLIP signals all
+            // tie when two figures share a torso print but differ only
+            // in headgear color (e.g. Forestman fig-006867 brown hat
+            // vs. fig-006868 green hat). The generic colorAgreement
+            // pool can't separate them because both share equal green
+            // torso/leg pixels. Sample the hair band directly and:
+            //   * boost candidates whose catalog hat color matches
+            //   * demote candidates whose catalog hat color is a
+            //     different chromatic family
+            // Skipped when captured hair coverage is low (bald/occluded)
+            // or the captured hat color is non-chromatic (yellow/black/
+            // gray hats are too common to discriminate).
+            var hatPenaltyApplied = false
+            if let hat = hatEvidence,
+               hat.isChromatic,
+               hat.coverage >= 0.18,
+               let figureHatColor = figure.parts
+                .first(where: { $0.slot == .hairOrHeadgear })
+                .flatMap({ LegoColor(fromString: $0.color) }) {
+                let capturedFamily = HatColorEvidence.family(for: hat.color)
+                let figureFamily = HatColorEvidence.family(for: figureHatColor)
+                if !capturedFamily.intersection(figureFamily).isEmpty {
+                    score = min(score + 0.05, 1.0)
+                } else {
+                    let figureHatChromatic: Bool = {
+                        switch figureHatColor {
+                        case .yellow, .black, .white, .gray, .darkGray,
+                             .transparent, .transparentBlue, .transparentRed:
+                            return false
+                        default:
+                            return true
+                        }
+                    }()
+                    if figureHatChromatic {
+                        score *= 0.85
+                        hatPenaltyApplied = true
+                    }
+                }
+            }
+
             // Bonuses removed entirely. The classic-space-red and red+white
             // variant boosts were originally there to help white+red Classic
             // Space figures beat color-only competitors when CLIP couldn't
@@ -2605,6 +2756,12 @@ final class MinifigureIdentificationService: ObservableObject {
                 confidence = min(confidence, 0.70)
             } else if !colorAndClipAgree {
                 confidence = min(confidence, 0.78)
+            }
+            if hatPenaltyApplied {
+                // Strong evidence the captured hat color disagrees with
+                // the catalog hat color → cap confidence so a wrong-hat
+                // CLIP near-twin can't claim a green-checkmark match.
+                confidence = min(confidence, 0.55)
             }
             let confidenceCeiling = 0.92
             confidence = min(max(confidence, 0.05), confidenceCeiling)

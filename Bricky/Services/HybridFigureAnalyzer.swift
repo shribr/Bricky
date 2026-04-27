@@ -467,6 +467,36 @@ enum HybridFigureAnalyzer {
             // For non-torso regions we just skip without recording an
             // `unknownMismatch` so we don't pollute the user-facing
             // detail string with vague "the head doesn't match" lines.
+            //
+            // EXCEPTION: when the captured hair band has solid coverage
+            // AND its dominant color is a clearly different *chromatic*
+            // family from the anchor's (e.g. captured GREEN hat vs.
+            // anchor BROWN hat for two near-identical Forestman
+            // variants), record an `unknownMismatch`. This is the only
+            // signal that breaks the false "Consistent match" badge
+            // for hat-color-only twin figures, since torso/legs colors
+            // are identical between such pairs.
+            if region == .hair,
+               let anchorBand = anchorBands[region],
+               let capturedColor = capturedBand.color,
+               let anchorColor = anchorBand.color,
+               capturedBand.coverage >= 0.30,
+               anchorBand.coverage >= 0.30 {
+                let delta = labDistance(capturedColor, anchorColor)
+                let isStrongMismatch = delta >= 40 // well above matchThreshold (28)
+                let capturedIsChromatic = capturedColor.b > 18
+                    || capturedColor.b < -18
+                    || capturedColor.a > 18
+                    || capturedColor.a < -18
+                if isStrongMismatch && capturedIsChromatic {
+                    findings.append(.init(
+                        region: .hair,
+                        matchedFigure: nil,
+                        kind: .unknownMismatch
+                    ))
+                    continue
+                }
+            }
             guard region == .torso else { continue }
 
             // Captured TORSO band differs from anchor. Try to attribute
@@ -916,16 +946,26 @@ enum HybridFigureAnalyzer {
             .map { $0.region.displayName }
         let yearSuffix = anchor.year > 0 ? ", \(anchor.year)" : ""
         let regionList: String
+        let usePlural: Bool
         switch matchedRegions.count {
-        case 0: regionList = "overall appearance"
-        case 1: regionList = matchedRegions[0]
-        case 2: regionList = "\(matchedRegions[0]) and \(matchedRegions[1])"
+        case 0:
+            regionList = "overall appearance"
+            usePlural = false
+        case 1:
+            regionList = matchedRegions[0]
+            usePlural = false
+        case 2:
+            regionList = "\(matchedRegions[0]) and \(matchedRegions[1])"
+            usePlural = true
         default:
             let head = matchedRegions.dropLast().joined(separator: ", ")
             regionList = "\(head), and \(matchedRegions.last!)"
+            usePlural = true
         }
         let summary = "Consistent match — \(anchor.name)"
-        let detail = "The \(regionList) all appear consistent with \(anchor.name) (\(anchor.theme)\(yearSuffix))."
+        let verb = usePlural ? "all appear" : "appears"
+        let hedge = matchedRegions.count <= 1 ? " Other regions had insufficient evidence to confirm." : ""
+        let detail = "The \(regionList) \(verb) consistent with \(anchor.name) (\(anchor.theme)\(yearSuffix))." + hedge
         return (summary, detail)
     }
 

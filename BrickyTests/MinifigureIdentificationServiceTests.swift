@@ -332,4 +332,123 @@ final class MinifigureIdentificationServiceTests: XCTestCase {
 
         XCTAssertEqual(ranked.map { $0.figure?.id }, [greenFigure.id])
     }
+
+    // MARK: - Hat color tiebreaker (Forestman fig-006867 vs fig-006868)
+
+    /// Build a Forestman-style figure with explicit hat color. Both
+    /// variants share the same green torso/legs and yellow head — the
+    /// only catalog difference between fig-006867 and fig-006868 is the
+    /// hat color (Brown vs. Green) and plume color.
+    private func forestmanFigure(id: String, hatColor: String) -> Minifigure {
+        Minifigure(
+            id: id,
+            name: "Forestman Archer (\(hatColor) Hat)",
+            theme: "Castle",
+            year: 1989,
+            partCount: 6,
+            imgURL: "https://example.com/\(id).png",
+            parts: [
+                MinifigurePartRequirement(slot: .head, partNumber: "3626a", color: "Yellow"),
+                MinifigurePartRequirement(slot: .hairOrHeadgear, partNumber: "4506", color: hatColor),
+                MinifigurePartRequirement(
+                    slot: .torso,
+                    partNumber: "973c31h01pr0046",
+                    color: "Green",
+                    displayName: "Torso Forestman Tie Shirt and Purse Print"
+                ),
+                MinifigurePartRequirement(slot: .legLeft, partNumber: "970c31", color: "Green"),
+                MinifigurePartRequirement(slot: .legRight, partNumber: "970c31", color: "Green"),
+                MinifigurePartRequirement(slot: .hips, partNumber: "970c31", color: "Green")
+            ]
+        )
+    }
+
+    func testHatColorEvidencePromotesGreenHatForestmanOverBrownHatTwin() {
+        let brownHat = forestmanFigure(id: "fig-006867", hatColor: "Brown")
+        let greenHat = forestmanFigure(id: "fig-006868", hatColor: "Green")
+
+        // Identical torso/legs colors → generic color agreement is tied.
+        let evidence = MinifigureIdentificationService.ScanColorEvidence(
+            weights: [.green: 0.42, .yellow: 0.18, .black: 0.10],
+            dominantColors: [.green, .yellow, .black]
+        )
+
+        // CLIP slightly favors the brown-hat variant (mirrors the live
+        // misranking where Icons/Castle Forestman variants tied very
+        // closely on CLIP cosine).
+        let clipHits = [
+            ClipEmbeddingIndex.Hit(figureId: brownHat.id, cosine: 0.78),
+            ClipEmbeddingIndex.Hit(figureId: greenHat.id, cosine: 0.76)
+        ]
+        let hat = MinifigureIdentificationService.HatColorEvidence(
+            color: .green, coverage: 0.45
+        )
+
+        let ranked = MinifigureIdentificationService.shared.rankWithEvidenceCore(
+            allFigures: [brownHat, greenHat],
+            evidence: evidence,
+            clipHits: clipHits,
+            hatEvidence: hat
+        )
+
+        XCTAssertEqual(ranked.first?.figure?.id, greenHat.id,
+            "Captured green hat must promote fig-006868 above fig-006867 (brown hat)")
+        let brownConfidence = ranked.first(where: { $0.figure?.id == brownHat.id })?.confidence ?? 1
+        XCTAssertLessThanOrEqual(brownConfidence, 0.55,
+            "Brown-hat candidate must have its confidence capped when captured hat is clearly green")
+    }
+
+    func testHatColorEvidenceSkippedWhenCoverageLow() {
+        let brownHat = forestmanFigure(id: "fig-006867", hatColor: "Brown")
+        let greenHat = forestmanFigure(id: "fig-006868", hatColor: "Green")
+        let evidence = MinifigureIdentificationService.ScanColorEvidence(
+            weights: [.green: 0.42, .yellow: 0.18],
+            dominantColors: [.green, .yellow]
+        )
+        let clipHits = [
+            ClipEmbeddingIndex.Hit(figureId: brownHat.id, cosine: 0.82),
+            ClipEmbeddingIndex.Hit(figureId: greenHat.id, cosine: 0.74)
+        ]
+        // Low-coverage hat evidence (bald scan / occluded) must NOT
+        // override CLIP — fall back to CLIP top-1.
+        let hat = MinifigureIdentificationService.HatColorEvidence(
+            color: .green, coverage: 0.05
+        )
+
+        let ranked = MinifigureIdentificationService.shared.rankWithEvidenceCore(
+            allFigures: [brownHat, greenHat],
+            evidence: evidence,
+            clipHits: clipHits,
+            hatEvidence: hat
+        )
+
+        XCTAssertEqual(ranked.first?.figure?.id, brownHat.id)
+    }
+
+    func testHatColorEvidenceIgnoresNonChromaticCapturedHat() {
+        let blackHelmetFig = forestmanFigure(id: "fig-aa", hatColor: "Black")
+        let greenHatFig = forestmanFigure(id: "fig-bb", hatColor: "Green")
+        let evidence = MinifigureIdentificationService.ScanColorEvidence(
+            weights: [.green: 0.40, .yellow: 0.20],
+            dominantColors: [.green, .yellow]
+        )
+        let clipHits = [
+            ClipEmbeddingIndex.Hit(figureId: blackHelmetFig.id, cosine: 0.82),
+            ClipEmbeddingIndex.Hit(figureId: greenHatFig.id, cosine: 0.74)
+        ]
+        // Captured "yellow" hat (e.g. yellow head bleeding into hair
+        // band) is non-chromatic for our purposes → no penalty/boost.
+        let hat = MinifigureIdentificationService.HatColorEvidence(
+            color: .yellow, coverage: 0.40
+        )
+
+        let ranked = MinifigureIdentificationService.shared.rankWithEvidenceCore(
+            allFigures: [blackHelmetFig, greenHatFig],
+            evidence: evidence,
+            clipHits: clipHits,
+            hatEvidence: hat
+        )
+
+        XCTAssertEqual(ranked.first?.figure?.id, blackHelmetFig.id)
+    }
 }
