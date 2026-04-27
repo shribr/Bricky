@@ -17,6 +17,7 @@ struct MinifigureScanView: View {
 
     @State private var isIdentifying = false
     @State private var resolvedCandidates: [MinifigureIdentificationService.ResolvedCandidate] = []
+    @State private var showAllResults = false
     @State private var showResults = false
     @State private var errorMessage: String?
     @State private var capturedImage: UIImage?
@@ -169,6 +170,7 @@ struct MinifigureScanView: View {
         }
         .sheet(isPresented: $showResults, onDismiss: {
             resolvedCandidates = []
+            showAllResults = false
             hybridAnalysis = nil
             // Always navigate back to home when the results sheet is
             // dismissed — whether by the Close button, swipe-down, or
@@ -497,6 +499,7 @@ struct MinifigureScanView: View {
             let result = try await MinifigureIdentificationService.shared
                 .identify(torsoImage: identifyImage)
             resolvedCandidates = result
+            showAllResults = false
 
             // Run hybrid analysis using the top candidate as the anchor
             // and up to ~7 additional candidates as cross-attribution
@@ -616,8 +619,27 @@ struct MinifigureScanView: View {
                         )
                         .padding(.top, 40)
                     } else {
-                        ForEach(resolvedCandidates) { candidate in
+                        let initialCount = 8
+                        let visibleCandidates = showAllResults
+                            ? resolvedCandidates
+                            : Array(resolvedCandidates.prefix(initialCount))
+                        ForEach(visibleCandidates) { candidate in
                             candidateRow(candidate)
+                        }
+                        if !showAllResults && resolvedCandidates.count > initialCount {
+                            let remaining = resolvedCandidates.count - initialCount
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showAllResults = true
+                                }
+                            } label: {
+                                Label("Show \(remaining) more match\(remaining == 1 ? "" : "es")", systemImage: "chevron.down")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(RoundedRectangle(cornerRadius: 12).fill(.regularMaterial))
+                            }
+                            .padding(.top, 4)
                         }
                     }
 

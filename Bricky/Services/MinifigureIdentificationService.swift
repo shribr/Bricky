@@ -2157,7 +2157,7 @@ final class MinifigureIdentificationService: ObservableObject {
             print("[Phase2-PreSort] NOTE: pure-visual #1 was \(topByVis.figure.id) dist=\(String(format: "%.2f", topByVis.distance)) — embedding-aware pre-sort changed the winner")
         }
 
-        var visualResults = sortedByBlend.prefix(10).enumerated().map { (idx, entry) -> ResolvedCandidate in
+        var visualResults = sortedByBlend.prefix(20).enumerated().map { (idx, entry) -> ResolvedCandidate in
             // Apply a small rank penalty so the #1 candidate scores
             // slightly higher than #2 etc.
             let confidence = max(0.25, entry.blendedConf - Double(idx) * 0.02)
@@ -2199,9 +2199,11 @@ final class MinifigureIdentificationService: ObservableObject {
             visualResults.append(contentsOf: topColorOnly)
         }
 
+        // Keep up to 16 so the results sheet can offer a "Show more"
+        // toggle that reveals candidates 9–16 on demand.
         let finalCandidates = visualResults
             .sorted { $0.confidence > $1.confidence }
-            .prefix(8)
+            .prefix(16)
             .map { $0 }
 
         return RefinementOutcome(
@@ -2726,6 +2728,38 @@ final class MinifigureIdentificationService: ObservableObject {
             // figures that happened to lack white in their catalog parts list
             // (Johnny Thunder's brown jacket).
             _ = whitePenalty
+
+            // Moustache / beard demotion. When the scan shows a hat
+            // covering or framing the head, figures whose name highlights
+            // a facial-hair distinguishing feature can't be discriminated
+            // from their clean-faced siblings — and they're rarely the
+            // right pick. This was added after the Forestmen Icons 2022
+            // "Thin Moustache" reissue kept beating the original 1989
+            // archer on near-tied CLIP cosines, despite the user's scan
+            // showing no facial print under the green hat.
+            if let hat = hatEvidence, hat.isChromatic, hat.coverage >= 0.18 {
+                let lowerName = figure.name.lowercased()
+                let mentionsFacialHair =
+                    lowerName.contains("moustache")
+                    || lowerName.contains("mustache")
+                    || lowerName.contains("beard")
+                    || lowerName.contains("goatee")
+                if mentionsFacialHair {
+                    score *= 0.92
+                }
+            }
+
+            // Modern Icons reissue de-emphasis. The "Icons" line (2020+)
+            // re-releases vintage figures with cleaner photography than
+            // their 1989-era originals, which biases CLIP cosines toward
+            // the reissue. A small constant haircut lets the original-era
+            // variant of the same character compete when both are in the
+            // top-N.
+            if figure.year >= 2020,
+               figure.theme.localizedCaseInsensitiveContains("Icons") {
+                score *= 0.95
+            }
+
             // Re-enable the red+white classic-space variant bonus narrowly:
             // when scan palette unmistakably looks classic-space (red+white+
             // yellow head) and the figure is a confirmed red+white classic
