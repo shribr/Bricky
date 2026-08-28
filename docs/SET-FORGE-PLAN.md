@@ -474,7 +474,7 @@ designer-quality sets. Manage expectations to protect trust (consistent with our
    same core; guided AR capture UX.
 4. **M4 — Polish:** inventory-aware palette + buildability %, BrickLink wanted-list
    export, difficulty scoring, paywall / quota, "brick-compatible" branding pass,
-   docs (`features.md`, help center, `CHANGELOG`, `VERSION`).
+   docs (`FEATURES.md`, help center, `CHANGELOG`, `VERSION`).
 5. **M5 — F2 Phase 2 + legalizer upgrade:** optional text-to-3D generative path and
    stronger legolizer (genetic / EPFL force-based) behind the same interface +
    spend guard.

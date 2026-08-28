@@ -243,9 +243,110 @@ build-instruction rework ships and is validated.
 
 ---
 
+## 10. Future Feature — Scan a Real-Life Object → 3D Model → 3D Step-by-Step Instructions
+
+Let a user point the phone at a real object (a mug, a toy, a shoe) and have the
+app reconstruct it, "brickify" it, and hand back interactive 3D build
+instructions for a LEGO replica.
+
+**Most of this pipeline already exists** as the *Set Forge / Scan-to-Set*
+feature (`ScanToSetView` → `ForgeVisionViewModel` → `MeshVoxelizer` →
+`SetForgeEngine` → `GeneratedLegoSet`). This future feature is mainly (a) adding
+a true on-device 3D **capture** front-end and (b) **bridging** the existing
+generated-set output into the unified `AssemblyModel` path from Phases 0–5 so it
+reuses the same 3D step viewer and overview preview.
+
+### 10.1 Pipeline (capture → replica → instructions)
+
+1. **Capture (real object → digital mesh).**
+   - *Primary (new):* RealityKit `ObjectCaptureSession` (LiDAR-guided
+     photogrammetry) → `.usdz`. **Device-only** — not in the simulator SDK, so it
+     must be guarded `#if !targetEnvironment(simulator)` and verified on a LiDAR
+     device.
+   - *Existing fallbacks:* multiview 4-angle capture / video walk-around →
+     hosted Tripo image→3D → `.usdz`; single photo → bas-relief. (All already
+     shipped in Set Forge, with a global spend cap on the hosted path.)
+
+   **Capture-coverage requirement (important UX constraint).** A faithful 3D
+   model requires observing the object *from all around* — a single view can only
+   ever yield a flat bas-relief. The capture modes trade user effort for
+   fidelity:
+
+   | Mode | What the user does | Coverage needed | Fidelity |
+   |---|---|---|---|
+   | Photogrammetry (Object Capture, LiDAR) | Orbit the object taking **many overlapping photos** (~20-200+, ~70% overlap, at 2-3 heights); flip the object to get the **bottom** | Full all-around + top/bottom | Highest |
+   | Video walk-around | Slowly circle the object on video; app extracts frames | Full orbit (a 2nd higher/lower pass helps) | High |
+   | AI multiview (Tripo) | Take **~4 photos** (front/left/back/right) | Minimal — model *hallucinates* unseen parts | Medium |
+   | Single photo | One tap | None | Bas-relief only (flat/guessed back) |
+
+   So the answer to "does the user record a video or take pictures of all
+   sides?" is: **yes for genuine geometry** (video sweep or many-angle orbit),
+   while the **4-view AI path** is the low-effort shortcut. "Exactly 6
+   orthographic sides" isn't how either path works — photogrammetry wants *many
+   overlapping* views; the AI path needs only ~4. The guided-capture UI should
+   default to the video sweep (best coverage/effort balance) and offer the
+   4-photo AI path as the quick option.
+
+2. **Mesh → voxels.** `MeshVoxelizer.voxelize(assetURL:)` → `VoxelModel`
+   (texture-aware colors; `gravitySettled()` guarantees nothing floats).
+3. **Voxels → brick set.** `SetForgeEngine.generate(from:size:name:)` →
+   `GeneratedLegoSet` (bricks, parts, layer-by-layer steps, LDR text).
+4. **Bridge to `AssemblyModel` (new adapter).** Add
+   `GeneratedLegoSet.asAssemblyModel()` mapping each `PlacedBrick` → a
+   `BrickPlacement`: LDU coords (stud = 20, layer = 24) → `GridPosition`, LEGO
+   color carried through, and `step` taken from
+   `SetForgeInstructions.stepGroups(for:)`. This funnels real-object builds
+   through the **same** `BuildStepViewer` + overview 3D preview as authored
+   projects.
+5. **Instructions.** Reuse the assembly-derived step planner. The existing
+   layer-by-layer SetForge stepping already yields ~20+ steps for any non-trivial
+   object (large layers auto-split into sub-steps), satisfying the realistic
+   step-count requirement.
+
+### 10.2 New work required
+- `Views/ObjectCaptureView.swift` — guided LiDAR capture UI (device-only,
+  `#if !targetEnvironment(simulator)`), producing a `.usdz` fed to the existing
+  `MeshVoxelizer` import path.
+- `GeneratedLegoSet.asAssemblyModel()` adapter + LDU→stud-grid coordinate/step
+  mapping (the single genuinely new, testable unit).
+- Entry point: a "Brickify a Real Object" card (Scanner landing / Scan Results),
+  Pro-gated like the rest of Set Forge.
+- Persist results via the existing `GeneratedSetStore`; surface the 3D
+  instructions through the unified viewer instead of the SetForge-specific one.
+
+### 10.3 Risks
+- **Object Capture is device-only** — cannot be compiled/tested against the
+  simulator; guard it and validate on hardware.
+- **Likeness vs. resolution** — blocky at small voxel sizes; default to
+  Medium/Large for recognizable replicas (thermals/compute cost trade-off).
+- **Capture quality** — lighting, texture, and full coverage strongly affect the
+  reconstruction; keep the multiview/photo fallbacks for non-LiDAR devices.
+
+### 10.4 Testing
+- Adapter unit tests: `PlacedBrick` → `BrickPlacement` mapping, step alignment
+  with `stepGroups`, and `asAssemblyModel().derivedRequiredPieces` == the set's
+  aggregated parts.
+- Voxelizer, gravity invariant, and SetForge stepping are already covered by
+  existing suites (`MeshVoxelizerTests`, `SetForgeEngineTests`,
+  `SetForgeInstructions`).
+
+> Relationship to §9: §9 (set/mosaic) and §10 (real object) both converge on the
+> same `AssemblyModel` bridge. Build the adapter layer once (`asAssemblyModel()`
+> from `GeneratedLegoSet`) and all three sources — set, mosaic, real object —
+> reuse the unified step viewer.
+
+---
+
 ## Changelog
 - 2026-08-28 · initial plan drafted (root cause, assembly-model design,
   LDraw-first sourcing, 6-phase rollout, model recommendation).
 - 2026-08-28 · added §9 future feature (generate 3D instructions from a set and
   from a mosaic); Phase 0 (assembly data model + tests) implemented.
+- 2026-08-28 · added §10 future feature (scan a real-life object → 3D model → 3D
+  step-by-step instructions), reusing the Set Forge capture/voxelize/generate
+  pipeline via a shared `GeneratedLegoSet.asAssemblyModel()` bridge.
+- 2026-08-28 · clarified §10.1 capture-coverage requirement (video sweep or
+  many-angle orbit for true geometry; ~4-view AI path as the low-effort
+  shortcut; single photo = bas-relief only).
+
 

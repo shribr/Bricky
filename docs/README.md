@@ -4,9 +4,9 @@ This folder contains project documentation for the Bricky iOS app.
 
 ## Contents
 
-- [Architecture](architecture.md) — App architecture and design patterns
-- [Features](features.md) — Detailed feature descriptions and status
-- [App Store Setup](app-store-setup.md) — App Store Connect IAP configuration (Bricky Pro one-time purchase)
+- [Architecture](ARCHITECTURE.md) — App architecture and design patterns
+- [Features](FEATURES.md) — Detailed feature descriptions and status
+- [App Store Setup](APP-STORE-SETUP.md) — App Store Connect IAP configuration (Bricky Pro one-time purchase)
 - [DEVLOG](DEVLOG.md) — Scanner accuracy development log
 - [LEGO Model Generation System](LEGO%20Model%20Generation%20System/) — Mosaic backend design docs
 

@@ -4,7 +4,7 @@ import Foundation
 /// order. An ordered list of these is the ground truth for a build — the final
 /// 3D preview, the per-step renderings, the instruction text, and the derived
 /// required-piece totals all come from placements (see the 3D build feature
-/// plan in `docs/3d-build-feature-fix-plan.md`).
+/// plan in `docs/3D-BUILD-FEATURE-FIX-PLAN.md`).
 struct BrickPlacement: Codable, Identifiable, Hashable {
     let id: UUID
     let category: PieceCategory

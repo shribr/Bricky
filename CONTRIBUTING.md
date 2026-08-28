@@ -2,7 +2,7 @@
 
 Thanks for working on Bricky. This guide captures the conventions that keep the
 codebase consistent. For the bigger picture, read
-[docs/architecture.md](docs/architecture.md).
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Getting started
 
@@ -99,7 +99,7 @@ hand-editing the `pbxproj`.
 
 - Build is clean with no new warnings.
 - All relevant tests pass.
-- Documentation is updated: `CHANGELOG.md`, and `docs/features.md` when a feature
+- Documentation is updated: `CHANGELOG.md`, and `docs/FEATURES.md` when a feature
   is added or its status changes.
 - Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` and the `VERSION` file for a
   release.

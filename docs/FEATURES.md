@@ -2,7 +2,7 @@
 
 Detailed feature descriptions and status for Bricky. For a short summary see the
 [root README](../README.md); for how the app is built see
-[architecture.md](architecture.md).
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Status legend:** ✅ Shipped · 🔒 Bricky Pro · 🧪 Requires a physical device
 

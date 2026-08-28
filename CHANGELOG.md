@@ -199,7 +199,7 @@ is `CURRENT_PROJECT_VERSION`.
 
 ### Documentation
 
-- Added `docs/architecture.md`, `docs/features.md`, `CONTRIBUTING.md`, this
+- Added `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `CONTRIBUTING.md`, this
   changelog, and a `VERSION` file.
 
 ## [1.4.0]

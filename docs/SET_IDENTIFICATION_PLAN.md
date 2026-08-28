@@ -185,7 +185,7 @@ Following the app's MVVM + service-singleton conventions.
 
 ### Phase 4 — Polish & docs
 - [ ] Save identified sets into inventory / a "My Sets" collection.
-- [ ] Update `CHANGELOG.md`, `docs/features.md`, `VERSION`.
+- [ ] Update `CHANGELOG.md`, `docs/FEATURES.md`, `VERSION`.
 
 ---
 

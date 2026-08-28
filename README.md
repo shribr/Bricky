@@ -59,8 +59,8 @@ Bricky/
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — App architecture and design patterns
-- [Features](docs/features.md) — Detailed feature descriptions and status
+- [Architecture](docs/ARCHITECTURE.md) — App architecture and design patterns
+- [Features](docs/FEATURES.md) — Detailed feature descriptions and status
 - [Changelog](CHANGELOG.md) — Release history
 - [Contributing](CONTRIBUTING.md) — Development conventions and workflow
 

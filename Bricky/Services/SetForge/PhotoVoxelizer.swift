@@ -15,7 +15,7 @@ import Vision
 ///
 /// This is the fully offline M1 path. Multi-photo Object Capture → true
 /// volumetric reconstruction is the planned Phase-2 upgrade (see
-/// `docs/set-forge-plan.md`); it produces a richer `VoxelModel` for the same
+/// `docs/SET-FORGE-PLAN.md`); it produces a richer `VoxelModel` for the same
 /// engine without changing this contract.
 enum PhotoVoxelizer {
 
