@@ -348,5 +348,9 @@ reuses the same 3D step viewer and overview preview.
 - 2026-08-28 · clarified §10.1 capture-coverage requirement (video sweep or
   many-angle orbit for true geometry; ~4-view AI path as the low-effort
   shortcut; single photo = bas-relief only).
-
+- 2026-08-28 · Phase 1 implemented: `LDrawModelParser` (`.ldr`/`.mpd` → ordered
+  `AssemblyModel` with real `0 STEP` boundaries, MPD sub-model inlining,
+  LDU→stud-grid coord/rotation mapping, colour-code mapping) + `LDrawPartCatalog`
+  + 7 fixture tests. Sub-model-internal step boundaries flattened for now (noted
+  limitation).
 
