@@ -353,4 +353,11 @@ reuses the same 3D step viewer and overview preview.
   LDU→stud-grid coord/rotation mapping, colour-code mapping) + `LDrawPartCatalog`
   + 7 fixture tests. Sub-model-internal step boundaries flattened for now (noted
   limitation).
-
+- 2026-08-28 · Phase 2 (part 1) implemented: the shared
+  `GeneratedLegoSet.asAssemblyModel()` bridge (Set Forge bricks + step groups →
+  `AssemblyModel`; the §9/§10 enabler) + `AssemblyValidator` harness (gapless
+  steps, all-placements-stepped, no-floating-bricks via footprint support) +
+  `BrickPlacement` footprint/support helpers + 8 tests. No bundled LDraw *models*
+  exist yet, so the LDraw-import ingestion path (Phase 1 parser) awaits source
+  models; wiring catalog projects to generated/template assemblies is folded into
+  Phase 3.

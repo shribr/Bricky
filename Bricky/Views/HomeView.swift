@@ -331,6 +331,44 @@ struct HomeView: View {
             .accessibilityLabel("Scanner")
             .accessibilityHint("Pre-scan analysis to detect bricks or minifigures")
 
+            // Sprint 2 / B4 — Find a Brick hub
+            NavigationLink(destination: FindABrickHubView()) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "magnifyingglass")
+                            .font(.title2)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Find a Brick")
+                            .font(.headline)
+                        Text("Search the catalog and locate pieces in any pile")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.legoGreen, Color.legoGreen.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: Color.legoGreen.opacity(0.3), radius: 8, y: 4)
+                )
+                .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Find a Brick")
+            .accessibilityHint("Search across the full LEGO catalog and your saved scans")
+
             // "See What You Can Build" — advertise the build-suggestions feature.
             // Tapping opens an explainer modal that also launches the capability.
             Button {
@@ -374,44 +412,6 @@ struct HomeView: View {
             .accessibilityLabel("See what you can build")
             .accessibilityHint("Learn how build suggestions work and launch the feature")
 
-            // Sprint 2 / B4 — Find a Brick hub
-            NavigationLink(destination: FindABrickHubView()) {
-                HStack {
-                    ZStack {
-                        Circle()
-                            .fill(.black.opacity(0.15))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: "magnifyingglass")
-                            .font(.title2)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Find a Brick")
-                            .font(.headline)
-                        Text("Search the catalog and locate pieces in any pile")
-                            .font(.caption)
-                            .foregroundStyle(.black.opacity(0.7))
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.black.opacity(0.6))
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.legoYellow, Color.legoYellow.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: Color.legoYellow.opacity(0.3), radius: 8, y: 4)
-                )
-                .foregroundStyle(.black)
-            }
-            .accessibilityLabel("Find a Brick")
-            .accessibilityHint("Search across the full LEGO catalog and your saved scans")
-
             // Mosaic Studio — turn a photo into a buildable LEGO mosaic
             NavigationLink(destination: MosaicGeneratorView()) {
                 HStack {
@@ -449,49 +449,6 @@ struct HomeView: View {
             }
             .accessibilityLabel(L10n.mosaicTitle)
             .accessibilityHint("Turn a photo into a buildable LEGO brick mosaic")
-
-            // AI Subject Recognition — hidden, developer-only cloud feature.
-            // Only visible when the in-app developer override is enabled; normal
-            // users never see it exists.
-            if subscriptions.developerProOverride {
-                NavigationLink(destination: ImageRecognitionView()) {
-                    HStack {
-                        ZStack {
-                            Circle()
-                                .fill(.white.opacity(0.2))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "sparkle.magnifyingglass")
-                                .font(.title2)
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(L10n.recognitionTitle)
-                                .font(.headline)
-                            Text(L10n.recognitionSubtitle)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.7))
-                                .lineLimit(2)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.legoGreen, Color.legoGreen.opacity(0.7)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color.legoGreen.opacity(0.3), radius: 8, y: 4)
-                    )
-                    .foregroundStyle(.white)
-                }
-                .accessibilityLabel(L10n.recognitionTitle)
-                .accessibilityHint("Identify celebrities, characters, and famous places in a photo")
-            }
 
             Button {
                 showingDemoMode = true

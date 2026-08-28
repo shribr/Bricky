@@ -40,9 +40,6 @@ struct BrickPlacement: Codable, Identifiable, Hashable {
         self.step = step
     }
 }
-
-/// Integer position on the stud grid. `x`/`z` are stud columns/rows; `y` is the
-/// vertical layer in plate-height units (1 brick = 3 plates).
 struct GridPosition: Codable, Hashable {
     let x: Int
     let y: Int
@@ -53,6 +50,37 @@ struct GridPosition: Codable, Hashable {
         self.y = y
         self.z = z
     }
+}
+
+extension BrickPlacement {
+    /// A single stud column (x, z) occupied by a brick's footprint.
+    struct Column: Hashable { let x: Int; let z: Int }
+
+    /// Footprint extents in studs at the current rotation (0/180 keep the
+    /// intrinsic dimensions; 90/270 swap X and Z).
+    var footprint: (width: Int, length: Int) {
+        let w = Swift.max(1, dimensions.studsWide)
+        let l = Swift.max(1, dimensions.studsLong)
+        return (rotationDegrees == 90 || rotationDegrees == 270) ? (l, w) : (w, l)
+    }
+
+    /// Stud columns this brick occupies (footprint at rotation 0 spans
+    /// `studsWide` along X and `studsLong` along Z).
+    var occupiedColumns: [Column] {
+        let (w, l) = footprint
+        var cols: [Column] = []
+        for dx in 0..<w {
+            for dz in 0..<l {
+                cols.append(Column(x: position.x + dx, z: position.z + dz))
+            }
+        }
+        return cols
+    }
+
+    /// Lowest plate layer the brick sits on.
+    var bottomY: Int { position.y }
+    /// Plate layer just above the brick's top (exclusive).
+    var topY: Int { position.y + Swift.max(1, dimensions.heightUnits) }
 }
 
 /// Axis-aligned bounds of an assembly in stud-grid units.
