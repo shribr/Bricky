@@ -1,10 +1,16 @@
 import SwiftUI
+import MapKit
 
 /// Shows results after scanning, with piece summary and navigation to catalog/builds
 struct ScanResultsView: View {
     @ObservedObject var session: ScanSession
+    /// When the results are opened from scan history (not a just-finished scan)
+    /// we drop the celebratory "Scan Complete" header — it's obviously complete.
+    var isFromHistory: Bool = false
     @State private var navigateToCatalog = false
     @State private var navigateToBuilds = false
+    /// Sprint C — present the captured location on a map.
+    @State private var showLocationMap = false
     @State private var pieceToEdit: LegoPiece?
     @State private var pieceToPreview: LegoPiece?
     @State private var pieceToLocate: LegoPiece?
@@ -32,7 +38,7 @@ struct ScanResultsView: View {
                     description: Text("Scan some LEGO bricks to see results here.")
                 )
             } else {
-                scrollContent
+                resultsLayout
             }
         }
         .navigationTitle("Scan Results")
@@ -81,33 +87,41 @@ struct ScanResultsView: View {
         .sheet(isPresented: $showSortingSuggestions) {
             SortingSuggestionsView(pieces: session.pieces)
         }
+        .sheet(isPresented: $showLocationMap) {
+            ScanLocationMapSheet(session: session)
+        }
     }
 
-    private var scrollContent: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Summary header
-                summaryCard
+    private var resultsLayout: some View {
+        VStack(spacing: 0) {
+            // Scrollable content — the pieces list scrolls independently of the
+            // fixed action bar so the user never has to scroll to the bottom of
+            // a long piece list to reach the primary actions.
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Summary header
+                    summaryCard
 
-                // Detected pieces list (editable)
-                if !session.pieces.isEmpty {
-                    detectedPiecesList
+                    // Detected pieces list (editable)
+                    if !session.pieces.isEmpty {
+                        detectedPiecesList
+                    }
+
+                    // Category breakdown
+                    if !session.categorySummary.isEmpty {
+                        categoryBreakdown
+                    }
+
+                    // Color breakdown
+                    if !session.colorSummary.isEmpty {
+                        colorBreakdown
+                    }
                 }
-
-                // Category breakdown
-                if !session.categorySummary.isEmpty {
-                    categoryBreakdown
-                }
-
-                // Color breakdown
-                if !session.colorSummary.isEmpty {
-                    colorBreakdown
-                }
-
-                // Action buttons
-                actionButtons
+                .padding()
             }
-            .padding()
+
+            // Fixed action bar — always visible, scrolls independently of the list.
+            actionBar
         }
     }
 
@@ -142,18 +156,22 @@ struct ScanResultsView: View {
 
     private var summaryCard: some View {
         VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.15))
-                    .frame(width: 72, height: 72)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.green)
-            }
+            // The celebratory checkmark + "Scan Complete!" only makes sense for
+            // a just-finished scan. When browsing history it's redundant.
+            if !isFromHistory {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.15))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.green)
+                }
 
-            Text("Scan Complete!")
-                .font(.title2)
-                .fontWeight(.bold)
+                Text("Scan Complete!")
+                    .font(.title2)
+                    .fontWeight(.bold)
+            }
 
             HStack(spacing: 32) {
                 statItem(value: "\(session.totalPiecesFound)", label: "Total Pieces")
@@ -164,21 +182,29 @@ struct ScanResultsView: View {
             // Confidence summary
             confidenceSummary
 
-            // Sprint C — show captured location chip when available.
+            // Sprint C — captured location. Tappable chip that opens the pin on
+            // a map. Purple/lavender (not red) so it never reads as an error.
             if session.latitude != nil, session.longitude != nil {
-                HStack(spacing: 6) {
-                    Image(systemName: "mappin.circle.fill")
-                        .foregroundStyle(.tint)
-                    Text(session.placeName ?? "Location captured")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                Button {
+                    showLocationMap = true
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.circle.fill")
+                        Text(session.placeName ?? "Location captured")
+                            .font(.subheadline)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(Color.legoPurple)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().fill(Color.legoLavender)
+                    )
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule().fill(Color.accentColor.opacity(0.12))
-                )
                 .accessibilityLabel("Scanned at \(session.placeName ?? "captured location")")
+                .accessibilityHint("Opens the scan location on a map")
             }
         }
         .padding(24)
@@ -303,34 +329,18 @@ struct ScanResultsView: View {
         )
     }
 
-    // MARK: - Action Buttons
+    // MARK: - Action Bar (fixed footer)
 
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
-            if !session.sourceImages.isEmpty {
-                Button {
-                    showPileSheet = true
-                } label: {
-                    Label("View Pile Photo", systemImage: "photo.on.rectangle.angled")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(.regularMaterial)
-                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                        )
-                }
-                .accessibilityHint("Tap pieces in the photo to highlight where they were detected")
-            }
-
+    private var actionBar: some View {
+        VStack(spacing: 10) {
+            // Primary CTA — always the most prominent action.
             Button {
                 navigateToBuilds = true
             } label: {
                 Label("See What You Can Build", systemImage: "hammer.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(.vertical, 14)
                     .background(
                         LinearGradient(
                             colors: [Color.legoBlue, Color.legoBlue.opacity(0.8)],
@@ -344,54 +354,63 @@ struct ScanResultsView: View {
             }
             .accessibilityHint("Shows build suggestions based on your scanned pieces")
 
-            Button {
-                navigateToCatalog = true
-            } label: {
-                Label("View Full Catalog", systemImage: "list.bullet")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.regularMaterial)
-                            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                    )
-            }
-            .accessibilityHint("Browse all detected pieces with filters and sorting")
-
-            // Sprint 5 / F5 — Storage suggestions
-            Button {
-                showSortingSuggestions = true
-            } label: {
-                Label("Sorting Suggestions", systemImage: "tray.2.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.regularMaterial)
-                            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                    )
-            }
-            .accessibilityHint("Recommended storage bin layouts for your pieces")
-
-            // Sprint 5 / F1 — Compare to saved scan
-            if ScanHistoryStore.shared.entries.contains(where: { $0.id != session.id }) {
-                Button {
-                    showPileDiff = true
-                } label: {
-                    Label("Compare to Saved Scan", systemImage: "arrow.left.arrow.right.circle")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(.regularMaterial)
-                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                        )
+            // Secondary actions — compact 2-column grid so they stay visible
+            // without dominating the footer.
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                if !session.sourceImages.isEmpty {
+                    secondaryActionButton("Pile Photo", systemImage: "photo.on.rectangle.angled") {
+                        showPileSheet = true
+                    }
+                    .accessibilityHint("Tap pieces in the photo to highlight where they were detected")
                 }
-                .accessibilityHint("See added and removed pieces vs a previous scan")
+
+                secondaryActionButton("Full Catalog", systemImage: "list.bullet") {
+                    navigateToCatalog = true
+                }
+                .accessibilityHint("Browse all detected pieces with filters and sorting")
+
+                secondaryActionButton("Sorting", systemImage: "tray.2.fill") {
+                    showSortingSuggestions = true
+                }
+                .accessibilityHint("Recommended storage bin layouts for your pieces")
+
+                if ScanHistoryStore.shared.entries.contains(where: { $0.id != session.id }) {
+                    secondaryActionButton("Compare", systemImage: "arrow.left.arrow.right.circle") {
+                        showPileDiff = true
+                    }
+                    .accessibilityHint("See added and removed pieces vs a previous scan")
+                }
             }
+        }
+        .padding(.horizontal)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
+        .background(.regularMaterial)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private func secondaryActionButton(
+        _ title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                Text(title)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Color.legoBlue)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.secondarySystemBackground))
+            )
         }
     }
 
@@ -569,6 +588,59 @@ struct ScanResultsView: View {
         }
     }
 }
+
+// MARK: - Scan Location Map Sheet
+
+/// Shows the single captured location for a scan as a pin on a map.
+struct ScanLocationMapSheet: View {
+    @ObservedObject var session: ScanSession
+    @Environment(\.dismiss) private var dismiss
+
+    private var coordinate: CLLocationCoordinate2D? {
+        guard let lat = session.latitude, let lon = session.longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let coordinate {
+                    Map(initialPosition: .region(MKCoordinateRegion(
+                        center: coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    ))) {
+                        Annotation(session.placeName ?? "Scan location", coordinate: coordinate) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.legoLavender)
+                                    .frame(width: 40, height: 40)
+                                    .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(Color.legoPurple)
+                            }
+                        }
+                    }
+                    .ignoresSafeArea(edges: .bottom)
+                } else {
+                    ContentUnavailableView(
+                        "No Location",
+                        systemImage: "mappin.slash",
+                        description: Text("This scan doesn't have a captured location.")
+                    )
+                }
+            }
+            .navigationTitle(session.placeName ?? "Scan Location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
 
 // MARK: - Edit Piece View
 

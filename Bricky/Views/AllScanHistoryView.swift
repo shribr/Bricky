@@ -95,7 +95,7 @@ struct AllScanHistoryView: View {
             }
             .navigationDestination(isPresented: $navigate) {
                 if let session = selectedSession {
-                    ScanResultsView(session: session)
+                    ScanResultsView(session: session, isFromHistory: true)
                 }
             }
             .overlay {

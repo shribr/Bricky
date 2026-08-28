@@ -62,7 +62,7 @@ struct ScanMapView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToResults) {
             if let session = selectedSession {
-                ScanResultsView(session: session)
+                ScanResultsView(session: session, isFromHistory: true)
             }
         }
     }

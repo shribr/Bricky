@@ -361,6 +361,7 @@
 		FA7085B2BCFC0DAF7B93B090 /* lego_minifigure_arctic_explore_female_ cty0491_fig-007213.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 7D668D7CFDF0118AEE4F1848 /* lego_minifigure_arctic_explore_female_ cty0491_fig-007213.jpeg */; };
 		FBA1B59A5BA53C77E1FBE364 /* MosaicPacker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8389B68611956AC8C55F414 /* MosaicPacker.swift */; };
 		FD1A781F06A8BB347C239F69 /* PileDiffService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4716DEF5B361CBC8B1267080 /* PileDiffService.swift */; };
+		FD77816013125F7BB0409987 /* LocationColorSchemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */; };
 		FF15D624DFDE0864411D967F /* FaceEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B3303486A1BD62AF95F59E /* FaceEmbeddingService.swift */; };
 		FFC974C1A306069D23B676A4 /* ColorCalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */; };
 /* End PBXBuildFile section */
@@ -573,6 +574,7 @@
 		815403900D6C26B4CBBAD13B /* MosaicGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicGeneratorView.swift; sourceTree = "<group>"; };
 		83AD14346743A75D0BA8A27F /* Comment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comment.swift; sourceTree = "<group>"; };
 		85DE1F0CE3A7A1269F43C915 /* RebrickableSetService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RebrickableSetService.swift; sourceTree = "<group>"; };
+		861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocationColorSchemeTests.swift; sourceTree = "<group>"; };
 		869D6030E25BF39280135812 /* PileBoundaryLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileBoundaryLocationView.swift; sourceTree = "<group>"; };
 		8744F07950DDB3553CBB5E00 /* LegoPartsCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = LegoPartsCatalog.json; sourceTree = "<group>"; };
 		876ADDFBD2FF0523DE542D85 /* TripoMeshService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripoMeshService.swift; sourceTree = "<group>"; };
@@ -1155,6 +1157,7 @@
 				170BD992A15C9138EB19F154 /* ForgeVisionViewModelTests.swift */,
 				6AA3EA57AEECD5604DA3303C /* SetForgeSTLExporterTests.swift */,
 				6705DAF3B1067D3A5F3DC34B /* SetForgePolishTests.swift */,
+				861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1781,6 +1784,7 @@
 				DB4812F40C45D7C2C5BAAFA3 /* ForgeVisionViewModelTests.swift in Sources */,
 				558B56D9308CA4D5ADCFE99E /* SetForgeSTLExporterTests.swift in Sources */,
 				D72987AA1754F85027FDA391 /* SetForgePolishTests.swift in Sources */,
+				FD77816013125F7BB0409987 /* LocationColorSchemeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

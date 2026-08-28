@@ -8,6 +8,28 @@ extension Color {
     static let legoGreen = Color(hex: "237841")
     static let legoOrange = Color(hex: "FE8A18")
 
+    // MARK: - Location / Purple-Lavender scheme
+    //
+    // Used for the "location captured" affordance (a neutral, non-error cue).
+    // Both colors adapt to light/dark so foreground text/icons always keep
+    // legible contrast against the paired background (WCAG-friendly): a strong
+    // purple on a light lavender fill in light mode, and a light lavender on a
+    // deep purple fill in dark mode.
+
+    /// Foreground (icon + text) for the location affordance.
+    static let legoPurple = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.85, green: 0.78, blue: 0.98, alpha: 1)   // light lavender
+            : UIColor(red: 0.36, green: 0.16, blue: 0.55, alpha: 1)   // deep purple
+    })
+
+    /// Background fill for the location affordance (pairs with `legoPurple`).
+    static let legoLavender = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.24, green: 0.14, blue: 0.38, alpha: 1)   // deep purple
+            : UIColor(red: 0.92, green: 0.88, blue: 0.99, alpha: 1)   // light lavender
+    })
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
