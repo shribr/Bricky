@@ -209,6 +209,7 @@
 		8D954E62BB048DD124760456 /* ScannerPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B9A21D7399E1319084D00EE /* ScannerPipelineTests.swift */; };
 		8EE0E751C47703F32EDEAF35 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D0ECADC055CC9471CBF5FC /* CommentsView.swift */; };
 		91172B665F3EC29F6AB87203 /* LegoPieceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FDFE37FAD57D27C6FA8B6B /* LegoPieceTests.swift */; };
+		915D6DD3C1B876D1AB9A5F7D /* BuildFeatureExplainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA7D1F29A1A263CA8C12A7B /* BuildFeatureExplainerView.swift */; };
 		91A863A337B61D59999DEC22 /* Minifigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */; };
 		91E714F19CA3F390D3972519 /* MosaicColorScience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46817B9A6D66A09A92C89BFF /* MosaicColorScience.swift */; };
 		921B1D2C8BDF8C9F2095D935 /* ForgeVisionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 377DE48A946946F7F5194C20 /* ForgeVisionViewModel.swift */; };
@@ -281,6 +282,7 @@
 		C2E8CEBC6A55988AC82EBF36 /* TopographicMeshRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80A790919432D63489718D6 /* TopographicMeshRendererTests.swift */; };
 		C35A5760310F6CFEE89ED5CF /* GeneratedSetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF479F0BDF27C6485BD178F5 /* GeneratedSetStore.swift */; };
 		C3FA867133848E28F8A09835 /* SetForgeContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2710E5FCA8DD30C3B69CBDAE /* SetForgeContract.swift */; };
+		C5D6750A5348DE1F8B361E26 /* BuildFeatureExplainerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F8D6DD7CABD4ABD4C359F2 /* BuildFeatureExplainerViewTests.swift */; };
 		C5F936375C250B2E07F4AEF8 /* lego_minifigure_m_tron_sp033_fig-000065.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 8BFE9D3BF6106A1E2A53C683 /* lego_minifigure_m_tron_sp033_fig-000065.jpeg */; };
 		C654A7800A5E121003CF8AC5 /* MosaicGeneratorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0CFA7FA4322E79EAD675E0 /* MosaicGeneratorViewModel.swift */; };
 		C6D1EECF9B5A681D46BC773B /* RebrickableSetService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85DE1F0CE3A7A1269F43C915 /* RebrickableSetService.swift */; };
@@ -397,6 +399,7 @@
 		0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanView.swift; sourceTree = "<group>"; };
 		033AB78186B7339EC8BC44F4 /* LDrawModelParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawModelParserTests.swift; sourceTree = "<group>"; };
 		039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = MinifigureCatalog.json.gz; sourceTree = "<group>"; };
+		03F8D6DD7CABD4ABD4C359F2 /* BuildFeatureExplainerViewTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildFeatureExplainerViewTests.swift; sourceTree = "<group>"; };
 		043767ED2D733C59CCFE2A31 /* LDrawPartCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawPartCatalog.swift; sourceTree = "<group>"; };
 		04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigurePartClassifier.swift; sourceTree = "<group>"; };
 		05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintGAppStoreTests.swift; sourceTree = "<group>"; };
@@ -505,6 +508,7 @@
 		4D3C659E7105107DB0922F98 /* InventoryImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryImporter.swift; sourceTree = "<group>"; };
 		4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
 		4E73A004AC376E75A118FBED /* MinifigureCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogTests.swift; sourceTree = "<group>"; };
+		4EA7D1F29A1A263CA8C12A7B /* BuildFeatureExplainerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildFeatureExplainerView.swift; sourceTree = "<group>"; };
 		4FF3F97DEB042BAD5BFDDD65 /* HelpAndTipsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpAndTipsTests.swift; sourceTree = "<group>"; };
 		51963EC526B281CF781B3D43 /* Model3DViewerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Model3DViewerView.swift; sourceTree = "<group>"; };
 		53D8A2BCF0F0D7BF336ABDB9 /* DescribeSetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DescribeSetView.swift; sourceTree = "<group>"; };
@@ -1172,6 +1176,7 @@
 				861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */,
 				3A73BB5CA29BF7CCE3561743 /* AssemblyModelTests.swift */,
 				033AB78186B7339EC8BC44F4 /* LDrawModelParserTests.swift */,
+				03F8D6DD7CABD4ABD4C359F2 /* BuildFeatureExplainerViewTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1285,6 +1290,7 @@
 				71276A256DD2DB387E2D61AA /* SetIdentificationView.swift */,
 				3D3A8F980EE5F4CA1FC58326 /* SetScanHistoryView.swift */,
 				73BF44163C4807B9BDA721F2 /* SetForge */,
+				4EA7D1F29A1A263CA8C12A7B /* BuildFeatureExplainerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1724,6 +1730,7 @@
 				F23AE7492B8D03168CE8F569 /* AssemblyModel.swift in Sources */,
 				378BAF98FA7FB4CD81D2A47B /* LDrawPartCatalog.swift in Sources */,
 				9FF46ED37F7D1333B96BEC0C /* LDrawModelParser.swift in Sources */,
+				915D6DD3C1B876D1AB9A5F7D /* BuildFeatureExplainerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1805,6 +1812,7 @@
 				FD77816013125F7BB0409987 /* LocationColorSchemeTests.swift in Sources */,
 				BC0F7915ACD2B5455E4E28CE /* AssemblyModelTests.swift in Sources */,
 				FBFBD0F6CA60EAA6FAAE7EC0 /* LDrawModelParserTests.swift in Sources */,
+				C5D6750A5348DE1F8B361E26 /* BuildFeatureExplainerViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

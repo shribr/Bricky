@@ -37,6 +37,18 @@ struct HomeView: View {
     /// Bricky Pro paywall, presented from the Home upgrade banner.
     @State private var showPaywall = false
 
+    /// "See What You Can Build" explainer modal + its launch intents. The launch
+    /// navigation is triggered on the sheet's `onDismiss` so the push happens
+    /// cleanly after the sheet is gone.
+    @State private var showBuildExplainer = false
+    @State private var pendingLaunchBuilds = false
+    @State private var pendingStartScan = false
+    @State private var navigateToBuildsFromHome = false
+    @State private var navigateToScannerFromHome = false
+
+    /// Pieces from the most recent scan, used to launch build ideas directly.
+    private var recentPieces: [LegoPiece] { cameraViewModel.scanSession.pieces }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -118,6 +130,34 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
+        }
+        .sheet(isPresented: $showBuildExplainer, onDismiss: {
+            // Trigger navigation after the sheet is fully dismissed.
+            if pendingLaunchBuilds {
+                pendingLaunchBuilds = false
+                navigateToBuildsFromHome = true
+            } else if pendingStartScan {
+                pendingStartScan = false
+                navigateToScannerFromHome = true
+            }
+        }) {
+            BuildFeatureExplainerView(
+                hasRecentPieces: !recentPieces.isEmpty,
+                onLaunchBuilds: {
+                    pendingLaunchBuilds = true
+                    showBuildExplainer = false
+                },
+                onStartScan: {
+                    pendingStartScan = true
+                    showBuildExplainer = false
+                }
+            )
+        }
+        .navigationDestination(isPresented: $navigateToBuildsFromHome) {
+            BuildSuggestionsView(pieces: recentPieces)
+        }
+        .navigationDestination(isPresented: $navigateToScannerFromHome) {
+            PreScanAnalysisView()
         }
         .sheet(isPresented: $showingDemoMode) {
             DemoModeView(session: cameraViewModel.scanSession)
@@ -290,6 +330,49 @@ struct HomeView: View {
             }
             .accessibilityLabel("Scanner")
             .accessibilityHint("Pre-scan analysis to detect bricks or minifigures")
+
+            // "See What You Can Build" — advertise the build-suggestions feature.
+            // Tapping opens an explainer modal that also launches the capability.
+            Button {
+                showBuildExplainer = true
+                HapticManager.selection()
+            } label: {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "hammer.fill")
+                            .font(.title2)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("See What You Can Build")
+                            .font(.headline)
+                        Text("Turn your scanned bricks into buildable projects with 3D steps")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.legoOrange, Color.legoOrange.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: Color.legoOrange.opacity(0.3), radius: 8, y: 4)
+                )
+                .foregroundStyle(.white)
+            }
+            .accessibilityLabel("See what you can build")
+            .accessibilityHint("Learn how build suggestions work and launch the feature")
 
             // Sprint 2 / B4 — Find a Brick hub
             NavigationLink(destination: FindABrickHubView()) {
