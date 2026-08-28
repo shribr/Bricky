@@ -361,3 +361,11 @@ reuses the same 3D step viewer and overview preview.
   exist yet, so the LDraw-import ingestion path (Phase 1 parser) awaits source
   models; wiring catalog projects to generated/template assemblies is folded into
   Phase 3.
+- 2026-08-28 · Phase 3 implemented: `BuildStepPlanner` (assembly → `BuildStep`s
+  with piece summaries + positional hints, derived from the same placements the
+  viewer renders) + `ProceduralAssemblyGenerator` (deterministic, always-valid
+  layered fill from a bag of `RequiredPiece`s) + `LegoProject.resolvedAssembly`
+  wiring (authored/LDraw assembly preferred, else generated) + 7 tests. Generator
+  aesthetics are blocky (support-guaranteed flush packing); recognizable
+  LDraw/authored models still take precedence. Also removed the Timed Build entry
+  from the Instructions tab (instructions-only screen).

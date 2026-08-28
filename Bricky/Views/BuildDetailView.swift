@@ -12,7 +12,6 @@ struct BuildDetailView: View {
     @State private var showShareSheet = false
     @State private var showBuildStepViewer = false
     @State private var showShareToCommunity = false
-    @State private var isTimerActive = false
 
     enum DetailTab: String, CaseIterable {
         case overview = "Overview"
@@ -285,54 +284,6 @@ struct BuildDetailView: View {
     private var instructionsTab: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Build Timer
-                if isTimerActive {
-                    BuildTimerView(
-                        estimatedTime: suggestion.project.estimatedTime,
-                        isTimerActive: $isTimerActive,
-                        onComplete: {
-                            // Timer completed
-                        }
-                    )
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                } else {
-                    FeatureTipView(
-                        tip: .timedBuild,
-                        icon: "timer",
-                        title: "Timed Build Mode",
-                        message: "Race against the estimated time! Start the timer, build, and tap complete when done. Counts toward your daily streak.",
-                        color: .orange
-                    )
-                    .padding(.horizontal)
-
-                    Button {
-                        isTimerActive = true
-                        HapticManager.impact()
-                    } label: {
-                        HStack {
-                            Image(systemName: "timer")
-                                .font(.title3)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Start Build Timer")
-                                    .font(.headline)
-                                Text("Track your build time (\(suggestion.project.estimatedTime) est.)")
-                                    .font(.caption)
-                            }
-                            Spacer()
-                            Image(systemName: "play.fill")
-                        }
-                        .padding()
-                        .foregroundStyle(.white)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.legoRed)
-                        )
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                }
-
                 // 3D Viewer button
                 Button {
                     showBuildStepViewer = true
