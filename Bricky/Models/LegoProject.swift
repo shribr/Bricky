@@ -13,6 +13,11 @@ struct LegoProject: Identifiable, Codable {
     let imageSystemName: String
     let funFact: String?
     var isFavorited: Bool
+    /// Ordered, positioned brick placements that compose this build. Optional
+    /// for backward compatibility — legacy projects without it fall back to the
+    /// old renderer. When present, it is the ground truth for the 3D preview,
+    /// per-step renderings, and derived piece totals.
+    let assembly: AssemblyModel?
 
     init(
         id: UUID = UUID(),
@@ -25,7 +30,8 @@ struct LegoProject: Identifiable, Codable {
         instructions: [BuildStep],
         imageSystemName: String,
         funFact: String? = nil,
-        isFavorited: Bool = false
+        isFavorited: Bool = false,
+        assembly: AssemblyModel? = nil
     ) {
         self.id = id
         self.name = name
@@ -38,6 +44,17 @@ struct LegoProject: Identifiable, Codable {
         self.imageSystemName = imageSystemName
         self.funFact = funFact
         self.isFavorited = isFavorited
+        self.assembly = assembly
+    }
+
+    /// Required pieces to use for matching/UI: derived from the assembly when
+    /// present (kept consistent with what's actually built), else the stored
+    /// list for legacy projects.
+    var effectiveRequiredPieces: [RequiredPiece] {
+        if let assembly, !assembly.placements.isEmpty {
+            return assembly.derivedRequiredPieces
+        }
+        return requiredPieces
     }
 
     /// How many of the required pieces the user has

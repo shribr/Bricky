@@ -222,6 +222,30 @@ the current model to unblock the data types.
 
 ---
 
+## 9. Future Feature — "Generate 3D Instructions" from a Set and from a Mosaic
+
+Once the assembly-model pipeline (Phases 0–4) is in place, reuse it to generate
+step-by-step 3D instructions for content the user already has in the app:
+
+- **From a Set** — take an identified/collected set and produce an `AssemblyModel`
+  (ideally from its LDraw model, else a template approximation) so the user can
+  replay the build as interactive 3D instructions, independent of the paper
+  booklet.
+- **From a Mosaic** — convert a generated mosaic (`MosaicGenerator` /
+  `MosaicInstructionsRenderer`) into an `AssemblyModel`: each mosaic cell becomes
+  a positioned plate/tile placement, grouped into steps (e.g. by row or region),
+  driving the same 3D step viewer used for builds.
+
+Both entry points funnel into the shared `AssemblyModel` → `BuildStepPlanner` →
+`BuildStepViewer` path, so no new rendering/step machinery is needed — only
+adapters that emit placements from a set or a mosaic. Deferred until the core
+build-instruction rework ships and is validated.
+
+---
+
 ## Changelog
 - 2026-08-28 · initial plan drafted (root cause, assembly-model design,
   LDraw-first sourcing, 6-phase rollout, model recommendation).
+- 2026-08-28 · added §9 future feature (generate 3D instructions from a set and
+  from a mosaic); Phase 0 (assembly data model + tests) implemented.
+

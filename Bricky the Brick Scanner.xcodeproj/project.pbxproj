@@ -266,6 +266,7 @@
 		BB877E5346B0F6C8459F657C /* MosaicEngineGoldenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AAB22D9F2EDDF4771B8D26 /* MosaicEngineGoldenTests.swift */; };
 		BB98A24621905435A037361B /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61338725147C0143FDFD72F5 /* UserProfileView.swift */; };
 		BBF054401C5AFB9948638772 /* LDrawGeometryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC8F80C4E0982F2258E2AEE /* LDrawGeometryBuilder.swift */; };
+		BC0F7915ACD2B5455E4E28CE /* AssemblyModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A73BB5CA29BF7CCE3561743 /* AssemblyModelTests.swift */; };
 		BCB5CFCDDC7E4933E35B151F /* SprintEModelGenerationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11129867B4A0A4EEEA1D991 /* SprintEModelGenerationTests.swift */; };
 		BD4699E865EDE47400B65B97 /* MinifigureReferenceImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7E3CB71061833D94EA17AB /* MinifigureReferenceImageStore.swift */; };
 		BDBE2D4BC1A2EA3BFFB636DB /* LegoSetCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1F615C73B1527FB02F905C /* LegoSetCatalog.swift */; };
@@ -350,6 +351,7 @@
 		F07E1F1A2C5A2D5024262204 /* TorsoEmbeddingIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */; };
 		F0EB692D96201E2E59532BD0 /* VoxelPacker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C967682CE0A5B6E96F3A2228 /* VoxelPacker.swift */; };
 		F116571048A46356A15AB0A0 /* LegoProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3F043020FE5C5E9432A511 /* LegoProject.swift */; };
+		F23AE7492B8D03168CE8F569 /* AssemblyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBF4617BAA028C5ABDF978D5 /* AssemblyModel.swift */; };
 		F265650A3AD65D4CF4DBD38B /* BuildStepViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */; };
 		F2861F6ED51C78E1D19B12AE /* SetForgeEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E94FF5CF654C13C88E7CBB9 /* SetForgeEngineTests.swift */; };
 		F2E648B8FA73E8843368A64A /* DepthBoundaryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73609C0C3AF7791CFE6F171C /* DepthBoundaryStrategy.swift */; };
@@ -468,6 +470,7 @@
 		3834943ACD2B2717CAAEE24C /* Color+Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Adaptive.swift"; sourceTree = "<group>"; };
 		39039D53E43A8F204D147F0A /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
 		393E8E8C2EE0DC36398CC950 /* report-20260427-015726.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "report-20260427-015726.md"; sourceTree = "<group>"; };
+		3A73BB5CA29BF7CCE3561743 /* AssemblyModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssemblyModelTests.swift; sourceTree = "<group>"; };
 		3AAF73D5DAE2D3EBA7978999 /* SprintDCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintDCompletionTests.swift; sourceTree = "<group>"; };
 		3C11BF33F9A0F79F41D8EEF0 /* ScanTagEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanTagEditorView.swift; sourceTree = "<group>"; };
 		3C30B24A9092BEAD0870E8BC /* SetIdentificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetIdentificationService.swift; sourceTree = "<group>"; };
@@ -715,6 +718,7 @@
 		EA05B92EC78929F43533B495 /* MinifigureCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalog.swift; sourceTree = "<group>"; };
 		EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalogTests.swift; sourceTree = "<group>"; };
 		EB8965BDC6C61CA4444C41B3 /* PileMeshOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileMeshOverlayView.swift; sourceTree = "<group>"; };
+		EBF4617BAA028C5ABDF978D5 /* AssemblyModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssemblyModel.swift; sourceTree = "<group>"; };
 		ECC883C3B9260A99734D2106 /* LiDARTopographicRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARTopographicRendererTests.swift; sourceTree = "<group>"; };
 		ECFDC4C269BA2D9DE559517D /* BuildTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildTimerView.swift; sourceTree = "<group>"; };
 		ED9B4D5912641455ED012E81 /* BuildSuggestionsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionsViewModelTests.swift; sourceTree = "<group>"; };
@@ -1158,6 +1162,7 @@
 				6AA3EA57AEECD5604DA3303C /* SetForgeSTLExporterTests.swift */,
 				6705DAF3B1067D3A5F3DC34B /* SetForgePolishTests.swift */,
 				861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */,
+				3A73BB5CA29BF7CCE3561743 /* AssemblyModelTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1191,6 +1196,7 @@
 				30992DFAA1FB342322D68141 /* IdentifiedSet.swift */,
 				F2EDCB221BC739EBBF0A13BE /* VoxelModel.swift */,
 				E022985F73ABA1CDCABBD96F /* GeneratedLegoSet.swift */,
+				EBF4617BAA028C5ABDF978D5 /* AssemblyModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1706,6 +1712,7 @@
 				57489AB75D0AA03134FE3493 /* GeneratedSetsGalleryView.swift in Sources */,
 				1545E5D8EE45F7DBD3B78D20 /* GuidedAngleCaptureView.swift in Sources */,
 				207EBC168504AD0808F05A52 /* Model3DViewerView.swift in Sources */,
+				F23AE7492B8D03168CE8F569 /* AssemblyModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1785,6 +1792,7 @@
 				558B56D9308CA4D5ADCFE99E /* SetForgeSTLExporterTests.swift in Sources */,
 				D72987AA1754F85027FDA391 /* SetForgePolishTests.swift in Sources */,
 				FD77816013125F7BB0409987 /* LocationColorSchemeTests.swift in Sources */,
+				BC0F7915ACD2B5455E4E28CE /* AssemblyModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
