@@ -376,3 +376,7 @@ reuses the same 3D step viewer and overview preview.
   highlighted (emission glow), bounding-sphere camera framing, and step text
   driven by `BuildStepPlanner` so words match the render. Removed the old
   even-distribution / floating-row layout.
+- 2026-08-28 · Phase 5 implemented: the project Overview hero is now a rotating
+  3D render of the finished model (`AssemblyPreviewView` + shared
+  `AssemblySceneBuilder`, reused by the step viewer) with a graceful icon
+  fallback when there are no placements; 3 placement-math tests.

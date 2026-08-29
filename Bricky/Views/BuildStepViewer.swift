@@ -186,38 +186,10 @@ struct BuildStepViewer: View {
         scene.rootNode.addChildNode(floorNode)
     }
 
-    /// Build a positioned container for one placement. The brick is centered in
-    /// X/Z (bottom at y=0) so rotating the container about Y spins it around its
-    /// footprint center; the container sits at the footprint's grid position.
+    /// Build a positioned container for one placement (shared with the overview
+    /// preview so the placement math lives in one place).
     private func brickNode(for placement: BrickPlacement) -> SCNNode {
-        let brick = BrickGeometryGenerator.generateBrick(
-            studsWide: placement.dimensions.studsWide,
-            studsLong: placement.dimensions.studsLong,
-            heightUnits: placement.dimensions.heightUnits,
-            color: placement.color,
-            showStuds: true,
-            showTubes: false,
-            hollow: false
-        )
-        let pitch = BrickGeometryGenerator.studPitch
-        let plate = BrickGeometryGenerator.plateHeight
-        let w = Float(placement.dimensions.studsWide) * pitch
-        let l = Float(placement.dimensions.studsLong) * pitch
-        brick.position = SCNVector3(-w / 2, 0, -l / 2)
-
-        let container = SCNNode()
-        container.addChildNode(brick)
-
-        let rotated = placement.rotationDegrees == 90 || placement.rotationDegrees == 270
-        let footprintW = Float(rotated ? placement.dimensions.studsLong : placement.dimensions.studsWide)
-        let footprintL = Float(rotated ? placement.dimensions.studsWide : placement.dimensions.studsLong)
-        container.position = SCNVector3(
-            (Float(placement.position.x) + footprintW / 2) * pitch,
-            Float(placement.position.y) * plate,
-            (Float(placement.position.z) + footprintL / 2) * pitch
-        )
-        container.eulerAngles.y = Float(placement.rotationDegrees) * .pi / 180
-        return container
+        AssemblySceneBuilder.brickNode(for: placement)
     }
 
     private func frameCamera() {

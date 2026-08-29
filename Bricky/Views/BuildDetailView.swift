@@ -85,10 +85,10 @@ struct BuildDetailView: View {
 
     // MARK: - Overview Tab
 
-    private var overviewTab: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Hero image area
+    private var heroPreview: some View {
+        let assembly = suggestion.project.resolvedAssembly
+        return Group {
+            if assembly.placements.isEmpty {
                 Image(systemName: suggestion.project.imageSystemName)
                     .font(.system(size: 64))
                     .foregroundStyle(.white)
@@ -102,6 +102,37 @@ struct BuildDetailView: View {
                         )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                AssemblyPreviewView(assembly: assembly)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 220)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(.secondarySystemBackground), Color(.tertiarySystemBackground)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(alignment: .bottomTrailing) {
+                        Label("Drag to rotate", systemImage: "rotate.3d")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .padding(8)
+                    }
+                    .accessibilityLabel("Rotating 3D preview of \(suggestion.project.name)")
+            }
+        }
+    }
+
+    private var overviewTab: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Hero — rotating 3D render of the finished model, with a
+                // graceful icon fallback when there's nothing to render.
+                heroPreview
 
                 // Info grid
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
