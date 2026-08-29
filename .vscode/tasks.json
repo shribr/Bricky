@@ -2,6 +2,18 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"type": "shell",
+			"label": "iOS: Diagnose Device Connection",
+			"command": "zsh scripts/ios-device-recovery.sh diagnose",
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "iOS: Clear Stale Pairing",
+			"command": "zsh scripts/ios-device-recovery.sh clear",
+			"problemMatcher": []
+		},
+		{
 			"type": "func",
 			"label": "func: host start",
 			"command": "host start",
