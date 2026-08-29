@@ -105,9 +105,11 @@ enum ProceduralAssemblyGenerator {
 
 extension LegoProject {
     /// The assembly to render/step from: the authored/LDraw assembly when
-    /// present, else a generated one from the required pieces.
+    /// present, else a bundled LDraw model for this project, else a generated
+    /// one from the required pieces.
     var resolvedAssembly: AssemblyModel {
         if let assembly, !assembly.placements.isEmpty { return assembly }
+        if let bundled = LDrawModelLibrary.assembly(forProjectNamed: name) { return bundled }
         return ProceduralAssemblyGenerator.generate(from: requiredPieces)
     }
 }

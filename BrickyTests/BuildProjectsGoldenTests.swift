@@ -15,15 +15,22 @@ final class BuildProjectsGoldenTests: XCTestCase {
     func testEveryProjectResolvesToAValidAssembly() {
         for project in projects {
             let assembly = project.resolvedAssembly
-            let requiredTotal = project.requiredPieces.reduce(0) { $0 + $1.quantity }
-
-            // Every required brick is placed.
-            XCTAssertEqual(assembly.placements.count, requiredTotal,
-                           "\(project.name): placement count should equal total required pieces")
 
             // Structurally sound: gapless steps, all stepped, nothing floats.
             let result = AssemblyValidator.validate(assembly)
             XCTAssertTrue(result.isValid, "\(project.name): \(result.issues)")
+            XCTAssertFalse(assembly.placements.isEmpty, "\(project.name): should have placements")
+
+            // Procedurally-generated projects place exactly their required
+            // pieces; authored / bundled-LDraw models are their own source of
+            // truth and may differ.
+            let isProcedural = project.assembly == nil
+                && !LDrawModelLibrary.hasModel(forProjectNamed: project.name)
+            if isProcedural {
+                let requiredTotal = project.requiredPieces.reduce(0) { $0 + $1.quantity }
+                XCTAssertEqual(assembly.placements.count, requiredTotal,
+                               "\(project.name): placement count should equal total required pieces")
+            }
         }
     }
 

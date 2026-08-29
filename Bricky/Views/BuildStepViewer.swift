@@ -203,20 +203,14 @@ struct BuildStepViewer: View {
 
     private func showNodesUpToStep(_ step: Int) {
         for (index, nodes) in stepNodes.enumerated() {
-            let visible = index <= step
-            let isCurrent = index == step
-            for node in nodes {
-                node.isHidden = !visible
-                setHighlight(node, on: visible && isCurrent)
-            }
-        }
-    }
-
-    /// Glow the pieces added in the current step so it's clear what's new.
-    private func setHighlight(_ node: SCNNode, on: Bool) {
-        let color = on ? UIColor.white.withAlphaComponent(0.45) : UIColor.black
-        node.enumerateChildNodes { child, _ in
-            child.geometry?.materials.forEach { $0.emission.contents = color }
+            // Already-built pieces recede (lighter/translucent); the current
+            // step's new pieces show in full colour so they stand out; future
+            // pieces are hidden.
+            let opacity: CGFloat
+            if index > step { opacity = 0 }
+            else if index == step { opacity = 1 }
+            else { opacity = 0.35 }
+            for node in nodes { node.opacity = opacity }
         }
     }
 

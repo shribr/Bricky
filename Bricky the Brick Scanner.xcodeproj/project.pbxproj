@@ -98,6 +98,7 @@
 		4B46370758AA9E32E0BE09BD /* UserDefaultsKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = D42D7F67183F856C8AC08C5F /* UserDefaultsKey.swift */; };
 		4B733BDE26FBDEE9652994C0 /* BrickitBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9FCC3E73A6228E59EFE447 /* BrickitBoundingBoxView.swift */; };
 		4CB46EA18E72ACD86CF57340 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39039D53E43A8F204D147F0A /* AuthenticationService.swift */; };
+		4CF3C53786E9A6A96432627E /* buildmodel_tower.ldr in Resources */ = {isa = PBXBuildFile; fileRef = 7A2E872A4AE94F49FD81F5FB /* buildmodel_tower.ldr */; };
 		4D0E5A258F6028EF88FBA79D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CC337C3CA7930100725641C0 /* Assets.xcassets */; };
 		4DB859053D6C0B28824B3BFD /* report-20260427-014403.md in Resources */ = {isa = PBXBuildFile; fileRef = 0807091278A367E49E8CFFA3 /* report-20260427-014403.md */; };
 		4E3077387A6F488C5D80A956 /* lego_minifigure_forestman_archer_ cas240a_fig-006868.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 14391CDC7FC7A578CD5DD6EE /* lego_minifigure_forestman_archer_ cas240a_fig-006868.jpeg */; };
@@ -112,6 +113,7 @@
 		5368CDFC5C4D85A6E5898C59 /* HelpAndTipsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF3F97DEB042BAD5BFDDD65 /* HelpAndTipsTests.swift */; };
 		537D740F2995EBFA57A80FC3 /* MinifigureIdentificationService+VisualRefinement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD668FE067DD8CD15D3BD62 /* MinifigureIdentificationService+VisualRefinement.swift */; };
 		538BB490760F6AFD5CE9762E /* ClipEmbeddingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB981FEF620BC4F5DD53E89 /* ClipEmbeddingServiceTests.swift */; };
+		5444846F996F6D69B72921C8 /* buildmodel_desk.ldr in Resources */ = {isa = PBXBuildFile; fileRef = 29FF77D9990F48111630FEE7 /* buildmodel_desk.ldr */; };
 		548E42CFC79DC3AFDC885B20 /* CodableRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90CE2975DE2C38F0D802ED6 /* CodableRoundTripTests.swift */; };
 		558B56D9308CA4D5ADCFE99E /* SetForgeSTLExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA3EA57AEECD5604DA3303C /* SetForgeSTLExporterTests.swift */; };
 		559FC8E1C3F5D3378FED8B19 /* IdentifiedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30992DFAA1FB342322D68141 /* IdentifiedSet.swift */; };
@@ -191,6 +193,7 @@
 		8315073307EC87D8432464C1 /* HybridFigureAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C2442A5A513C4D8F057EA0 /* HybridFigureAnalyzer.swift */; };
 		8359650F3D1A2FC2860C3BFB /* SetScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B9C167FEDFB3BA0A12ED426 /* SetScanHistoryStore.swift */; };
 		8437436BAF820B041765C10A /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA5F48D69BDDE11E58AA1E9 /* FavoritesStore.swift */; };
+		84835363F778DA3830F52865 /* LDrawModelLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F88CDD6A96AB59388E3BBF6 /* LDrawModelLibraryTests.swift */; };
 		84FD24D86AE74B0278D6A8D9 /* MinifigImages in Resources */ = {isa = PBXBuildFile; fileRef = 21E8CE05EE2EE49A13C94740 /* MinifigImages */; };
 		8551CF3456FDAD55E488D0C5 /* MinifigureCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64791025FC767A2813750BE /* MinifigureCatalogView.swift */; };
 		864E2310A127DD49D48ED5A0 /* SetForgeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9971C14F6BBC41C9D84817A3 /* SetForgeEngine.swift */; };
@@ -271,6 +274,7 @@
 		B6F42166FB1A517BAAD51A2D /* ScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46943E5CC33D7D6DD167870 /* ScanSessionTests.swift */; };
 		B800A875E3447B5FFF0B2C16 /* TorsoEmbeddings in Resources */ = {isa = PBXBuildFile; fileRef = 123F995AA8F75504CFC230AD /* TorsoEmbeddings */; };
 		B9C9531C2C57CC18EB92A21C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7D572BFA6BEDC6899298B7A2 /* Localizable.xcstrings */; };
+		BA6C5C7BAE2A86B11C1FCFE9 /* LDrawModelLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B89CD591BD173CDF7B83C9 /* LDrawModelLibrary.swift */; };
 		BA6D44DF5EACC4608E48F82C /* SprintFFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731BAF40A677FF3FE608D695 /* SprintFFeatureTests.swift */; };
 		BB877E5346B0F6C8459F657C /* MosaicEngineGoldenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AAB22D9F2EDDF4771B8D26 /* MosaicEngineGoldenTests.swift */; };
 		BB98A24621905435A037361B /* UserProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61338725147C0143FDFD72F5 /* UserProfileView.swift */; };
@@ -338,6 +342,7 @@
 		DF2F708294D8909EA0AB06BF /* GeneratedLegoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E022985F73ABA1CDCABBD96F /* GeneratedLegoSet.swift */; };
 		DF571A17C25C43912FCC23D9 /* VideoSweepCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C182B1C02A3537929204B3BA /* VideoSweepCapture.swift */; };
 		E0B82ABE3C7A14FA0F45BFEC /* SprintGAppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */; };
+		E0BB8CCAAF21A22BCE964CBC /* buildmodel_chair.ldr in Resources */ = {isa = PBXBuildFile; fileRef = 9D35695F30B22EAED56FA890 /* buildmodel_chair.ldr */; };
 		E0C37997F50BF0AC3D660068 /* LegoPartsCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 8744F07950DDB3553CBB5E00 /* LegoPartsCatalog.json */; };
 		E0D09D8E03F5AFC3030AC36E /* SetForgeMeshServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CED8765F0179BFF1E9992F /* SetForgeMeshServiceTests.swift */; };
 		E104BAB8FB74108365A8F9F0 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99695881DBDD8B0B9F983E7F /* ThemeManager.swift */; };
@@ -363,6 +368,7 @@
 		EEE1A54CD33541C68B9613EF /* PhotoVoxelizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EA85F59FBC481D4D193BE6 /* PhotoVoxelizer.swift */; };
 		EEF879275171D8C287B416E1 /* LegoPartsCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB83C6599AE3F9792BD49836 /* LegoPartsCatalogTests.swift */; };
 		F07E1F1A2C5A2D5024262204 /* TorsoEmbeddingIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13C9D04D0DEEB3BC1283624 /* TorsoEmbeddingIndex.swift */; };
+		F07F9FF74E989B192322B319 /* buildmodel_cottage.ldr in Resources */ = {isa = PBXBuildFile; fileRef = CA31ED16BDF7ECEA91C3F3B0 /* buildmodel_cottage.ldr */; };
 		F0EB692D96201E2E59532BD0 /* VoxelPacker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C967682CE0A5B6E96F3A2228 /* VoxelPacker.swift */; };
 		F116571048A46356A15AB0A0 /* LegoProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3F043020FE5C5E9432A511 /* LegoProject.swift */; };
 		F23AE7492B8D03168CE8F569 /* AssemblyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBF4617BAA028C5ABDF978D5 /* AssemblyModel.swift */; };
@@ -411,6 +417,7 @@
 		039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = MinifigureCatalog.json.gz; sourceTree = "<group>"; };
 		03F8D6DD7CABD4ABD4C359F2 /* BuildFeatureExplainerViewTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildFeatureExplainerViewTests.swift; sourceTree = "<group>"; };
 		043767ED2D733C59CCFE2A31 /* LDrawPartCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawPartCatalog.swift; sourceTree = "<group>"; };
+		04B89CD591BD173CDF7B83C9 /* LDrawModelLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawModelLibrary.swift; sourceTree = "<group>"; };
 		04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigurePartClassifier.swift; sourceTree = "<group>"; };
 		05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintGAppStoreTests.swift; sourceTree = "<group>"; };
 		05D83D95D2C078B05E196F69 /* GeneratedSetsGalleryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GeneratedSetsGalleryView.swift; sourceTree = "<group>"; };
@@ -464,6 +471,7 @@
 		27FA9E7E7EFFC2A639382B35 /* SetForgeTextServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetForgeTextServiceTests.swift; sourceTree = "<group>"; };
 		289A94F8D51F6A81BB03795F /* ScanLocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLocationTests.swift; sourceTree = "<group>"; };
 		29D1665C0A02A1A385D5E70E /* MinifigureCollectionStoreScanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreScanTests.swift; sourceTree = "<group>"; };
+		29FF77D9990F48111630FEE7 /* buildmodel_desk.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_desk.ldr; sourceTree = "<group>"; };
 		2A35CDEF9B628677047F1B04 /* AppEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEntry.swift; sourceTree = "<group>"; };
 		2A93FA89988CCCF3CEE1B6AB /* LocationConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationConsentSheet.swift; sourceTree = "<group>"; };
 		2B9C167FEDFB3BA0A12ED426 /* SetScanHistoryStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetScanHistoryStore.swift; sourceTree = "<group>"; };
@@ -565,6 +573,7 @@
 		6DD39B4B1BF4BA4C94CEF3A0 /* Minifigure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Minifigure.swift; sourceTree = "<group>"; };
 		6F80702B03C212E2C4FC9F11 /* ScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSession.swift; sourceTree = "<group>"; };
 		6F86F71D64B177214D2DD65E /* ClipEmbeddingIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEmbeddingIndex.swift; sourceTree = "<group>"; };
+		6F88CDD6A96AB59388E3BBF6 /* LDrawModelLibraryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawModelLibraryTests.swift; sourceTree = "<group>"; };
 		6FC75E5D0A15D3C00526F5FE /* MinifigureAddToCatalogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureAddToCatalogSheet.swift; sourceTree = "<group>"; };
 		6FD3890394088A8DB19DECD5 /* MinifigureIdentificationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureIdentificationServiceTests.swift; sourceTree = "<group>"; };
 		7074CE7C499C81B2C51E926A /* BrickyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -585,6 +594,7 @@
 		787158B595504389A0E5D9C5 /* VoxelShapeLibraryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoxelShapeLibraryTests.swift; sourceTree = "<group>"; };
 		798C67AAE975F99E6D4301DD /* ScanImageEnhancer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanImageEnhancer.swift; sourceTree = "<group>"; };
 		79BD1E8270C591FF0FC91A3E /* BuildSuggestionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSuggestionEngine.swift; sourceTree = "<group>"; };
+		7A2E872A4AE94F49FD81F5FB /* buildmodel_tower.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_tower.ldr; sourceTree = "<group>"; };
 		7A6EEAF22A110B6346F1C9FC /* report-20260427-011053.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "report-20260427-011053.md"; sourceTree = "<group>"; };
 		7BB981FEF620BC4F5DD53E89 /* ClipEmbeddingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEmbeddingServiceTests.swift; sourceTree = "<group>"; };
 		7C059882C9898C604B8D2F68 /* lego_minifigure_imperial_guard_pi061_fig-004757.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "lego_minifigure_imperial_guard_pi061_fig-004757.jpeg"; sourceTree = "<group>"; };
@@ -637,6 +647,7 @@
 		9B5FBCA96D5048523251CF69 /* AddCustomFigureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCustomFigureView.swift; sourceTree = "<group>"; };
 		9BD8F5AC878433FC4A489CAF /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		9CA74B2566CA02216A404C80 /* MinifigureScanStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanStatusView.swift; sourceTree = "<group>"; };
+		9D35695F30B22EAED56FA890 /* buildmodel_chair.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_chair.ldr; sourceTree = "<group>"; };
 		9D3E2DC11A55E319859C3B49 /* SpeechDictationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeechDictationService.swift; sourceTree = "<group>"; };
 		9F186580C7074F532BB826B1 /* lego_minifigure_shell_worker_ shell010 _fig-005115.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "lego_minifigure_shell_worker_ shell010 _fig-005115.jpeg"; sourceTree = "<group>"; };
 		9F9D4FFC1E63AE5F388AB817 /* MosaicVision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicVision.swift; sourceTree = "<group>"; };
@@ -694,6 +705,7 @@
 		C90F86A1A391930008F7E9E3 /* InventoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStoreTests.swift; sourceTree = "<group>"; };
 		C967682CE0A5B6E96F3A2228 /* VoxelPacker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoxelPacker.swift; sourceTree = "<group>"; };
 		C9F61A4D5298AC42938A8707 /* bricks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bricks.json; sourceTree = "<group>"; };
+		CA31ED16BDF7ECEA91C3F3B0 /* buildmodel_cottage.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_cottage.ldr; sourceTree = "<group>"; };
 		CB22C3F83B16E4FD476197C9 /* Bricky.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bricky.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB5679E5D0D3AF567C66682F /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
 		CB5AE9435E6CF86B91CF114D /* ScanToSetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanToSetView.swift; sourceTree = "<group>"; };
@@ -832,6 +844,10 @@
 				039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */,
 				B5356E12D256C6E2A74B79A4 /* mosaic-palette-mvp-v1.json */,
 				7FEA1824DC800D077B22B714 /* PrivacyInfo.xcprivacy */,
+				9D35695F30B22EAED56FA890 /* buildmodel_chair.ldr */,
+				CA31ED16BDF7ECEA91C3F3B0 /* buildmodel_cottage.ldr */,
+				7A2E872A4AE94F49FD81F5FB /* buildmodel_tower.ldr */,
+				29FF77D9990F48111630FEE7 /* buildmodel_desk.ldr */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1024,6 +1040,7 @@
 				590E9288C2505F74A7BB3BCD /* LDrawParser.swift */,
 				043767ED2D733C59CCFE2A31 /* LDrawPartCatalog.swift */,
 				E3EE262700853E3C1C4B057B /* LDrawModelParser.swift */,
+				04B89CD591BD173CDF7B83C9 /* LDrawModelLibrary.swift */,
 			);
 			path = LDraw;
 			sourceTree = "<group>";
@@ -1206,6 +1223,7 @@
 				BBB9A93365EC30173499BE26 /* BuildStepPlannerTests.swift */,
 				1B10CE8A1AD9BD78172AEF31 /* AssemblySceneBuilderTests.swift */,
 				6617F0099822F55EA02A143A /* BuildProjectsGoldenTests.swift */,
+				6F88CDD6A96AB59388E3BBF6 /* LDrawModelLibraryTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1471,6 +1489,10 @@
 				6DA47EE301A62B6F15A24D38 /* clip_embeddings.bin in Resources */,
 				E40E67D37CB081822AD693DA /* clip_embeddings_index.json in Resources */,
 				69ADBF16A74187AD7DE6B4A6 /* mosaic-palette-mvp-v1.json in Resources */,
+				E0BB8CCAAF21A22BCE964CBC /* buildmodel_chair.ldr in Resources */,
+				F07F9FF74E989B192322B319 /* buildmodel_cottage.ldr in Resources */,
+				4CF3C53786E9A6A96432627E /* buildmodel_tower.ldr in Resources */,
+				5444846F996F6D69B72921C8 /* buildmodel_desk.ldr in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1767,6 +1789,7 @@
 				32424F64236CF4FB51ACB5B9 /* ProceduralAssemblyGenerator.swift in Sources */,
 				ADBDC1909E27A73AEA6E1760 /* AssemblySceneBuilder.swift in Sources */,
 				D13B9ED92FA5A2FBFEB3B1A3 /* AssemblyPreviewView.swift in Sources */,
+				BA6C5C7BAE2A86B11C1FCFE9 /* LDrawModelLibrary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1853,6 +1876,7 @@
 				DC289BABB9AAB82996108AAB /* BuildStepPlannerTests.swift in Sources */,
 				18F32EE6E400F5CF65C91577 /* AssemblySceneBuilderTests.swift in Sources */,
 				117F2E251165D26E8167190E /* BuildProjectsGoldenTests.swift in Sources */,
+				84835363F778DA3830F52865 /* LDrawModelLibraryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

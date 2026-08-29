@@ -385,3 +385,10 @@ reuses the same 3D step viewer and overview preview.
   assembly with gapless, non-empty steps that cover all placements, and that
   generation is deterministic; CHANGELOG updated. Phases 0–6 of the "What Can I
   Build?" fix are complete (LDraw import path awaits bundled source models).
+- 2026-08-29 · Bundled first LDraw build models (`Resources/buildmodel_*.ldr`
+  for Chair, Cozy Cottage, Castle Tower) authored in the app's stud-grid
+  convention, loaded via `LDrawModelLibrary` and preferred by
+  `resolvedAssembly`; those projects now render as recognizable shapes instead
+  of the procedural fallback. 5 model tests + golden-suite invariant scoped to
+  procedural projects. Adding more models is now just dropping an `.ldr` in
+  Resources + a name→file entry.
