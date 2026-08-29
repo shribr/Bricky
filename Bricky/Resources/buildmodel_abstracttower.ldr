@@ -1,0 +1,13 @@
+0 FILE abstracttower.ldr
+0 Name: Abstract Tower
+0 Author: Bricky
+1 4 0 0 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 1 0 -24 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 14 0 -48 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 2 0 -72 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 4 0 -96 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP

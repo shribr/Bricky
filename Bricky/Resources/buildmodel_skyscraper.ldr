@@ -1,0 +1,17 @@
+0 FILE skyscraper.ldr
+0 Name: Skyscraper Tower
+0 Author: Bricky
+1 9 0 0 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -24 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -48 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -72 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -96 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -120 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 9 0 -144 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP

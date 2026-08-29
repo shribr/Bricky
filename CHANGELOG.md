@@ -50,6 +50,12 @@ is `CURRENT_PROJECT_VERSION`.
   the green/white styling so every card is consistent; the developer-only subject
   recognition card is hidden; and the Instructions tab is instructions-only (the
   Timed Build entry was removed).
+- **Build suggestions show recognizable models only.** “See What You Can Build”
+  now surfaces only projects that render as their titled shape (14 authored 3D
+  models so far — chair, cottage, tower, desk, heart, frame, tic-tac-toe,
+  snowflake, pine tree, lighthouse, skyscraper, abstract tower, bridge, mini desk
+  & chair). Projects that can't yet render as what they claim are hidden from
+  suggestions for now (they remain available to puzzles/challenges).
 - **Set details: tappable missing pieces & instructions link.** Tapping a
   missing piece now opens the shared 3D preview; the details screen links to the
   set's building instructions on Rebrickable; and the inventory match section

@@ -392,3 +392,10 @@ reuses the same 3D step viewer and overview preview.
   of the procedural fallback. 5 model tests + golden-suite invariant scoped to
   procedural projects. Adding more models is now just dropping an `.ldr` in
   Resources + a name→file entry.
+- 2026-08-29 · Authored 11 more simple models (Desk, Pixel Art Heart, Picture
+  Frame, Tic Tac Toe Board, Snowflake Ornament, Pine Tree, Lighthouse,
+  Skyscraper Tower, Abstract Tower, Bridge, Mini Desk & Chair) — 14 total. Build
+  suggestions now hide projects without a recognizable model
+  (`hasRecognizableModel` + `getSuggestions` filter); the organic/complex ones
+  stay in the library (for puzzles/challenges) but are hidden from suggestions
+  until authored geometry exists. All 14 models validated (no floating bricks).

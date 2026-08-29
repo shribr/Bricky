@@ -1,0 +1,13 @@
+0 FILE lighthouse.ldr
+0 Name: Lighthouse
+0 Author: Bricky
+1 15 0 0 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 4 0 -24 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 15 0 -48 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 4 0 -72 0 1 0 0 0 1 0 0 0 1 3003.dat
+0 STEP
+1 14 0 -96 0 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP

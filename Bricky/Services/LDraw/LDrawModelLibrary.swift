@@ -14,6 +14,16 @@ enum LDrawModelLibrary {
         "Cozy Cottage": "buildmodel_cottage",
         "Castle Tower": "buildmodel_tower",
         "Desk": "buildmodel_desk",
+        "Pixel Art Heart": "buildmodel_heart",
+        "Picture Frame": "buildmodel_frame",
+        "Tic Tac Toe Board": "buildmodel_tictactoe",
+        "Snowflake Ornament": "buildmodel_snowflake",
+        "Pine Tree": "buildmodel_pinetree",
+        "Lighthouse": "buildmodel_lighthouse",
+        "Skyscraper Tower": "buildmodel_skyscraper",
+        "Abstract Tower": "buildmodel_abstracttower",
+        "Bridge": "buildmodel_bridge",
+        "Mini Desk & Chair": "buildmodel_minideskchair",
     ]
 
     static func hasModel(forProjectNamed name: String) -> Bool {

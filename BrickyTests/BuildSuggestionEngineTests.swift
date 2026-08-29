@@ -50,27 +50,52 @@ final class BuildSuggestionEngineTests: XCTestCase {
     }
 
     func testGetSuggestionsWithInventory() {
-        // Create a rich inventory that should match some projects
-        let inventory = [
-            makePiece(category: .brick, color: .red, w: 2, l: 4, qty: 10),
-            makePiece(category: .brick, color: .blue, w: 2, l: 2, qty: 10),
-            makePiece(category: .plate, color: .green, w: 2, l: 4, qty: 10),
-            makePiece(category: .brick, color: .yellow, w: 1, l: 2, qty: 10),
-            makePiece(category: .brick, color: .black, w: 1, l: 1, qty: 10),
-            makePiece(category: .brick, color: .white, w: 2, l: 2, qty: 10),
-            makePiece(category: .wheel, color: .black, w: 1, l: 1, qty: 4),
-        ]
+        // Only projects with a recognizable model are surfaced, so build the
+        // inventory from one such project's exact required pieces to guarantee a
+        // match.
+        guard let target = engine.allProjects.first(where: { $0.hasRecognizableModel }) else {
+            return XCTFail("Expected at least one project with a recognizable model")
+        }
+        let inventory = target.requiredPieces.map { req in
+            LegoPiece(
+                partNumber: "test-\(req.category.rawValue)",
+                name: "Test \(req.category.rawValue)",
+                category: req.category,
+                color: req.colorPreference ?? .gray,
+                dimensions: req.dimensions,
+                quantity: req.quantity + 5
+            )
+        }
 
         let suggestions = engine.getSuggestions(for: inventory)
-        XCTAssertGreaterThan(suggestions.count, 0, "Rich inventory should match some projects")
+        XCTAssertTrue(suggestions.contains { $0.project.id == target.id },
+                      "Inventory built from \(target.name)'s pieces should suggest it")
 
         // Should be sorted by match percentage descending
-        for i in 0..<(suggestions.count - 1) {
+        for i in 0..<max(0, suggestions.count - 1) {
             XCTAssertGreaterThanOrEqual(
                 suggestions[i].matchPercentage,
                 suggestions[i + 1].matchPercentage,
                 "Suggestions should be sorted by match % descending"
             )
+        }
+    }
+
+    func testSuggestionsAreLimitedToRecognizableProjects() {
+        // Every surfaced suggestion must have a recognizable model.
+        guard let target = engine.allProjects.first(where: { $0.hasRecognizableModel }) else {
+            return XCTFail("Expected a project with a recognizable model")
+        }
+        let inventory = target.requiredPieces.map { req in
+            LegoPiece(
+                partNumber: "test", name: "Test", category: req.category,
+                color: req.colorPreference ?? .gray, dimensions: req.dimensions,
+                quantity: req.quantity + 5
+            )
+        }
+        for suggestion in engine.getSuggestions(for: inventory) {
+            XCTAssertTrue(suggestion.project.hasRecognizableModel,
+                          "\(suggestion.project.name) was surfaced without a recognizable model")
         }
     }
 

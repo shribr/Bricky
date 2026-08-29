@@ -112,4 +112,13 @@ extension LegoProject {
         if let bundled = LDrawModelLibrary.assembly(forProjectNamed: name) { return bundled }
         return ProceduralAssemblyGenerator.generate(from: requiredPieces)
     }
+
+    /// Whether this project has authored geometry that renders as a recognizable
+    /// shape (an inline assembly or a bundled LDraw model). Projects without one
+    /// fall back to a blocky procedural build, so they're hidden from build
+    /// suggestions until a real model is added.
+    var hasRecognizableModel: Bool {
+        if let assembly, !assembly.placements.isEmpty { return true }
+        return LDrawModelLibrary.hasModel(forProjectNamed: name)
+    }
 }

@@ -17,15 +17,19 @@ final class BuildSuggestionEngine {
 
     /// Get build suggestions sorted by match percentage
     func getSuggestions(for pieces: [LegoPiece]) -> [BuildSuggestion] {
-        allProjects.map { project in
-            BuildSuggestion(
-                project: project,
-                matchPercentage: project.matchPercentage(with: pieces),
-                missingPieces: project.missingPieces(from: pieces)
-            )
-        }
-        .filter { $0.matchPercentage > 0.3 } // At least 30% match
-        .sorted { $0.matchPercentage > $1.matchPercentage }
+        allProjects
+            // Only surface projects that render as a recognizable model; the
+            // rest are hidden until authored geometry is added for them.
+            .filter { $0.hasRecognizableModel }
+            .map { project in
+                BuildSuggestion(
+                    project: project,
+                    matchPercentage: project.matchPercentage(with: pieces),
+                    missingPieces: project.missingPieces(from: pieces)
+                )
+            }
+            .filter { $0.matchPercentage > 0.3 } // At least 30% match
+            .sorted { $0.matchPercentage > $1.matchPercentage }
     }
 
     /// Get projects that can be fully built

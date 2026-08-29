@@ -45,6 +45,26 @@ final class LDrawModelLibraryTests: XCTestCase {
         XCTAssertNil(LDrawModelLibrary.assembly(forProjectNamed: "No Such Project"))
     }
 
+    func testAllBundledModelsLoadAndValidate() {
+        for (name, _) in LDrawModelLibrary.modelsByProjectName {
+            guard let assembly = LDrawModelLibrary.assembly(forProjectNamed: name) else {
+                XCTFail("\(name): bundled model should load")
+                continue
+            }
+            XCTAssertFalse(assembly.placements.isEmpty, "\(name): model has no placements")
+            let result = AssemblyValidator.validate(assembly)
+            XCTAssertTrue(result.isValid, "\(name): \(result.issues)")
+        }
+    }
+
+    func testEveryBundledModelMapsToAnExistingProject() {
+        let names = Set(BuildSuggestionEngine.shared.allProjects.map(\.name))
+        for name in LDrawModelLibrary.modelsByProjectName.keys {
+            XCTAssertTrue(names.contains(name),
+                          "Bundled model \"\(name)\" has no matching catalog project")
+        }
+    }
+
     func testChairProjectResolvesToBundledModel() {
         guard let chair = BuildSuggestionEngine.shared.allProjects.first(where: { $0.name == "Chair" }) else {
             return XCTFail("Chair project should exist in the catalog")

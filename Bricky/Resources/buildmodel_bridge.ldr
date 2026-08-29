@@ -1,0 +1,11 @@
+0 FILE bridge.ldr
+0 Name: Bridge
+0 Author: Bricky
+1 7 0 0 0 1 0 0 0 1 0 0 0 1 3005.dat
+1 7 0 0 100 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+1 7 0 -24 0 1 0 0 0 1 0 0 0 1 3005.dat
+1 7 0 -24 100 1 0 0 0 1 0 0 0 1 3005.dat
+0 STEP
+1 7 0 -48 0 1 0 0 0 1 0 0 0 1 3666.dat
+0 STEP
