@@ -32,6 +32,7 @@
 		106499506BC3D8BF2EC9087E /* report-20260427-005317.md in Resources */ = {isa = PBXBuildFile; fileRef = 80301FADF352803CAFC58493 /* report-20260427-005317.md */; };
 		109B1DF614CC048250E0238C /* SetForgeTextServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27FA9E7E7EFFC2A639382B35 /* SetForgeTextServiceTests.swift */; };
 		11281C7B158EF2DCA81E6FF8 /* FavoritesStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF424256CABAAAC24AE320A /* FavoritesStoreTests.swift */; };
+		117F2E251165D26E8167190E /* BuildProjectsGoldenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6617F0099822F55EA02A143A /* BuildProjectsGoldenTests.swift */; };
 		1248FD3DAA4503F99D861775 /* CameraScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A989E630393136FB68A0F3D2 /* CameraScanView.swift */; };
 		129C11009B2C8EC8D1B9B1AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9E5318E5F2A286859D4087 /* ContentView.swift */; };
 		12E73734B4A860043A599F31 /* MosaicJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F60CDDC39E3F935831ADC4 /* MosaicJob.swift */; };
@@ -548,6 +549,7 @@
 		64BF55BE400C39A582C522D8 /* StorageBin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBin.swift; sourceTree = "<group>"; };
 		65176BAA967167A1BD3877BB /* report-20260427-005637.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "report-20260427-005637.md"; sourceTree = "<group>"; };
 		6617E51C62F4EA0143E9F98A /* report-20260427-014726.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "report-20260427-014726.md"; sourceTree = "<group>"; };
+		6617F0099822F55EA02A143A /* BuildProjectsGoldenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildProjectsGoldenTests.swift; sourceTree = "<group>"; };
 		66E8F9DD5FDD6D4D8D7C364C /* AssemblyValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssemblyValidator.swift; sourceTree = "<group>"; };
 		6705DAF3B1067D3A5F3DC34B /* SetForgePolishTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetForgePolishTests.swift; sourceTree = "<group>"; };
 		67F60CDDC39E3F935831ADC4 /* MosaicJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicJob.swift; sourceTree = "<group>"; };
@@ -1203,6 +1205,7 @@
 				8992DB86EEE2CC998EFFD521 /* AssemblyBridgeAndValidatorTests.swift */,
 				BBB9A93365EC30173499BE26 /* BuildStepPlannerTests.swift */,
 				1B10CE8A1AD9BD78172AEF31 /* AssemblySceneBuilderTests.swift */,
+				6617F0099822F55EA02A143A /* BuildProjectsGoldenTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1849,6 +1852,7 @@
 				404BC584E8B484490939118B /* AssemblyBridgeAndValidatorTests.swift in Sources */,
 				DC289BABB9AAB82996108AAB /* BuildStepPlannerTests.swift in Sources */,
 				18F32EE6E400F5CF65C91577 /* AssemblySceneBuilderTests.swift in Sources */,
+				117F2E251165D26E8167190E /* BuildProjectsGoldenTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

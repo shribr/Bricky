@@ -12,6 +12,16 @@ is `CURRENT_PROJECT_VERSION`.
 
 ### Added
 
+- **3D model preview on a project's Overview.** The Overview hero is now an
+  auto-rotating (drag-to-rotate) 3D render of the finished model built from its
+  actual pieces, instead of a flat icon. Falls back to the icon only when a
+  project has no renderable pieces.
+- **“See What You Can Build” on the Home screen.** A promo card explains how build
+  suggestions work, points to where the feature lives (Scan Results), and
+  launches it directly — from your last scan when available, otherwise into the
+  Scanner.
+- **Tappable scan location.** The captured-location chip on Scan Results now
+  opens the pin on a map.
 - **Set Collection thumbnails & tile view.** Settings now has a *Set Collection*
   section with an **Auto-Download Thumbnails** toggle (fetches the official
   Rebrickable photo whenever a set is identified/added) and a **Download Missing
@@ -22,6 +32,24 @@ is `CURRENT_PROJECT_VERSION`.
 
 ### Changed
 
+- **3D step-by-step instructions now match the model.** The build viewer renders
+  each project's real assembly at true stud-grid coordinates, revealing pieces
+  cumulatively per step and highlighting the pieces added in the current step;
+  step text and per-step piece lists are derived from the same placements, so the
+  words always match what's on screen. Replaces the old layout that scattered
+  pieces in floating rows unrelated to the described steps. (Introduces an
+  `AssemblyModel` — an ordered, positioned, gravity-validated brick list — with an
+  LDraw `.ldr`/`.mpd` importer and a deterministic fallback generator.)
+- **Scan Results layout.** The detected-pieces list now scrolls independently
+  while the primary actions stay pinned in a fixed footer (redesigned into a
+  prominent “See What You Can Build” CTA plus a compact grid of secondary
+  actions). Viewing a scan from history no longer shows the “Scan Complete”
+  header/checkmark, and the location chip uses a purple/lavender scheme (not red)
+  that adapts to light/dark.
+- **Home quick actions.** *Find a Brick* now sits right after *Scanner* and uses
+  the green/white styling so every card is consistent; the developer-only subject
+  recognition card is hidden; and the Instructions tab is instructions-only (the
+  Timed Build entry was removed).
 - **Set details: tappable missing pieces & instructions link.** Tapping a
   missing piece now opens the shared 3D preview; the details screen links to the
   set's building instructions on Rebrickable; and the inventory match section

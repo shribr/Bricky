@@ -380,3 +380,8 @@ reuses the same 3D step viewer and overview preview.
   3D render of the finished model (`AssemblyPreviewView` + shared
   `AssemblySceneBuilder`, reused by the step viewer) with a graceful icon
   fallback when there are no placements; 3 placement-math tests.
+- 2026-08-28 · Phase 6 implemented: golden/regression suite
+  (`BuildProjectsGoldenTests`) asserts every catalog project resolves to a valid
+  assembly with gapless, non-empty steps that cover all placements, and that
+  generation is deterministic; CHANGELOG updated. Phases 0–6 of the "What Can I
+  Build?" fix are complete (LDraw import path awaits bundled source models).
