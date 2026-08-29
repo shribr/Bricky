@@ -369,3 +369,10 @@ reuses the same 3D step viewer and overview preview.
   aesthetics are blocky (support-guaranteed flush packing); recognizable
   LDraw/authored models still take precedence. Also removed the Timed Build entry
   from the Instructions tab (instructions-only screen).
+- 2026-08-28 · Phase 4 implemented: `BuildStepViewer` rewritten to render the
+  project's real `resolvedAssembly` placements at true grid coordinates
+  (center-based container placement so rotations spin about the footprint
+  centre), cumulative per-step reveal with the current step's new pieces
+  highlighted (emission glow), bounding-sphere camera framing, and step text
+  driven by `BuildStepPlanner` so words match the render. Removed the old
+  even-distribution / floating-row layout.
