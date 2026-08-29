@@ -22,7 +22,7 @@ if [[ -z "$json_path" ]]; then
     fi
 fi
 
-device_count=$(/usr/libexec/PlistBuddy -c 'Print :result:devices' "$json_path" 2>/dev/null | grep -c '^    Dict {' || true)
+device_count=$(/usr/bin/plutil -extract result.devices raw "$json_path" 2>/dev/null || print 0)
 matched_index=""
 
 for (( index = 0; index < device_count; index++ )); do
