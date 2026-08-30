@@ -22,6 +22,7 @@ struct MosaicGeneratorView: View {
     @State private var showPaywall = false
     @State private var showCamera = false
     @State private var didApplyPrefill = false
+    @State private var show3DInstructions = false
 
     /// Optional photo to pre-load (e.g. "Regenerate" from a saved mosaic).
     private let prefillImage: UIImage?
@@ -74,6 +75,11 @@ struct MosaicGeneratorView: View {
                 viewModel.sourceImage = image
             }
             .ignoresSafeArea()
+        }
+        .fullScreenCover(isPresented: $show3DInstructions) {
+            if let assembly = viewModel.buildAssembly {
+                BuildStepViewer(assembly: assembly, title: "Mosaic Instructions")
+            }
         }
     }
 
@@ -336,6 +342,9 @@ struct MosaicGeneratorView: View {
 
             captionSection
 
+            if viewModel.buildAssembly != nil {
+                view3DButton
+            }
             artifactButtons
             startOverButton
         }
@@ -463,6 +472,21 @@ struct MosaicGeneratorView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
+    }
+
+    private var view3DButton: some View {
+        Button {
+            show3DInstructions = true
+        } label: {
+            Label("3D Step-by-Step", systemImage: "cube.transparent")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.legoBlue)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .accessibilityHint("View the mosaic as interactive 3D build instructions")
     }
 
     private var artifactButtons: some View {

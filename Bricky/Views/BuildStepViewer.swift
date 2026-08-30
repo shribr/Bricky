@@ -7,7 +7,11 @@ import SceneKit
 /// step. Step text comes from `BuildStepPlanner`, so the words always match what
 /// is shown on screen.
 struct BuildStepViewer: View {
-    let project: LegoProject
+    /// Builds the scene content, per-step node groups, and step text. Assigned by
+    /// each initializer so grid assemblies and LDraw mesh models share the same
+    /// reveal / camera / controls.
+    private let sceneBuilder: () -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep])
+    private let title: String
 
     @State private var currentStep = 0
     @State private var scene = SCNScene()
@@ -17,6 +21,24 @@ struct BuildStepViewer: View {
     @State private var stepNodes: [[SCNNode]] = []
     @State private var steps: [BuildStep] = []
     @Environment(\.dismiss) private var dismiss
+
+    init(project: LegoProject) {
+        let assembly = project.resolvedAssembly
+        self.sceneBuilder = { Self.buildFromAssembly(assembly) }
+        self.title = "3D Instructions"
+    }
+
+    /// Drive the viewer directly from an assembly (mosaics, forged sets, etc.).
+    init(assembly: AssemblyModel, title: String = "3D Instructions") {
+        self.sceneBuilder = { Self.buildFromAssembly(assembly) }
+        self.title = title
+    }
+
+    /// Drive the viewer from an imported LDraw model, rendering real part meshes.
+    init(setModelText: String, title: String = "3D Instructions") {
+        self.sceneBuilder = { Self.buildFromLDraw(setModelText) }
+        self.title = title
+    }
 
     private var totalSteps: Int { max(1, steps.count) }
     private var isFirstStep: Bool { currentStep == 0 }
@@ -40,7 +62,7 @@ struct BuildStepViewer: View {
 
                 stepControlPanel
             }
-            .navigationTitle("3D Instructions")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -162,34 +184,34 @@ struct BuildStepViewer: View {
     }
 
     private func buildAssemblyNodes() {
-        let assembly = project.resolvedAssembly
-        steps = BuildStepPlanner.steps(for: assembly)
-
-        // Group container nodes by 0-based step index.
-        let count = max(1, assembly.stepCount)
-        var grouped: [[SCNNode]] = Array(repeating: [], count: count)
-        for placement in assembly.placements {
-            let node = brickNode(for: placement)
-            contentNode.addChildNode(node)
-            let index = min(max(0, placement.step - 1), count - 1)
-            grouped[index].append(node)
-        }
-        stepNodes = grouped
+        let built = sceneBuilder()
+        contentNode = built.content
+        stepNodes = built.stepNodes
+        steps = built.steps
         scene.rootNode.addChildNode(contentNode)
-
-        // A subtle floor at the model base.
-        let floor = SCNFloor()
-        floor.reflectivity = 0.03
-        floor.firstMaterial?.diffuse.contents = UIColor.systemGray5
-        let floorNode = SCNNode(geometry: floor)
-        floorNode.position = SCNVector3(0, contentNode.boundingBox.min.y, 0)
-        scene.rootNode.addChildNode(floorNode)
     }
 
-    /// Build a positioned container for one placement (shared with the overview
-    /// preview so the placement math lives in one place).
-    private func brickNode(for placement: BrickPlacement) -> SCNNode {
-        AssemblySceneBuilder.brickNode(for: placement)
+    /// Grid-assembly geometry (procedural boxes) — authored/procedural/mosaic.
+    private static func buildFromAssembly(_ assembly: AssemblyModel) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep]) {
+        let steps = BuildStepPlanner.steps(for: assembly)
+        let count = max(1, assembly.stepCount)
+        var groups: [[SCNNode]] = Array(repeating: [], count: count)
+        let content = SCNNode()
+        for placement in assembly.placements {
+            let node = AssemblySceneBuilder.brickNode(for: placement)
+            content.addChildNode(node)
+            let index = min(max(0, placement.step - 1), count - 1)
+            groups[index].append(node)
+        }
+        return (content, groups, steps)
+    }
+
+    /// Imported LDraw model — real part meshes, with step text derived from the
+    /// same model so counts stay aligned.
+    private static func buildFromLDraw(_ text: String) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep]) {
+        let mesh = LDrawMeshSceneBuilder.build(fromModelText: text)
+        let steps = BuildStepPlanner.steps(for: LDrawModelParser.parseAssembly(text))
+        return (mesh.content, mesh.stepNodes, steps)
     }
 
     private func frameCamera() {
@@ -209,7 +231,7 @@ struct BuildStepViewer: View {
             let opacity: CGFloat
             if index > step { opacity = 0 }
             else if index == step { opacity = 1 }
-            else { opacity = 0.35 }
+            else { opacity = 0.6 }
             for node in nodes { node.opacity = opacity }
         }
     }

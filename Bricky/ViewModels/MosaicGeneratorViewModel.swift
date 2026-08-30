@@ -55,7 +55,8 @@ final class MosaicGeneratorViewModel: ObservableObject {
     @Published private(set) var result: LocalResult?
     @Published private(set) var thumbnail: UIImage?
     @Published private(set) var partsList: MosaicPartsList?
-
+    /// Assembly for the finished mosaic, driving the interactive 3D step viewer.
+    @Published private(set) var buildAssembly: AssemblyModel?
     /// User-editable caption for the finished mosaic.
     @Published var caption: String = ""
     /// User-editable longer description for the finished mosaic.
@@ -151,6 +152,7 @@ final class MosaicGeneratorViewModel: ObservableObject {
         result = nil
         thumbnail = nil
         partsList = nil
+        buildAssembly = nil
         snappedGrid = nil
         caption = ""
         captionDescription = ""
@@ -177,6 +179,7 @@ final class MosaicGeneratorViewModel: ObservableObject {
         result = nil
         thumbnail = nil
         partsList = nil
+        buildAssembly = nil
         snappedGrid = nil
         caption = ""
         captionDescription = ""
@@ -232,6 +235,10 @@ final class MosaicGeneratorViewModel: ObservableObject {
             snappedGrid = output.snappedGrid
             thumbnail = output.thumbnail
             partsList = output.parts
+            // Build the 3D assembly for the step-by-step viewer.
+            if let palette = try? MosaicPalette.load(output.grid.paletteId) {
+                buildAssembly = MosaicAssemblyBridge.assembly(bricks: output.bricks, palette: palette)
+            }
 
             let local = try writeArtifacts(output, jobId: jobId)
             if Task.isCancelled { return }

@@ -41,4 +41,26 @@ enum LDrawModelLibrary {
         let assembly = LDrawModelParser.parseAssembly(text, defaultColor: .gray)
         return assembly.placements.isEmpty ? nil : assembly
     }
+
+    /// Leaf part references in an `.ldr`/`.mpd` model that the bundled LDraw
+    /// parts library cannot render (sub-model `0 FILE` references are excluded).
+    /// An empty result means the model is fully renderable with bundled parts.
+    static func missingParts(inModelText text: String) -> [String] {
+        var submodels: Set<String> = []
+        var referenced: Set<String> = []
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            let tokens = line.split(whereSeparator: { $0 == " " || $0 == "\t" }).map(String.init)
+            guard let type = tokens.first else { continue }
+            if type == "0", tokens.count >= 2, tokens[1].uppercased() == "FILE" {
+                submodels.insert(LDrawPartCatalog.normalize(tokens[2...].joined(separator: " ")))
+            } else if type == "1", tokens.count >= 15 {
+                referenced.insert(LDrawPartCatalog.normalize(tokens[14...].joined(separator: " ")))
+            }
+        }
+        return referenced
+            .subtracting(submodels)
+            .filter { !LDrawLibrary.shared.hasPart($0) }
+            .sorted()
+    }
 }

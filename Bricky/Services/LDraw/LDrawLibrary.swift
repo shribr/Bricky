@@ -51,6 +51,11 @@ final class LDrawLibrary {
     /// Approximate count of bundled .dat files (parts + primitives).
     var fileCount: Int { pathIndex.count }
 
+    /// Whether a part (by LDraw part number) is present in the bundled library.
+    func hasPart(_ partNumber: String) -> Bool {
+        candidateFileNames(for: partNumber).contains { locate(fileName: $0) != nil }
+    }
+
     /// Build an SCNNode for the given LEGO part, applying the piece's color.
     /// Returns nil if the part is not in the bundled library.
     func node(forPartNumber partNumber: String, color: LegoColor) -> SCNNode? {

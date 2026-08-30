@@ -314,7 +314,9 @@ struct BuildDetailView: View {
 
     private var instructionsTab: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            // `.leading` (not `.left`) so the whole column mirrors automatically
+            // for right-to-left languages.
+            VStack(alignment: .leading, spacing: 0) {
                 // 3D Viewer button
                 Button {
                     showBuildStepViewer = true
@@ -379,6 +381,7 @@ struct BuildDetailView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(step.instruction)
                                     .font(.body)
+                                    .multilineTextAlignment(.leading)
                                     .strikethrough(completedSteps.contains(step.stepNumber))
                                     .foregroundStyle(completedSteps.contains(step.stepNumber) ? .secondary : .primary)
 
@@ -407,6 +410,7 @@ struct BuildDetailView: View {
                             }
                         }
                         .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                         // Connecting line
                         if step.stepNumber < suggestion.project.instructions.count {

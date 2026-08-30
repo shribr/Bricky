@@ -399,3 +399,23 @@ reuses the same 3D step viewer and overview preview.
   (`hasRecognizableModel` + `getSuggestions` filter); the organic/complex ones
   stay in the library (for puzzles/challenges) but are hidden from suggestions
   until authored geometry exists. All 14 models validated (no floating bricks).
+- 2026-08-29 · §9 (mosaic) shipped: **mosaic → 3D instructions**.
+  `BuildStepViewer` refactored to accept an `AssemblyModel` directly (title
+  configurable); `MosaicAssemblyBridge` maps a packed mosaic's plate runs to a
+  flat `AssemblyModel` (row → Z, one plate layer, one step per row); the mosaic
+  result screen gained a "3D Step-by-Step" button driving the unified viewer. 4
+  bridge tests. (Set → 3D instructions can reuse `GeneratedLegoSet.asAssemblyModel()`
+  + the same viewer next.)
+- 2026-08-29 · **LDraw-native mesh rendering** engine (for imported OMR set
+  models): the LDraw parts library was already bundled (~2,000 `.dat` files,
+  incl. slopes/wedges/curves) + tested. Added `LDrawLibrary.hasPart` +
+  `LDrawModelLibrary.missingParts(inModelText:)` to validate incoming models;
+  refactored `LDrawModelParser` to a shared resolver exposing
+  `meshPlacements` (real LDraw transforms); `LDrawParser.Transform.meshSceneMatrix()`
+  conjugates by the geometry's LDU→mm + Y-flip (S·T·S⁻¹, unit-tested);
+  `LDrawMeshSceneBuilder` renders real part meshes grouped by build step;
+  `SetModelLibrary` loads bundled `.mpd` set models from a manifest; a proof
+  `setmodel_minibuild.mpd` renders 3 real meshes across 3 steps in tests;
+  `BuildStepViewer` gained `init(setModelText:)` so mesh models reuse the same
+  viewer. Remaining: a browse/open entry-point UI (pairs with the first real
+  OMR `.mpd`).

@@ -1343,7 +1343,7 @@
     "estimatedTime" : "20 min",
     "funFact" : "LEGO board games were a short-lived but beloved product line from 2009-2013.",
     "id" : "91222844-07C1-417D-8EE1-9EA997A68E08",
-    "imageSystemName" : "gamecontroller.fill",
+    "imageSystemName" : "number",
     "instructions" : [
       {
         "id" : "9AA546A8-F999-42EE-A197-FA958F4988D0",
@@ -4376,7 +4376,7 @@
     "estimatedTime" : "15 min",
     "funFact" : "The most expensive desk ever sold was a Badminton Cabinet — it went for $36 million!",
     "id" : "EE19CF75-03F2-46B5-9E33-B5E7C8A92241",
-    "imageSystemName" : "desktopcomputer",
+    "imageSystemName" : "table.furniture.fill",
     "instructions" : [
       {
         "id" : "7F88773D-D104-470C-A50A-E5B97D7B16A4",
@@ -4702,7 +4702,7 @@
     "estimatedTime" : "8 min",
     "funFact" : "The first picture frame patent was filed in 1898, but people have been framing art since ancient Egypt!",
     "id" : "6D0C4576-4AF3-4415-9F88-3869383C120D",
-    "imageSystemName" : "photo.fill",
+    "imageSystemName" : "photo.artframe",
     "instructions" : [
       {
         "id" : "803748CE-5E46-47C3-AEC5-5F0380ED4E90",

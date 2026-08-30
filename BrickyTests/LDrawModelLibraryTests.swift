@@ -65,6 +65,30 @@ final class LDrawModelLibraryTests: XCTestCase {
         }
     }
 
+    func testBundledModelsAreFullyRenderableWithBundledParts() throws {
+        try XCTSkipUnless(LDrawLibrary.shared.isAvailable, "LDraw parts not bundled in this build")
+        // Every shipped model must reference only parts we can render.
+        for resource in Set(LDrawModelLibrary.modelsByProjectName.values) {
+            guard let url = Bundle.main.url(forResource: resource, withExtension: "ldr"),
+                  let text = try? String(contentsOf: url, encoding: .utf8) else {
+                XCTFail("\(resource).ldr not bundled")
+                continue
+            }
+            let missing = LDrawModelLibrary.missingParts(inModelText: text)
+            XCTAssertTrue(missing.isEmpty, "\(resource) references parts not in the bundled library: \(missing)")
+        }
+    }
+
+    func testMissingPartsFlagsUnknownReferences() {
+        let text = """
+        1 4 0 0 0 1 0 0 0 1 0 0 0 1 3005.dat
+        1 4 20 0 0 1 0 0 0 1 0 0 0 1 zzz999notapart.dat
+        """
+        let missing = LDrawModelLibrary.missingParts(inModelText: text)
+        XCTAssertTrue(missing.contains("zzz999notapart"))
+        XCTAssertFalse(missing.contains("3005"), "3005 is bundled and should not be flagged")
+    }
+
     func testChairProjectResolvesToBundledModel() {
         guard let chair = BuildSuggestionEngine.shared.allProjects.first(where: { $0.name == "Chair" }) else {
             return XCTFail("Chair project should exist in the catalog")

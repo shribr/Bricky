@@ -22,31 +22,42 @@ enum LDrawModelParser {
     /// Parse LDraw model text into an assembly. `defaultColor` is used for parts
     /// whose colour code can't be mapped, and as the top-level inherited colour.
     static func parseAssembly(_ content: String, defaultColor: LegoColor = .gray) -> AssemblyModel {
-        let models = splitModels(content)
-        guard let mainName = models.mainName, let mainLines = models.files[mainName] else {
-            // No `0 FILE` — treat the whole content as a single model.
-            let placements = expand(
-                lines: tokenizeModelLines(content),
-                files: [:],
-                worldTransform: .identity,
-                inheritedColor: defaultColor,
-                baseStep: 1,
-                depth: 0,
-                defaultColor: defaultColor
-            ).placements
-            return AssemblyModel(placements: compactSteps(placements))
-        }
+        let resolved = resolvedPlacements(content, defaultColor: defaultColor)
+        return AssemblyModel(placements: resolved.map(brickPlacement(from:)))
+    }
 
-        let placements = expand(
-            lines: mainLines,
-            files: models.files,
+    /// Parse LDraw model text into mesh placements that preserve each part's real
+    /// LDraw transform (for rendering actual part meshes, e.g. imported OMR set
+    /// models) rather than snapping to the stud grid.
+    static func meshPlacements(_ content: String, defaultColor: LegoColor = .gray) -> [LDrawMeshPlacement] {
+        resolvedPlacements(content, defaultColor: defaultColor).map {
+            LDrawMeshPlacement(partNumber: $0.partFile, color: $0.color, transform: $0.transform, step: $0.step)
+        }
+    }
+
+    /// Shared resolution: split MPD sub-models, expand recursively (composing
+    /// transforms + colour inheritance), and compact steps to gapless 1…N.
+    private static func resolvedPlacements(_ content: String, defaultColor: LegoColor) -> [ResolvedPlacement] {
+        let models = splitModels(content)
+        let lines: [ModelLine]
+        let files: [String: [ModelLine]]
+        if let mainName = models.mainName, let mainLines = models.files[mainName] {
+            lines = mainLines
+            files = models.files
+        } else {
+            lines = tokenizeModelLines(content)
+            files = [:]
+        }
+        let expanded = expand(
+            lines: lines,
+            files: files,
             worldTransform: .identity,
             inheritedColor: defaultColor,
             baseStep: 1,
             depth: 0,
             defaultColor: defaultColor
-        ).placements
-        return AssemblyModel(placements: compactSteps(placements))
+        )
+        return compact(expanded)
     }
 
     // MARK: - Line model
@@ -145,8 +156,12 @@ enum LDrawModelParser {
 
     // MARK: - Expansion
 
-    private struct ExpandResult {
-        var placements: [BrickPlacement]
+    /// A resolved leaf-part placement with its composed LDraw transform.
+    private struct ResolvedPlacement {
+        let color: LegoColor
+        let partFile: String
+        let transform: LDrawParser.Transform
+        let step: Int
     }
 
     private static let maxDepth = 12
@@ -159,10 +174,10 @@ enum LDrawModelParser {
         baseStep: Int,
         depth: Int,
         defaultColor: LegoColor
-    ) -> ExpandResult {
-        guard depth <= maxDepth else { return ExpandResult(placements: []) }
+    ) -> [ResolvedPlacement] {
+        guard depth <= maxDepth else { return [] }
 
-        var placements: [BrickPlacement] = []
+        var placements: [ResolvedPlacement] = []
         var step = baseStep
 
         for line in lines {
@@ -180,7 +195,7 @@ enum LDrawModelParser {
 
                 if let subLines = files[key] {
                     // Sub-model reference — inline it at the current step.
-                    let sub = expand(
+                    placements.append(contentsOf: expand(
                         lines: subLines,
                         files: files,
                         worldTransform: world,
@@ -188,40 +203,30 @@ enum LDrawModelParser {
                         baseStep: step,
                         depth: depth + 1,
                         defaultColor: defaultColor
-                    )
-                    placements.append(contentsOf: sub.placements)
+                    ))
                 } else {
-                    placements.append(placement(
-                        partFileName: fileName,
+                    placements.append(ResolvedPlacement(
                         color: color,
-                        world: world,
+                        partFile: LDrawPartCatalog.normalize(fileName),
+                        transform: world,
                         step: step
                     ))
                 }
             }
         }
-        return ExpandResult(placements: placements)
+        return placements
     }
 
-    private static func placement(
-        partFileName: String,
-        color: LegoColor,
-        world: LDrawParser.Transform,
-        step: Int
-    ) -> BrickPlacement {
-        let partNumber = LDrawPartCatalog.normalize(partFileName)
-        let spec = LDrawPartCatalog.spec(forPartNumber: partNumber)
-        let category = spec?.category ?? .brick
-        let dimensions = spec?.dimensions ?? PieceDimensions(studsWide: 1, studsLong: 1, heightUnits: 3)
-
+    private static func brickPlacement(from resolved: ResolvedPlacement) -> BrickPlacement {
+        let spec = LDrawPartCatalog.spec(forPartNumber: resolved.partFile)
         return BrickPlacement(
-            category: category,
-            dimensions: dimensions,
-            color: color,
-            partNumber: partNumber,
-            position: gridPosition(from: world),
-            rotationDegrees: rotationDegrees(from: world),
-            step: step
+            category: spec?.category ?? .brick,
+            dimensions: spec?.dimensions ?? PieceDimensions(studsWide: 1, studsLong: 1, heightUnits: 3),
+            color: resolved.color,
+            partNumber: resolved.partFile,
+            position: gridPosition(from: resolved.transform),
+            rotationDegrees: rotationDegrees(from: resolved.transform),
+            step: resolved.step
         )
     }
 
@@ -274,22 +279,23 @@ enum LDrawModelParser {
 
     /// Renumber the distinct used steps to a gapless 1…N, preserving order, so
     /// empty/duplicate `0 STEP` markers don't leave holes.
-    private static func compactSteps(_ placements: [BrickPlacement]) -> [BrickPlacement] {
+    private static func compact(_ placements: [ResolvedPlacement]) -> [ResolvedPlacement] {
         let usedSteps = Set(placements.map(\.step)).sorted()
         guard !usedSteps.isEmpty else { return placements }
         var remap: [Int: Int] = [:]
         for (index, step) in usedSteps.enumerated() { remap[step] = index + 1 }
-        return placements.map { p in
-            BrickPlacement(
-                id: p.id,
-                category: p.category,
-                dimensions: p.dimensions,
-                color: p.color,
-                partNumber: p.partNumber,
-                position: p.position,
-                rotationDegrees: p.rotationDegrees,
-                step: remap[p.step] ?? p.step
-            )
+        return placements.map {
+            ResolvedPlacement(color: $0.color, partFile: $0.partFile,
+                              transform: $0.transform, step: remap[$0.step] ?? $0.step)
         }
     }
+}
+
+/// A part placement that preserves the real LDraw transform, for rendering
+/// actual part meshes (imported OMR set models).
+struct LDrawMeshPlacement {
+    let partNumber: String
+    let color: LegoColor
+    let transform: LDrawParser.Transform
+    let step: Int
 }
