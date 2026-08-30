@@ -20,6 +20,10 @@ struct BuildStepViewer: View {
     /// Container nodes grouped by 0-based step index.
     @State private var stepNodes: [[SCNNode]] = []
     @State private var steps: [BuildStep] = []
+    /// Drives the interactive camera (fit / zoom / reset).
+    @State private var sceneController = BuildSceneController()
+    /// Flips true once the model is built, so the view fits on first layout.
+    @State private var contentReady = false
     @Environment(\.dismiss) private var dismiss
 
     init(project: LegoProject) {
@@ -51,13 +55,15 @@ struct BuildStepViewer: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                SceneView(
+                InstructionSceneView(
                     scene: scene,
                     pointOfView: cameraNode,
-                    options: [.allowsCameraControl]
+                    controller: sceneController,
+                    contentReady: contentReady
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray4))
+                .overlay(alignment: .topTrailing) { cameraControls }
                 .accessibilityLabel("3D assembly view showing step \(currentStep + 1) of \(totalSteps)")
 
                 stepControlPanel
@@ -152,6 +158,32 @@ struct BuildStepViewer: View {
         .foregroundStyle(Color.legoBlue)
     }
 
+    // MARK: - Camera Controls
+
+    private var cameraControls: some View {
+        VStack(spacing: 8) {
+            cameraButton("plus.magnifyingglass", "Zoom in") { sceneController.zoom(0.8) }
+            cameraButton("minus.magnifyingglass", "Zoom out") { sceneController.zoom(1.25) }
+            cameraButton("viewfinder", "Fit to screen") { sceneController.fit() }
+            cameraButton("arrow.counterclockwise", "Reset view") { sceneController.reset() }
+        }
+        .padding(10)
+    }
+
+    private func cameraButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            HapticManager.selection()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 38, height: 38)
+                .background(.ultraThinMaterial, in: Circle())
+                .foregroundStyle(Color.legoBlue)
+        }
+        .accessibilityLabel(label)
+    }
+
     // MARK: - Scene Setup
 
     private func setupScene() {
@@ -170,6 +202,11 @@ struct BuildStepViewer: View {
         buildAssemblyNodes()
         frameCamera()
         showNodesUpToStep(0)
+
+        // Wire the camera controller and fit on first layout.
+        sceneController.contentNode = contentNode
+        sceneController.homeTransform = cameraNode.simdTransform
+        contentReady = true
     }
 
     /// Ambient + key/fill/rim rig so light-coloured bricks show edges and shading
@@ -320,3 +357,72 @@ struct BuildStepViewer: View {
         SCNTransaction.commit()
     }
 }
+
+// MARK: - Interactive Camera
+
+/// Commands the SceneKit camera for the step viewer: fit / zoom / reset.
+@MainActor
+final class BuildSceneController {
+    weak var scnView: SCNView?
+    var contentNode: SCNNode?
+    /// The initial framed camera transform, restored by `reset()`.
+    var homeTransform: simd_float4x4?
+
+    /// Frame the whole model to fill the view (the default view).
+    func fit() {
+        guard let scnView, let contentNode else { return }
+        scnView.defaultCameraController.frameNodes([contentNode])
+    }
+
+    /// Dolly the camera toward (`< 1`) or away from (`> 1`) the model centre.
+    func zoom(_ factor: Float) {
+        guard let pov = scnView?.pointOfView, let contentNode else { return }
+        let center = contentNode.convertPosition(contentNode.boundingSphere.center, to: nil)
+        let p = pov.position
+        pov.position = SCNVector3(
+            center.x + (p.x - center.x) * factor,
+            center.y + (p.y - center.y) * factor,
+            center.z + (p.z - center.z) * factor
+        )
+    }
+
+    /// Restore the original framing and orientation.
+    func reset() {
+        guard let pov = scnView?.pointOfView, let homeTransform else { return }
+        pov.simdTransform = homeTransform
+        fit()
+    }
+}
+
+/// A SceneKit view with orbit/pinch camera control plus a bridge to
+/// `BuildSceneController`; fits the model to the view on first layout.
+private struct InstructionSceneView: UIViewRepresentable {
+    let scene: SCNScene
+    let pointOfView: SCNNode
+    let controller: BuildSceneController
+    let contentReady: Bool
+
+    func makeUIView(context: Context) -> SCNView {
+        let view = SCNView()
+        view.scene = scene
+        view.pointOfView = pointOfView
+        view.allowsCameraControl = true
+        view.antialiasingMode = .multisampling2X
+        view.backgroundColor = .clear
+        controller.scnView = view
+        return view
+    }
+
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        controller.scnView = uiView
+        if contentReady && !context.coordinator.didFit {
+            context.coordinator.didFit = true
+            DispatchQueue.main.async { controller.fit() }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator { var didFit = false }
+}
+
