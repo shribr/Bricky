@@ -7,10 +7,10 @@ import SceneKit
 /// LDraw line types:
 /// - 0: Comment / meta-command
 /// - 1: Sub-file reference (with transformation matrix)
-/// - 2: Line (2 vertices)
+/// - 2: Line (2 vertices) — authored edge outline, rendered as the part's border
 /// - 3: Triangle (3 vertices)
 /// - 4: Quadrilateral (4 vertices)
-/// - 5: Optional line (4 vertices, ignored for solid rendering)
+/// - 5: Optional line (4 vertices, ignored — needs conditional-edge evaluation)
 enum LDrawParser {
 
     // MARK: - Record Types
@@ -67,6 +67,7 @@ enum LDrawParser {
 
     enum Record {
         case subfile(colorCode: Int, transform: Transform, fileName: String)
+        case line(colorCode: Int, v1: SCNVector3, v2: SCNVector3)
         case triangle(colorCode: Int, v1: SCNVector3, v2: SCNVector3, v3: SCNVector3)
         case quad(colorCode: Int, v1: SCNVector3, v2: SCNVector3, v3: SCNVector3, v4: SCNVector3)
         case bfcCommand(invertNext: Bool, ccw: Bool?)
@@ -97,6 +98,10 @@ enum LDrawParser {
                 if let r = parseSubfile(tokens: tokens) {
                     records.append(r)
                 }
+            case 2:
+                if let r = parseLine(tokens: tokens) {
+                    records.append(r)
+                }
             case 3:
                 if let r = parseTriangle(tokens: tokens) {
                     records.append(r)
@@ -106,7 +111,7 @@ enum LDrawParser {
                     records.append(r)
                 }
             default:
-                break  // ignore lines (type 2) and optional lines (type 5)
+                break  // ignore optional/conditional lines (type 5)
             }
         }
         return records
@@ -136,6 +141,17 @@ enum LDrawParser {
         t.d = d; t.e = e; t.f = f
         t.g = g; t.h = h; t.i = i
         return .subfile(colorCode: color, transform: t, fileName: fileName)
+    }
+
+    private static func parseLine(tokens: [String]) -> Record? {
+        // 2 <color> x1 y1 z1 x2 y2 z2
+        guard tokens.count >= 8 else { return nil }
+        guard let color = Int(tokens[1]),
+              let v1 = vec(tokens, 2),
+              let v2 = vec(tokens, 5) else {
+            return nil
+        }
+        return .line(colorCode: color, v1: v1, v2: v2)
     }
 
     private static func parseTriangle(tokens: [String]) -> Record? {

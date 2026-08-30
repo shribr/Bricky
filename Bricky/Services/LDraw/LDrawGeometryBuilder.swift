@@ -20,6 +20,7 @@ final class LDrawGeometryBuilder {
 
     private let resolver: FileResolver
     private var triangles: [Triangle] = []
+    private var edges: [Edge] = []
     /// Maximum recursion depth to guard against malformed/cyclic libraries
     private let maxDepth = 50
 
@@ -36,6 +37,7 @@ final class LDrawGeometryBuilder {
     /// - Returns: an SCNNode with combined geometry per color
     func buildNode(records: [LDrawParser.Record], inheritedColorCode: Int) -> SCNNode {
         triangles.removeAll(keepingCapacity: true)
+        edges.removeAll(keepingCapacity: true)
         flatten(records: records,
                 transform: .identity,
                 inheritedColor: inheritedColorCode,
@@ -52,8 +54,21 @@ final class LDrawGeometryBuilder {
                 color: tri.color
             )
         }
+        let scaledEdges = edges.map { e -> Edge in
+            Edge(
+                v1: SCNVector3(e.v1.x * scale, -e.v1.y * scale, e.v1.z * scale),
+                v2: SCNVector3(e.v2.x * scale, -e.v2.y * scale, e.v2.z * scale)
+            )
+        }
 
-        return makeNode(from: scaled)
+        let node = makeNode(from: scaled)
+        // Real LDraw type-2 edge lines — the authored outline the reference
+        // renderers (LDView/LPub3D/Stud.io) draw. Named so BrickStepStyler treats
+        // it as the piece's outline.
+        if let edgeNode = makeEdgeNode(from: scaledEdges, bodyCenter: boundingCenter(of: scaled)) {
+            node.addChildNode(edgeNode)
+        }
+        return node
     }
 
     // MARK: - Flatten
@@ -63,6 +78,11 @@ final class LDrawGeometryBuilder {
         let v2: SCNVector3
         let v3: SCNVector3
         let color: Int
+    }
+
+    private struct Edge {
+        let v1: SCNVector3
+        let v2: SCNVector3
     }
 
     private func flatten(records: [LDrawParser.Record],
@@ -81,6 +101,9 @@ final class LDrawGeometryBuilder {
             switch record {
             case .bfcCommand(let invertNext, _):
                 if invertNext { pendingInvert.toggle() }
+
+            case .line(_, let v1, let v2):
+                edges.append(Edge(v1: transform.apply(v1), v2: transform.apply(v2)))
 
             case .subfile(let colorCode, let subTransform, let fileName):
                 guard let subRecords = resolver(fileName) else {
@@ -201,5 +224,63 @@ final class LDrawGeometryBuilder {
         material.metalness.contents = 0.0
         material.isDoubleSided = true  // Some LDraw parts rely on this
         return material
+    }
+
+    // MARK: - Edge lines (type 2)
+
+    /// Build a line-geometry node from the part's authored edge lines, nudged a
+    /// hair proud of the surfaces so they don't z-fight the faces they trace.
+    private func makeEdgeNode(from edges: [Edge], bodyCenter: SCNVector3) -> SCNNode? {
+        guard !edges.isEmpty else { return nil }
+        let epsilon: Float = 0.06  // mm outward nudge
+        var verts: [SCNVector3] = []
+        verts.reserveCapacity(edges.count * 2)
+        for e in edges {
+            verts.append(nudged(e.v1, from: bodyCenter, by: epsilon))
+            verts.append(nudged(e.v2, from: bodyCenter, by: epsilon))
+        }
+        let source = SCNGeometrySource(vertices: verts)
+        let indices: [Int32] = (0..<Int32(verts.count)).map { $0 }
+        let data = Data(bytes: indices, count: indices.count * MemoryLayout<Int32>.size)
+        let element = SCNGeometryElement(
+            data: data,
+            primitiveType: .line,
+            primitiveCount: edges.count,
+            bytesPerIndex: MemoryLayout<Int32>.size
+        )
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        geometry.firstMaterial = makeEdgeMaterial()
+        let node = SCNNode(geometry: geometry)
+        node.name = BrickStepStyler.outlineNodeName
+        return node
+    }
+
+    private func makeEdgeMaterial() -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = UIColor.black
+        material.isDoubleSided = true
+        material.writesToDepthBuffer = false
+        material.readsFromDepthBuffer = true
+        return material
+    }
+
+    private func nudged(_ v: SCNVector3, from center: SCNVector3, by epsilon: Float) -> SCNVector3 {
+        let dx = v.x - center.x, dy = v.y - center.y, dz = v.z - center.z
+        let len = sqrt(dx * dx + dy * dy + dz * dz)
+        guard len > 0.0001 else { return v }
+        let s = epsilon / len
+        return SCNVector3(v.x + dx * s, v.y + dy * s, v.z + dz * s)
+    }
+
+    private func boundingCenter(of tris: [Triangle]) -> SCNVector3 {
+        guard let first = tris.first else { return SCNVector3(0, 0, 0) }
+        var minv = first.v1, maxv = first.v1
+        func expand(_ p: SCNVector3) {
+            minv = SCNVector3(min(minv.x, p.x), min(minv.y, p.y), min(minv.z, p.z))
+            maxv = SCNVector3(max(maxv.x, p.x), max(maxv.y, p.y), max(maxv.z, p.z))
+        }
+        for t in tris { expand(t.v1); expand(t.v2); expand(t.v3) }
+        return SCNVector3((minv.x + maxv.x) / 2, (minv.y + maxv.y) / 2, (minv.z + maxv.z) / 2)
     }
 }

@@ -54,12 +54,21 @@ final class LDrawParserTests: XCTestCase {
         XCTAssertEqual(transform.y, -8)
     }
 
-    func testIgnoresLineRecords() {
-        // Type 2 (lines) and type 5 (optional lines) should be skipped
-        let content = """
-        2 24 0 0 0 10 0 0
-        5 24 0 0 0 10 0 0 5 5 0 5 -5 0
-        """
+    func testParsesLineRecord() {
+        // Type 2 (edge lines) are now parsed as the part's authored outline.
+        let content = "2 24 0 0 0 10 0 0"
+        let records = LDrawParser.parse(content)
+        XCTAssertEqual(records.count, 1)
+        guard case let .line(color, v1, v2) = records[0] else {
+            XCTFail("Expected line"); return
+        }
+        XCTAssertEqual(color, 24)
+        XCTAssertEqual(v1.x, 0); XCTAssertEqual(v2.x, 10)
+    }
+
+    func testIgnoresOptionalLineRecords() {
+        // Type 5 (optional/conditional lines) are still skipped.
+        let content = "5 24 0 0 0 10 0 0 5 5 0 5 -5 0"
         let records = LDrawParser.parse(content)
         XCTAssertTrue(records.isEmpty)
     }
@@ -147,6 +156,32 @@ final class LDrawGeometryBuilderTests: XCTestCase {
         let builder = LDrawGeometryBuilder { _ in nil }
         let node = builder.buildNode(records: records, inheritedColorCode: 16)
         XCTAssertEqual(node.childNodes.count, 1)
+    }
+
+    func testRendersTypeTwoEdgeLinesAsOutlineNode() {
+        // A triangle plus authored edge lines → one body child + one outline
+        // child named for BrickStepStyler, drawn as a `.line` primitive.
+        let records: [LDrawParser.Record] = [
+            .triangle(colorCode: 4, v1: SCNVector3(0, 0, 0),
+                      v2: SCNVector3(10, 0, 0), v3: SCNVector3(0, 0, 10)),
+            .line(colorCode: 24, v1: SCNVector3(0, 0, 0), v2: SCNVector3(10, 0, 0)),
+            .line(colorCode: 24, v1: SCNVector3(10, 0, 0), v2: SCNVector3(0, 0, 10))
+        ]
+        let builder = LDrawGeometryBuilder { _ in nil }
+        let node = builder.buildNode(records: records, inheritedColorCode: 16)
+        let outline = node.childNodes.first { $0.name == BrickStepStyler.outlineNodeName }
+        XCTAssertNotNil(outline, "expected an outline child from type-2 edge lines")
+        XCTAssertEqual(outline?.geometry?.elements.first?.primitiveType, .line)
+    }
+
+    func testNoEdgeLinesMeansNoOutlineNode() {
+        let records: [LDrawParser.Record] = [
+            .triangle(colorCode: 4, v1: SCNVector3(0, 0, 0),
+                      v2: SCNVector3(10, 0, 0), v3: SCNVector3(0, 0, 10))
+        ]
+        let builder = LDrawGeometryBuilder { _ in nil }
+        let node = builder.buildNode(records: records, inheritedColorCode: 16)
+        XCTAssertNil(node.childNodes.first { $0.name == BrickStepStyler.outlineNodeName })
     }
 
     func testInheritsColorFromParent() {
