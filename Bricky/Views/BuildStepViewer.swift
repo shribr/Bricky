@@ -52,8 +52,12 @@ struct BuildStepViewer: View {
     }
 
     private var totalSteps: Int { max(1, steps.count) }
+    /// Build steps plus a final "completed model" page.
+    private var pageCount: Int { steps.count + 1 }
+    /// The extra page after the last build step showing the finished model.
+    private var isCompletionPage: Bool { currentStep >= steps.count }
     private var isFirstStep: Bool { currentStep == 0 }
-    private var isLastStep: Bool { currentStep >= steps.count - 1 }
+    private var isLastStep: Bool { currentStep >= steps.count }
     private var currentInstruction: BuildStep? {
         guard currentStep < steps.count else { return nil }
         return steps[currentStep]
@@ -71,7 +75,7 @@ struct BuildStepViewer: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray4))
                 .overlay(alignment: .topTrailing) { cameraControls }
-                .accessibilityLabel("3D assembly view showing step \(currentStep + 1) of \(totalSteps)")
+                .accessibilityLabel(isCompletionPage ? "3D view of the completed model" : "3D assembly view showing step \(currentStep + 1) of \(totalSteps)")
 
                 stepControlPanel
             }
@@ -93,11 +97,13 @@ struct BuildStepViewer: View {
 
     private var stepControlPanel: some View {
         VStack(spacing: 12) {
-            ProgressView(value: Double(currentStep + 1), total: Double(totalSteps))
+            ProgressView(value: Double(currentStep + 1), total: Double(pageCount))
                 .tint(Color.legoBlue)
-                .accessibilityLabel("Step \(currentStep + 1) of \(totalSteps)")
+                .accessibilityLabel("Step \(currentStep + 1) of \(pageCount)")
 
-            if let instruction = currentInstruction {
+            if isCompletionPage {
+                completionSummary
+            } else if let instruction = currentInstruction {
                 VStack(spacing: 4) {
                     Text("Step \(instruction.stepNumber) of \(totalSteps)")
                         .font(.caption)
@@ -128,13 +134,25 @@ struct BuildStepViewer: View {
                 }
             }
 
-            if currentStep > 0 {
+            if currentStep > 0 && !isCompletionPage {
                 fadeSlider
             }
             navigationButtons
         }
         .padding()
         .background(.ultraThinMaterial)
+    }
+
+    /// Shown on the final page once every step is built.
+    private var completionSummary: some View {
+        VStack(spacing: 4) {
+            Text("Complete")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Label("Your model is fully assembled", systemImage: "checkmark.seal.fill")
+                .font(.subheadline)
+                .foregroundStyle(.green)
+        }
     }
 
     /// See-through control for already-built pieces (0 = solid, right = x-ray the
@@ -170,7 +188,7 @@ struct BuildStepViewer: View {
             .disabled(isFirstStep)
             .accessibilityLabel("Previous step")
 
-            Text("\(currentStep + 1) / \(totalSteps)")
+            Text(isCompletionPage ? "Done" : "\(currentStep + 1) / \(totalSteps)")
                 .font(.headline)
                 .monospacedDigit()
                 .frame(minWidth: 60)
@@ -339,6 +357,18 @@ struct BuildStepViewer: View {
     // MARK: - Reveal
 
     private func showNodesUpToStep(_ step: Int) {
+        // Completion page: reveal everything in full colour, framed to fit.
+        if step >= steps.count {
+            let all = stepNodes.flatMap { $0 }
+            for node in all {
+                node.isHidden = false
+                BrickStepStyler.apply(.finished, to: node)
+            }
+            sceneController.allVisibleNodes = all
+            sceneController.visibleNodes = all
+            sceneController.frameCurrent()
+            return
+        }
         let currentEntity = step < stepEntities.count ? stepEntities[step] : 0
         for (index, nodes) in stepNodes.enumerated() {
             let entity = index < stepEntities.count ? stepEntities[index] : 0
@@ -398,7 +428,7 @@ struct BuildStepViewer: View {
     }
 
     private func goToLastStep() {
-        currentStep = max(0, steps.count - 1)
+        currentStep = steps.count  // the completed-model page
         animateReveal()
         HapticManager.impact(.medium)
     }

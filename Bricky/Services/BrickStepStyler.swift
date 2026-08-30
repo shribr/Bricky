@@ -37,6 +37,8 @@ enum BrickStepStyler {
         case previous
         /// Pieces of another entity not being built now — dimmed into the back.
         case background
+        /// The completed model — every piece in full, opaque, un-highlighted.
+        case finished
     }
 
     // MARK: - Outline construction
@@ -116,6 +118,14 @@ enum BrickStepStyler {
                 // Another entity, not being built now: opaque + dim so it recedes
                 // without any transparency sorting artifacts.
                 material.diffuse.contents = backgrounded(base)
+                material.emission.contents = UIColor.black
+                material.transparency = 1
+                material.lightingModel = .physicallyBased
+                material.blendMode = .replace
+                material.writesToDepthBuffer = true
+            case .finished:
+                // The completed hero shot: true colour, opaque, no highlight glow.
+                material.diffuse.contents = base
                 material.emission.contents = UIColor.black
                 material.transparency = 1
                 material.lightingModel = .physicallyBased
