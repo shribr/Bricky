@@ -35,6 +35,40 @@ and don't fight the step machinery.
   connected components (Option A). Future: derive entities from explicit LDraw
   sub-models (`0 FILE`) for imported OMR sets (Option B) for exact grouping.
 
+## Sub-assemblies & connecting entities (design)
+
+The problem: some sets build two parts independently (e.g. a chair and a desk)
+and **connect them at a later step**. Because our current entity detection is
+connected components of the *final* model, a pair that eventually joins is a
+single component from the start — so it never gets separate focus. The correct
+concept is a **temporal sub-assembly**, not a spatial blob. This is exactly what
+LDraw / LPub3D / BrickLink Studio encode as **sub-models** (`0 FILE`), each built
+on its own page/callout then placed into the parent.
+
+Recommended model:
+- **Imports:** derive sub-assemblies from LDraw `0 FILE` sub-models (Option B) —
+  authoritative "these steps build a separate thing that later attaches".
+- **Authored/procedural:** a `subassemblyID` per placement, or a temporal
+  inference (a run of steps disconnected from everything built so far starts a
+  new sub-assembly; the step that first bridges two of them is a **merge step**).
+
+POV at a **merge step** (both entities relevant): frame the **union** of the two
+sub-assemblies so everything fits (zoom out), with neither backgrounded —
+mirroring LPub3D's "final assembly" step after callouts.
+
+Showing *how* two entities connect (the digital alternative to paper arrows):
+- **Animated fly-in** — the joining sub-assembly slides/drops into its seat along
+  the connection axis. Motion conveys direction better than a static arrow
+  (as in LEGO's *Instructions PLUS* and Stud.io animation). Include a **replay**.
+- **Exploded offset + 3D pointer line** — park the part offset with a dashed
+  pointer to its socket (LPub3D "pointers" / LDraw `BUFEXCHG` separation arrows).
+- **Glowing mating studs** — pulse the specific studs + anti-studs that clip.
+- **Auto-orbit** to the clearest angle of the join.
+- **Scrub control** — manually slide the sub-assembly exploded → seated.
+
+Recommended combo: exploded offset → auto fly-in → glowing connection studs, with
+replay/scrub, camera framed to the union at the merge step.
+
 ## Content pipeline
 
 - **Scan a real object → 3D model → step-by-step instructions.** Capture a

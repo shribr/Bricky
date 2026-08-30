@@ -98,22 +98,27 @@ enum BrickStepStyler {
                 material.diffuse.contents = base
                 material.emission.contents = scaled(base, by: 0.12) // gentle self-glow
                 material.transparency = 1
+                material.lightingModel = .physicallyBased
                 material.blendMode = .replace
                 material.writesToDepthBuffer = true
             case .previous:
                 // Real alpha so the user can see *through* to the other side when
-                // they lower the slider. Opaque (and artifact-free) at prominence 1.
+                // they lower the slider. SceneKit's PBR ignores the transparency
+                // scalar, so switch to Blinn (which honours it) while translucent.
+                let translucent = prominence < 0.999
                 material.diffuse.contents = desaturated(base)
                 material.emission.contents = UIColor.black
                 material.transparency = prominence
-                material.blendMode = .alpha
-                material.writesToDepthBuffer = prominence >= 0.999
+                material.lightingModel = translucent ? .blinn : .physicallyBased
+                material.blendMode = translucent ? .alpha : .replace
+                material.writesToDepthBuffer = !translucent
             case .background:
                 // Another entity, not being built now: opaque + dim so it recedes
                 // without any transparency sorting artifacts.
                 material.diffuse.contents = backgrounded(base)
                 material.emission.contents = UIColor.black
                 material.transparency = 1
+                material.lightingModel = .physicallyBased
                 material.blendMode = .replace
                 material.writesToDepthBuffer = true
             }

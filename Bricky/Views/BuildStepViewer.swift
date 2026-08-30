@@ -403,9 +403,18 @@ struct BuildStepViewer: View {
     }
 
     private func animateReveal() {
+        // Fly the step's new pieces in from a short drop so it reads as "placed
+        // here" — the digital stand-in for paper instructions' assembly arrows.
+        let newNodes = currentStep < stepNodes.count ? stepNodes[currentStep] : []
+        let drop: Float = 26
+        for node in newNodes {
+            node.isHidden = false
+            node.position.y += drop
+        }
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.25
+        SCNTransaction.animationDuration = 0.35
         showNodesUpToStep(currentStep)
+        for node in newNodes { node.position.y -= drop }
         SCNTransaction.commit()
     }
 }
