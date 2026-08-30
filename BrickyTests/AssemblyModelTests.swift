@@ -72,6 +72,40 @@ final class AssemblyModelTests: XCTestCase {
         XCTAssertEqual(redBrick?.flexible, false)
     }
 
+    // MARK: - Entities (connected components)
+
+    func testEntitiesSeparatesDisconnectedClusters() {
+        let model = AssemblyModel(placements: [
+            placement(.brick, 1, 1, 1, x: 0, z: 0, step: 1),
+            placement(.brick, 1, 1, 1, x: 1, z: 0, step: 2),    // touches (0,0)
+            placement(.brick, 1, 1, 1, x: 10, z: 10, step: 3)   // far away
+        ])
+        XCTAssertEqual(model.entities.count, 2)
+    }
+
+    func testEntitiesConnectsTouchingBricks() {
+        let model = AssemblyModel(placements: [
+            placement(.brick, 1, 1, 1, x: 0, z: 0, step: 1),
+            placement(.brick, 1, 1, 1, x: 1, z: 0, step: 2),
+            placement(.brick, 1, 1, 1, x: 0, z: 1, step: 3)
+        ])
+        XCTAssertEqual(model.entities.count, 1)
+    }
+
+    func testStepEntityIndicesDistinguishSeparateEntities() {
+        let model = AssemblyModel(placements: [
+            placement(.brick, 1, 1, 1, x: 0, z: 0, step: 1),    // entity A
+            placement(.brick, 1, 1, 1, x: 10, z: 10, step: 2)   // entity B
+        ])
+        let idx = model.stepEntityIndices()
+        XCTAssertEqual(idx.count, 2)
+        XCTAssertNotEqual(idx[0], idx[1])
+    }
+
+    func testEmptyModelHasNoEntities() {
+        XCTAssertTrue(AssemblyModel(placements: []).entities.isEmpty)
+    }
+
     // MARK: - Codable round-trip
 
     func testAssemblyModelRoundTrips() throws {

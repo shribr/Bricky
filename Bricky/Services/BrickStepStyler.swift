@@ -3,18 +3,16 @@ import UIKit
 import ObjectiveC
 
 /// Renders bricks with the "paper LEGO instructions" look and expresses build
-/// order through outline + colour + fade — all fully opaque, so every stud and
-/// edge stays visible from every angle (no transparency sorting artifacts):
+/// order through outline + colour + real see-through:
 ///
-/// * **Outline** — every brick keeps a thin edge-wireframe on its own edges, so
-///   you can always read where one piece ends and the next begins. Because the
-///   lines sit on the true edges (not an inflated shell), flush bricks' shared
-///   edges coincide into a single crisp line instead of a doubled band.
-/// * **Current step** — full vivid colour, self-lit, with a slightly glowing
-///   edge so the pieces to add *now* pop.
-/// * **Previous steps** — desaturated and *faded toward pale* (amount tuned by
-///   the viewer's slider) so already-built pieces recede while staying opaque
-///   and fully detailed.
+/// * **Outline** — every brick keeps a thin edge-wireframe on its own edges so
+///   piece boundaries always read; flush bricks share a single crisp line.
+/// * **Current step** — full vivid colour, opaque, self-lit, glowing edge.
+/// * **Previous steps** — desaturated with true alpha the user can dial via the
+///   slider, so they can see *through* the build to the other side. Opaque by
+///   default (slider at solid) so nothing drops out unless they opt in.
+/// * **Background** — pieces of another entity not being built right now: opaque
+///   but strongly dimmed/desaturated so they recede and don't dominate.
 ///
 /// Original diffuse colours are captured per-material the first time a brick is
 /// styled, so repeated step transitions re-derive from the true colour and never
@@ -25,18 +23,20 @@ enum BrickStepStyler {
     /// skip them when desaturating the real brick body.
     static let outlineNodeName = "brick_outline_shell"
 
-    /// Mesh part outlines come from the real LDraw type-2 edge lines rendered by
-    /// `LDrawGeometryBuilder` (named `outlineNodeName`), so no synthetic shell is
-    /// needed — matching how LDView/LPub3D/Stud.io draw part borders.
-    private static let edgeInflation: Float = 0.2
+    /// Box edge wireframes sit a hair proud of the body (mm) so lines avoid
+    /// z-fighting without a visible gap. Small enough that adjacent bricks'
+    /// shared edges read as a single line, not a doubled one.
+    private static let edgeInflation: Float = 0.05
     private static let previousSaturation: CGFloat = 0.5
     private static let previousBrightness: CGFloat = 0.85
 
     enum Emphasis {
         /// Pieces added in the step currently being shown — pop with a highlight.
         case current
-        /// Pieces added in an earlier step — recede via desaturation.
+        /// Pieces added in an earlier step of the same entity — recede, see-through.
         case previous
+        /// Pieces of another entity not being built now — dimmed into the back.
+        case background
     }
 
     // MARK: - Outline construction
@@ -97,15 +97,26 @@ enum BrickStepStyler {
             case .current:
                 material.diffuse.contents = base
                 material.emission.contents = scaled(base, by: 0.12) // gentle self-glow
+                material.transparency = 1
+                material.blendMode = .replace
+                material.writesToDepthBuffer = true
             case .previous:
-                // Opaque + faded (desaturated, washed toward pale). Never uses
-                // alpha, so studs and edges never drop out at any angle.
-                material.diffuse.contents = receded(base, fade: 1 - prominence)
+                // Real alpha so the user can see *through* to the other side when
+                // they lower the slider. Opaque (and artifact-free) at prominence 1.
+                material.diffuse.contents = desaturated(base)
                 material.emission.contents = UIColor.black
+                material.transparency = prominence
+                material.blendMode = .alpha
+                material.writesToDepthBuffer = prominence >= 0.999
+            case .background:
+                // Another entity, not being built now: opaque + dim so it recedes
+                // without any transparency sorting artifacts.
+                material.diffuse.contents = backgrounded(base)
+                material.emission.contents = UIColor.black
+                material.transparency = 1
+                material.blendMode = .replace
+                material.writesToDepthBuffer = true
             }
-            material.transparency = 1
-            material.blendMode = .replace
-            material.writesToDepthBuffer = true
             material.readsFromDepthBuffer = true
         }
     }
@@ -172,22 +183,11 @@ enum BrickStepStyler {
         return UIColor(hue: h, saturation: s * previousSaturation, brightness: b * previousBrightness, alpha: a)
     }
 
-    /// Desaturate then wash the colour toward a pale neutral by `fade` (0…0.85),
-    /// giving already-built pieces an opaque "receded" look without transparency.
-    private static func receded(_ color: UIColor, fade: CGFloat) -> UIColor {
-        let f = max(0, min(0.75, fade))
-        return blend(desaturated(color), toward: UIColor(white: 0.85, alpha: 1), fraction: f)
-    }
-
-    private static func blend(_ a: UIColor, toward b: UIColor, fraction: CGFloat) -> UIColor {
-        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
-        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
-        guard a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa),
-              b.getRed(&br, green: &bg, blue: &bb, alpha: &ba) else { return a }
-        return UIColor(red: ar + (br - ar) * fraction,
-                       green: ag + (bg - ag) * fraction,
-                       blue: ab + (bb - ab) * fraction,
-                       alpha: aa)
+    /// Strongly desaturate and dim, so another entity recedes into the back.
+    private static func backgrounded(_ color: UIColor) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard color.getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return color }
+        return UIColor(hue: h, saturation: s * 0.25, brightness: b * 0.7, alpha: a)
     }
 
     private nonisolated(unsafe) static var baseColorAssocKey: UInt8 = 0

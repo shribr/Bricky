@@ -10,7 +10,7 @@ struct BuildStepViewer: View {
     /// Builds the scene content, per-step node groups, and step text. Assigned by
     /// each initializer so grid assemblies and LDraw mesh models share the same
     /// reveal / camera / controls.
-    private let sceneBuilder: () -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep])
+    private let sceneBuilder: () -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep], stepEntities: [Int])
     private let title: String
 
     @State private var currentStep = 0
@@ -20,14 +20,17 @@ struct BuildStepViewer: View {
     /// Container nodes grouped by 0-based step index.
     @State private var stepNodes: [[SCNNode]] = []
     @State private var steps: [BuildStep] = []
+    /// Entity (connected-component) index for each 0-based step, so the camera
+    /// can focus the entity being built and push the others to the background.
+    @State private var stepEntities: [Int] = []
     /// Drives the interactive camera (fit / zoom / reset).
     @State private var sceneController = BuildSceneController()
     /// Flips true once the model is built, so the view fits on first layout.
     @State private var contentReady = false
-    /// How prominent already-built pieces are (1 = just desaturated, lower =
-    /// more faded toward pale). Defaults below 1 so previous pieces recede out of
-    /// the box, differentiating them from the vivid current step. Always opaque.
-    @State private var previousProminence: Double = 0.6
+    /// How see-through already-built pieces of the current entity are (0 = solid,
+    /// higher = more transparent). Solid by default so nothing drops out unless
+    /// the user opts in to x-ray the build.
+    @State private var previousTransparency: Double = 0.0
     @Environment(\.dismiss) private var dismiss
 
     init(project: LegoProject) {
@@ -80,7 +83,7 @@ struct BuildStepViewer: View {
                 }
             }
             .onAppear { setupScene() }
-            .onChange(of: previousProminence) { _, _ in
+            .onChange(of: previousTransparency) { _, _ in
                 showNodesUpToStep(currentStep)
             }
         }
@@ -134,17 +137,18 @@ struct BuildStepViewer: View {
         .background(.ultraThinMaterial)
     }
 
-    /// Fade control for already-built pieces (opaque — lower = more faded).
+    /// See-through control for already-built pieces (0 = solid, right = x-ray the
+    /// build to see the other side / internal structure).
     private var fadeSlider: some View {
         HStack(spacing: 10) {
-            Image(systemName: "circle.lefthalf.filled")
+            Image(systemName: "cube.transparent")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Slider(value: $previousProminence, in: 0.15...1.0)
+            Slider(value: $previousTransparency, in: 0.0...0.85)
                 .tint(Color.legoBlue)
-                .accessibilityLabel("Fade level for already-built pieces")
-            Text("\(Int(previousProminence * 100))%")
+                .accessibilityLabel("See-through level for already-built pieces")
+            Text("\(Int(previousTransparency * 100))%")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(width: 38, alignment: .trailing)
@@ -297,11 +301,12 @@ struct BuildStepViewer: View {
         contentNode = built.content
         stepNodes = built.stepNodes
         steps = built.steps
+        stepEntities = built.stepEntities
         scene.rootNode.addChildNode(contentNode)
     }
 
     /// Grid-assembly geometry (procedural boxes) — authored/procedural/mosaic.
-    private static func buildFromAssembly(_ assembly: AssemblyModel) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep]) {
+    private static func buildFromAssembly(_ assembly: AssemblyModel) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep], stepEntities: [Int]) {
         let steps = BuildStepPlanner.steps(for: assembly)
         let count = max(1, assembly.stepCount)
         var groups: [[SCNNode]] = Array(repeating: [], count: count)
@@ -312,15 +317,16 @@ struct BuildStepViewer: View {
             let index = min(max(0, placement.step - 1), count - 1)
             groups[index].append(node)
         }
-        return (content, groups, steps)
+        return (content, groups, steps, assembly.stepEntityIndices())
     }
 
     /// Imported LDraw model — real part meshes, with step text derived from the
     /// same model so counts stay aligned.
-    private static func buildFromLDraw(_ text: String) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep]) {
+    private static func buildFromLDraw(_ text: String) -> (content: SCNNode, stepNodes: [[SCNNode]], steps: [BuildStep], stepEntities: [Int]) {
         let mesh = LDrawMeshSceneBuilder.build(fromModelText: text)
         let steps = BuildStepPlanner.steps(for: LDrawModelParser.parseAssembly(text))
-        return (mesh.content, mesh.stepNodes, steps)
+        // Entity focus applies to the grid-assembly path; LDraw is one group.
+        return (mesh.content, mesh.stepNodes, steps, Array(repeating: 0, count: max(1, mesh.stepNodes.count)))
     }
 
     private func frameCamera() {
@@ -333,25 +339,39 @@ struct BuildStepViewer: View {
     // MARK: - Reveal
 
     private func showNodesUpToStep(_ step: Int) {
+        let currentEntity = step < stepEntities.count ? stepEntities[step] : 0
         for (index, nodes) in stepNodes.enumerated() {
+            let entity = index < stepEntities.count ? stepEntities[index] : 0
+            let emphasis: BrickStepStyler.Emphasis
+            if index == step {
+                emphasis = .current
+            } else if entity == currentEntity {
+                emphasis = .previous
+            } else {
+                emphasis = .background  // another entity — recede into the back
+            }
             for node in nodes {
                 if index > step {
-                    // Future pieces stay hidden.
                     node.isHidden = true
                 } else {
-                    // Every shown piece keeps its true colour and black outline;
-                    // the current step pops (highlight outline + full colour) while
-                    // earlier steps recede via desaturation — never transparency
-                    // and never a forced grey.
                     node.isHidden = false
                     BrickStepStyler.apply(
-                        index == step ? .current : .previous,
+                        emphasis,
                         to: node,
-                        previousProminence: CGFloat(previousProminence)
+                        previousProminence: CGFloat(1 - previousTransparency)
                     )
                 }
             }
         }
+        // Recenter on the entity being built so it dominates the frame; if there's
+        // only one entity this is just the whole built-so-far model.
+        var focus: [SCNNode] = []
+        for (index, nodes) in stepNodes.enumerated() where index <= step {
+            let entity = index < stepEntities.count ? stepEntities[index] : 0
+            if entity == currentEntity { focus.append(contentsOf: nodes) }
+        }
+        sceneController.visibleNodes = focus.isEmpty ? stepNodes.prefix(step + 1).flatMap { $0 } : focus
+        sceneController.frameCurrent()
     }
 
     // MARK: - Navigation
@@ -397,6 +417,9 @@ struct BuildStepViewer: View {
 final class BuildSceneController {
     weak var scnView: SCNView?
     var contentNode: SCNNode?
+    /// The pieces visible in the current step, framed by `frameCurrent()` so the
+    /// camera recenters on the growing build instead of the whole model.
+    var visibleNodes: [SCNNode] = []
     /// The initial framed camera transform, restored by `reset()`.
     var homeTransform: simd_float4x4?
 
@@ -404,6 +427,21 @@ final class BuildSceneController {
     func fit() {
         guard let scnView, let contentNode else { return }
         scnView.defaultCameraController.frameNodes([contentNode])
+    }
+
+    /// Recenter on the currently-visible pieces (falls back to the whole model).
+    func frameCurrent(animated: Bool = true) {
+        guard let scnView else { return }
+        let nodes = visibleNodes.isEmpty ? [contentNode].compactMap { $0 } : visibleNodes
+        guard !nodes.isEmpty else { return }
+        if animated {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.35
+            scnView.defaultCameraController.frameNodes(nodes)
+            SCNTransaction.commit()
+        } else {
+            scnView.defaultCameraController.frameNodes(nodes)
+        }
     }
 
     /// Dolly the camera toward (`< 1`) or away from (`> 1`) the model centre.
@@ -449,7 +487,7 @@ private struct InstructionSceneView: UIViewRepresentable {
         controller.scnView = uiView
         if contentReady && !context.coordinator.didFit {
             context.coordinator.didFit = true
-            DispatchQueue.main.async { controller.fit() }
+            DispatchQueue.main.async { controller.frameCurrent(animated: false) }
         }
     }
 

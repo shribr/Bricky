@@ -162,3 +162,73 @@ struct AssemblyModel: Codable, Hashable {
         }
     }
 }
+
+// MARK: - Entities (connected components)
+
+extension AssemblyModel {
+    /// Groups of placement indices that physically touch — columns overlapping
+    /// or edge-adjacent. Physically separate sub-builds (e.g. a desk and a chair
+    /// placed apart) come back as separate "entities", ordered by first member.
+    var entities: [[Int]] {
+        let n = placements.count
+        guard n > 0 else { return [] }
+
+        var parent = Array(0..<n)
+        func find(_ i: Int) -> Int {
+            var r = i
+            while parent[r] != r { parent[r] = parent[parent[r]]; r = parent[r] }
+            return r
+        }
+        func union(_ a: Int, _ b: Int) {
+            let ra = find(a), rb = find(b)
+            if ra != rb { parent[ra] = rb }
+        }
+
+        // Column → placements occupying it, then union any placement with the
+        // occupants of its own and neighbouring columns (touching = same entity).
+        var owners: [BrickPlacement.Column: [Int]] = [:]
+        let columnSets = placements.map { $0.occupiedColumns }
+        for (i, cols) in columnSets.enumerated() {
+            for c in cols { owners[c, default: []].append(i) }
+        }
+        for (i, cols) in columnSets.enumerated() {
+            for c in cols {
+                for dx in -1...1 {
+                    for dz in -1...1 {
+                        let key = BrickPlacement.Column(x: c.x + dx, z: c.z + dz)
+                        guard let group = owners[key] else { continue }
+                        for j in group where j != i { union(i, j) }
+                    }
+                }
+            }
+        }
+
+        var groups: [Int: [Int]] = [:]
+        for i in 0..<n { groups[find(i), default: []].append(i) }
+        return groups.values.map { $0.sorted() }.sorted { ($0.first ?? 0) < ($1.first ?? 0) }
+    }
+
+    /// Entity index (into `entities`) for each 1-based step, chosen by the
+    /// majority of that step's placements. Empty steps inherit the prior step.
+    func stepEntityIndices() -> [Int] {
+        let ents = entities
+        var entityOf = [Int](repeating: 0, count: placements.count)
+        for (e, members) in ents.enumerated() {
+            for m in members { entityOf[m] = e }
+        }
+        let count = max(1, stepCount)
+        var result = [Int](repeating: 0, count: count)
+        for step in 1...count {
+            var tally: [Int: Int] = [:]
+            for (idx, p) in placements.enumerated() where p.step == step {
+                tally[entityOf[idx], default: 0] += 1
+            }
+            if let best = tally.max(by: { $0.value < $1.value })?.key {
+                result[step - 1] = best
+            } else if step > 1 {
+                result[step - 1] = result[step - 2]
+            }
+        }
+        return result
+    }
+}
