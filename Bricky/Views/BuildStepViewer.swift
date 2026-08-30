@@ -370,6 +370,7 @@ struct BuildStepViewer: View {
             let entity = index < stepEntities.count ? stepEntities[index] : 0
             if entity == currentEntity { focus.append(contentsOf: nodes) }
         }
+        sceneController.allVisibleNodes = stepNodes.prefix(step + 1).flatMap { $0 }
         sceneController.visibleNodes = focus.isEmpty ? stepNodes.prefix(step + 1).flatMap { $0 } : focus
         sceneController.frameCurrent()
     }
@@ -426,31 +427,72 @@ struct BuildStepViewer: View {
 final class BuildSceneController {
     weak var scnView: SCNView?
     var contentNode: SCNNode?
-    /// The pieces visible in the current step, framed by `frameCurrent()` so the
-    /// camera recenters on the growing build instead of the whole model.
+    /// Every piece currently shown (all revealed steps) — framed by `fit()`.
+    var allVisibleNodes: [SCNNode] = []
+    /// The pieces of the entity being built — framed per step by `frameCurrent()`.
     var visibleNodes: [SCNNode] = []
     /// The initial framed camera transform, restored by `reset()`.
     var homeTransform: simd_float4x4?
 
-    /// Frame the whole model to fill the view (the default view).
+    /// Frame every visible piece so the whole build (all entities) fits.
     func fit() {
-        guard let scnView, let contentNode else { return }
-        scnView.defaultCameraController.frameNodes([contentNode])
+        frame(allVisibleNodes.isEmpty ? [contentNode].compactMap { $0 } : allVisibleNodes, animated: true)
     }
 
-    /// Recenter on the currently-visible pieces (falls back to the whole model).
+    /// Recenter on the entity being built (falls back to everything visible).
     func frameCurrent(animated: Bool = true) {
-        guard let scnView else { return }
-        let nodes = visibleNodes.isEmpty ? [contentNode].compactMap { $0 } : visibleNodes
-        guard !nodes.isEmpty else { return }
+        let fallback = allVisibleNodes.isEmpty ? [contentNode].compactMap { $0 } : allVisibleNodes
+        frame(visibleNodes.isEmpty ? fallback : visibleNodes, animated: animated)
+    }
+
+    /// Position the camera to fit `nodes` from the current view direction, with a
+    /// margin so wide/asymmetric layouts (e.g. desk + chair) aren't clipped.
+    private func frame(_ nodes: [SCNNode], animated: Bool) {
+        guard let pov = scnView?.pointOfView, !nodes.isEmpty,
+              let bounds = worldBounds(of: nodes), bounds.radius > 0 else { return }
+        let fov = Float((pov.camera?.fieldOfView ?? 45) * .pi / 180)
+        let distance = bounds.radius / tan(fov / 2) * 1.25  // 1.25 = breathing room
+        let newPosition = bounds.center - pov.simdWorldFront * distance
+        let move = {
+            pov.simdPosition = newPosition
+            pov.look(at: SCNVector3(bounds.center))
+        }
         if animated {
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 0.35
-            scnView.defaultCameraController.frameNodes(nodes)
+            move()
             SCNTransaction.commit()
         } else {
-            scnView.defaultCameraController.frameNodes(nodes)
+            move()
         }
+    }
+
+    /// Combined world-space bounds of the visible geometry under `nodes`
+    /// (recurses children, since brick bodies live under container nodes).
+    private func worldBounds(of nodes: [SCNNode]) -> (center: simd_float3, radius: Float)? {
+        var minv = simd_float3(repeating: .greatestFiniteMagnitude)
+        var maxv = simd_float3(repeating: -.greatestFiniteMagnitude)
+        var found = false
+        func accumulate(_ node: SCNNode) {
+            if node.geometry != nil {
+                let (bmin, bmax) = node.boundingBox
+                if bmin.x != bmax.x || bmin.y != bmax.y || bmin.z != bmax.z {
+                    for cx in [bmin.x, bmax.x] {
+                        for cy in [bmin.y, bmax.y] {
+                            for cz in [bmin.z, bmax.z] {
+                                let w = node.convertPosition(SCNVector3(cx, cy, cz), to: nil)
+                                let v = simd_float3(Float(w.x), Float(w.y), Float(w.z))
+                                minv = simd_min(minv, v); maxv = simd_max(maxv, v); found = true
+                            }
+                        }
+                    }
+                }
+            }
+            for child in node.childNodes where !child.isHidden { accumulate(child) }
+        }
+        for node in nodes where !node.isHidden { accumulate(node) }
+        guard found else { return nil }
+        return ((minv + maxv) / 2, simd_length(maxv - minv) / 2)
     }
 
     /// Dolly the camera toward (`< 1`) or away from (`> 1`) the model centre.
