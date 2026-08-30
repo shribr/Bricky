@@ -23,10 +23,8 @@ enum BrickStepStyler {
     /// skip them when desaturating the real brick body.
     static let outlineNodeName = "brick_outline_shell"
 
-    /// LEGO blue (#0055BF) used to highlight the current step's pieces.
-    static let highlightColor = UIColor(red: 0x00 / 255, green: 0x55 / 255, blue: 0xBF / 255, alpha: 1)
-
     private static let outlineScale: Float = 1.035
+    private static let outlineScaleCurrent: Float = 1.06
     private static let previousSaturation: CGFloat = 0.5
     private static let previousBrightness: CGFloat = 0.85
 
@@ -83,11 +81,19 @@ enum BrickStepStyler {
 
     /// Apply build-order emphasis to a whole placement subtree.
     static func apply(_ emphasis: Emphasis, to root: SCNNode) {
+        // LEGO-style contrast outline: light bricks get a black outline, dark
+        // bricks get a white one (based on the brick's own luminance).
+        let edge = edgeColor(for: representativeBodyColor(root))
         root.enumerateHierarchy { node, _ in
-            guard let geometry = node.geometry else { return }
             if node.name == outlineNodeName {
-                styleOutline(geometry, emphasis: emphasis)
-            } else {
+                // Bolder edge on the active pieces — a colour-agnostic "add now"
+                // cue that works even for black/white/grey bricks.
+                let scale = emphasis == .current ? outlineScaleCurrent : outlineScale
+                node.scale = SCNVector3(scale, scale, scale)
+                if let geometry = node.geometry {
+                    styleOutline(geometry, emphasis: emphasis, edge: edge)
+                }
+            } else if let geometry = node.geometry {
                 styleBody(geometry, emphasis: emphasis)
             }
         }
@@ -96,20 +102,59 @@ enum BrickStepStyler {
     private static func styleBody(_ geometry: SCNGeometry, emphasis: Emphasis) {
         for material in geometry.materials {
             guard let base = baseColor(of: material) else { continue }
-            material.diffuse.contents = emphasis == .previous ? desaturated(base) : base
-            material.emission.contents = UIColor.black
+            switch emphasis {
+            case .current:
+                material.diffuse.contents = base
+                material.emission.contents = scaled(base, by: 0.12) // gentle self-glow
+            case .previous:
+                material.diffuse.contents = desaturated(base)
+                material.emission.contents = UIColor.black
+            }
         }
     }
 
-    private static func styleOutline(_ geometry: SCNGeometry, emphasis: Emphasis) {
-        let outline = emphasis == .current ? highlightColor : UIColor.black
+    private static func styleOutline(_ geometry: SCNGeometry, emphasis: Emphasis, edge: UIColor) {
         for material in geometry.materials {
-            material.diffuse.contents = outline
-            material.emission.contents = emphasis == .current ? highlightColor.withAlphaComponent(0.4) : UIColor.black
+            material.diffuse.contents = edge
+            // A slight glow makes the (already bolder) current-step edge read.
+            material.emission.contents = emphasis == .current ? scaled(edge, by: 0.5) : UIColor.black
         }
     }
 
     // MARK: - Helpers
+
+    /// The brick's true body colour (first non-outline material), for choosing
+    /// the contrasting outline.
+    private static func representativeBodyColor(_ root: SCNNode) -> UIColor {
+        var found: UIColor?
+        root.enumerateHierarchy { node, stop in
+            guard node.name != outlineNodeName,
+                  let material = node.geometry?.materials.first,
+                  let color = baseColor(of: material) else { return }
+            found = color
+            stop.pointee = true
+        }
+        return found ?? .gray
+    }
+
+    /// Black outline for light bricks, white outline for dark bricks — the
+    /// high-contrast scheme LEGO uses in printed instructions.
+    private static func edgeColor(for color: UIColor) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard color.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return UIColor(white: 0.08, alpha: 1)
+        }
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return luminance > 0.55
+            ? UIColor(white: 0.08, alpha: 1)   // light brick → black outline
+            : UIColor(white: 0.96, alpha: 1)    // dark brick → white outline
+    }
+
+    private static func scaled(_ color: UIColor, by factor: CGFloat) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard color.getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return .black }
+        return UIColor(hue: h, saturation: s, brightness: b * factor, alpha: a)
+    }
 
     private static func shellMaterial() -> SCNMaterial {
         let material = SCNMaterial()
