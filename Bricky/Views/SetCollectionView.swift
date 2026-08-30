@@ -60,6 +60,14 @@ struct SetCollectionView: View {
         .navigationTitle("Set Collection")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavigationLink {
+                    SetModelsView()
+                } label: {
+                    Image(systemName: "cube.transparent")
+                }
+                .accessibilityLabel("3D Set Models")
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showSettings = true

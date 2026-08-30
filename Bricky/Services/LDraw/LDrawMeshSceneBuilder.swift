@@ -52,6 +52,7 @@ enum LDrawMeshSceneBuilder {
                 continue
             }
             node.simdTransform = placement.transform.meshSceneMatrix()
+            BrickStepStyler.addMeshOutline(to: node)
             content.addChildNode(node)
             let index = min(max(0, placement.step - 1), groups.count - 1)
             groups[index].append(node)

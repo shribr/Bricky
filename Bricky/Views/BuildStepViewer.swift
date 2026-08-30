@@ -54,10 +54,10 @@ struct BuildStepViewer: View {
                 SceneView(
                     scene: scene,
                     pointOfView: cameraNode,
-                    options: [.allowsCameraControl, .autoenablesDefaultLighting]
+                    options: [.allowsCameraControl]
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGroupedBackground))
+                .background(Color(.systemGray4))
                 .accessibilityLabel("3D assembly view showing step \(currentStep + 1) of \(totalSteps)")
 
                 stepControlPanel
@@ -155,7 +155,9 @@ struct BuildStepViewer: View {
     // MARK: - Scene Setup
 
     private func setupScene() {
-        scene.background.contents = UIColor.systemGroupedBackground
+        // Neutral vertical gradient (lighter at top, darker toward the bottom) so
+        // both light and dark bricks keep contrast against the backdrop.
+        scene.background.contents = Self.backgroundGradientImage()
 
         let camera = SCNCamera()
         camera.fieldOfView = 45
@@ -163,24 +165,66 @@ struct BuildStepViewer: View {
         cameraNode.camera = camera
         scene.rootNode.addChildNode(cameraNode)
 
-        let ambientLight = SCNNode()
-        ambientLight.light = SCNLight()
-        ambientLight.light?.type = .ambient
-        ambientLight.light?.intensity = 500
-        ambientLight.light?.color = UIColor.white
-        scene.rootNode.addChildNode(ambientLight)
-
-        let directionalLight = SCNNode()
-        directionalLight.light = SCNLight()
-        directionalLight.light?.type = .directional
-        directionalLight.light?.intensity = 700
-        directionalLight.position = SCNVector3(100, 200, 100)
-        directionalLight.look(at: SCNVector3(0, 0, 0))
-        scene.rootNode.addChildNode(directionalLight)
+        addLighting()
 
         buildAssemblyNodes()
         frameCamera()
         showNodesUpToStep(0)
+    }
+
+    /// Ambient + key/fill/rim rig so light-coloured bricks show edges and shading
+    /// rather than washing out flat.
+    private func addLighting() {
+        let ambient = SCNNode()
+        ambient.light = SCNLight()
+        ambient.light?.type = .ambient
+        ambient.light?.intensity = 350
+        ambient.light?.color = UIColor.white
+        scene.rootNode.addChildNode(ambient)
+
+        let key = SCNNode()
+        key.light = SCNLight()
+        key.light?.type = .directional
+        key.light?.intensity = 850
+        key.light?.color = UIColor.white
+        key.position = SCNVector3(120, 220, 140)
+        key.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(key)
+
+        let fill = SCNNode()
+        fill.light = SCNLight()
+        fill.light?.type = .directional
+        fill.light?.intensity = 300
+        fill.light?.color = UIColor.white
+        fill.position = SCNVector3(-160, 80, 120)
+        fill.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(fill)
+
+        let rim = SCNNode()
+        rim.light = SCNLight()
+        rim.light?.type = .directional
+        rim.light?.intensity = 450
+        rim.light?.color = UIColor.white
+        rim.position = SCNVector3(-40, 120, -200)
+        rim.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(rim)
+    }
+
+    /// Vertical gradient backdrop rendered once as a bitmap.
+    private static func backgroundGradientImage() -> UIImage {
+        let size = CGSize(width: 8, height: 512)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            let colors = [UIColor.systemGray3.cgColor, UIColor.systemGray.cgColor] as CFArray
+            let space = CGColorSpaceCreateDeviceRGB()
+            guard let gradient = CGGradient(colorsSpace: space, colors: colors, locations: [0, 1]) else { return }
+            ctx.cgContext.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: size.height),
+                options: []
+            )
+        }
     }
 
     private func buildAssemblyNodes() {
@@ -225,14 +269,19 @@ struct BuildStepViewer: View {
 
     private func showNodesUpToStep(_ step: Int) {
         for (index, nodes) in stepNodes.enumerated() {
-            // Already-built pieces recede (lighter/translucent); the current
-            // step's new pieces show in full colour so they stand out; future
-            // pieces are hidden.
-            let opacity: CGFloat
-            if index > step { opacity = 0 }
-            else if index == step { opacity = 1 }
-            else { opacity = 0.6 }
-            for node in nodes { node.opacity = opacity }
+            for node in nodes {
+                if index > step {
+                    // Future pieces stay hidden.
+                    node.isHidden = true
+                } else {
+                    // Every shown piece keeps its true colour and black outline;
+                    // the current step pops (highlight outline + full colour) while
+                    // earlier steps recede via desaturation — never transparency
+                    // and never a forced grey.
+                    node.isHidden = false
+                    BrickStepStyler.apply(index == step ? .current : .previous, to: node)
+                }
+            }
         }
     }
 
