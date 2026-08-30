@@ -357,6 +357,7 @@
 		DE4E2645BB357B9F065CBFE7 /* ModelViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */; };
 		DE6E3306F2E1E4474839D54F /* BrickognizeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD41E24B5621F0DC7B403E7C /* BrickognizeServiceTests.swift */; };
 		DE8C74C55C354880868F59C3 /* PhotoSubjectClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0EED3E6D1C5CC1D1FBE205 /* PhotoSubjectClassifier.swift */; };
+		DEB16AB8BEEC487C0BEEDFE0 /* setmodel_fll.mpd in Resources */ = {isa = PBXBuildFile; fileRef = 02268B95BA50599A0942B28F /* setmodel_fll.mpd */; };
 		DF2F708294D8909EA0AB06BF /* GeneratedLegoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E022985F73ABA1CDCABBD96F /* GeneratedLegoSet.swift */; };
 		DF571A17C25C43912FCC23D9 /* VideoSweepCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C182B1C02A3537929204B3BA /* VideoSweepCapture.swift */; };
 		E0B82ABE3C7A14FA0F45BFEC /* SprintGAppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A1F9A36506780B0BF760C8 /* SprintGAppStoreTests.swift */; };
@@ -432,6 +433,7 @@
 		014D8EABBD76E661E983DDAA /* LegoPartsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoPartsCatalog.swift; sourceTree = "<group>"; };
 		02000198F15ECF55357361A9 /* MosaicGeneratorViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicGeneratorViewModelTests.swift; sourceTree = "<group>"; };
 		0213EE4A27704B4FF8FD871B /* MinifigureScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanView.swift; sourceTree = "<group>"; };
+		02268B95BA50599A0942B28F /* setmodel_fll.mpd */ = {isa = PBXFileReference; includeInIndex = 1; path = setmodel_fll.mpd; sourceTree = "<group>"; };
 		033AB78186B7339EC8BC44F4 /* LDrawModelParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LDrawModelParserTests.swift; sourceTree = "<group>"; };
 		039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = MinifigureCatalog.json.gz; sourceTree = "<group>"; };
 		03F8D6DD7CABD4ABD4C359F2 /* BuildFeatureExplainerViewTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BuildFeatureExplainerViewTests.swift; sourceTree = "<group>"; };
@@ -898,6 +900,7 @@
 				22C76BB0F38AA438015B7F7A /* buildmodel_minideskchair.ldr */,
 				97700F3473A4642F70A9C282 /* setmodel_manifest.json */,
 				EAFD208CF88C7DDE6034DF4D /* setmodel_minibuild.mpd */,
+				02268B95BA50599A0942B28F /* setmodel_fll.mpd */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1562,6 +1565,7 @@
 				E8B7D753B80CAAAC93CE8D72 /* buildmodel_minideskchair.ldr in Resources */,
 				B19BAE4F53D0B9DDBE54DAA8 /* setmodel_manifest.json in Resources */,
 				B031D63EFEDD035CC62BD11D /* setmodel_minibuild.mpd in Resources */,
+				DEB16AB8BEEC487C0BEEDFE0 /* setmodel_fll.mpd in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

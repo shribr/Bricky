@@ -64,11 +64,26 @@ final class LDrawMeshSceneBuilderTests: XCTestCase {
         XCTAssertGreaterThan(maxB.y - minB.y, 0)
     }
 
+    func testBuildsRealMultiStepSetModelFromOMRSource() throws {
+        try XCTSkipUnless(LDrawLibrary.shared.isAvailable, "LDraw parts not bundled in this build")
+        guard let entry = SetModelLibrary.entries().first(where: { $0.name == "FLL Robot Prototype" }),
+              let text = SetModelLibrary.modelText(for: entry) else {
+            return XCTFail("FLL set model should be bundled")
+        }
+        let result = LDrawMeshSceneBuilder.build(fromModelText: text)
+
+        // A real 46-step model with many placed part meshes.
+        XCTAssertEqual(result.stepCount, 46)
+        XCTAssertGreaterThan(result.content.childNodes.count, 50)
+        // Coverage is high against the bundled parts library (a few Technic parts
+        // aren't bundled); most of the model renders.
+        XCTAssertLessThanOrEqual(result.missingParts.count, 8)
+    }
+
     // MARK: - Set model library
 
     func testSetModelLibraryListsBundledModels() {
-        XCTAssertTrue(SetModelLibrary.entries().contains { $0.name == "Mini Build" })
-    }
+        XCTAssertTrue(SetModelLibrary.entries().contains { $0.name == "Mini Build" })    }
 
     func testBundledSetModelIsFullyRenderable() throws {
         try XCTSkipUnless(LDrawLibrary.shared.isAvailable, "LDraw parts not bundled")

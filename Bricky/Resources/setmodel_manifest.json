@@ -3,5 +3,10 @@
     "file": "setmodel_minibuild.mpd",
     "name": "Mini Build",
     "setNumber": null
+  },
+  {
+    "file": "setmodel_fll.mpd",
+    "name": "FLL Robot Prototype",
+    "setNumber": null
   }
 ]
