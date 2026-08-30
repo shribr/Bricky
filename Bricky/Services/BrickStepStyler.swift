@@ -3,16 +3,16 @@ import UIKit
 import ObjectiveC
 
 /// Renders bricks with the "paper LEGO instructions" look and expresses build
-/// order without transparency or gray-recolouring:
+/// order through outline + colour + ghosting:
 ///
-/// * **Outline** — every brick gets a black inverted-hull shell (a slightly
-///   enlarged duplicate rendered with front-face culling), so its silhouette
-///   reads clearly against any background.
-/// * **Current step** — full colour, plus a bright highlight-coloured outline
-///   and a soft emissive rim so the pieces to add *now* pop.
-/// * **Previous steps** — kept fully opaque and true-hued but *desaturated*
-///   (~50% saturation, ~15% dimmer) so already-built pieces recede. A brick that
-///   is genuinely grey merely looks a touch muted, never "highlighted".
+/// * **Outline** — every brick keeps a thin edge-wireframe on its own edges, so
+///   you can always read where one piece ends and the next begins. Because the
+///   lines sit on the true edges (not an inflated shell), flush bricks' shared
+///   edges coincide into a single crisp line instead of a doubled band.
+/// * **Current step** — full vivid colour, opaque, self-lit, with a slightly
+///   glowing edge so the pieces to add *now* pop.
+/// * **Previous steps** — desaturated and *ghosted* (semi-transparent, tuned by
+///   the viewer's slider) while their edges stay crisp and opaque for placement.
 ///
 /// Original diffuse colours are captured per-material the first time a brick is
 /// styled, so repeated step transitions re-derive from the true colour and never
@@ -23,8 +23,11 @@ enum BrickStepStyler {
     /// skip them when desaturating the real brick body.
     static let outlineNodeName = "brick_outline_shell"
 
-    private static let outlineScale: Float = 1.035
-    private static let outlineScaleCurrent: Float = 1.06
+    /// Mesh outline shells scale up proportionally (arbitrary geometry).
+    private static let outlineScale: Float = 1.02
+    /// Box edge wireframes sit a hair proud of the body (mm) so the lines avoid
+    /// z-fighting with the surfaces they trace, without visibly inflating.
+    private static let edgeInflation: Float = 0.2
     private static let previousSaturation: CGFloat = 0.5
     private static let previousBrightness: CGFloat = 0.85
 
@@ -37,16 +40,30 @@ enum BrickStepStyler {
 
     // MARK: - Outline construction
 
-    /// Add a single box-shaped black outline shell sized to a procedural brick's
-    /// solid body. One extra box per brick keeps large models performant.
+    /// Add a thin edge-wireframe tracing the 12 edges of the brick's box. Lines
+    /// live on the true edges (nudged a hair proud to avoid z-fighting), so
+    /// flush bricks share a single crisp seam instead of two inflated shells.
     static func addBoxOutline(to brick: SCNNode, width: Float, height: Float, length: Float) {
-        let box = SCNBox(width: CGFloat(width), height: CGFloat(height), length: CGFloat(length), chamferRadius: 0.2)
-        box.firstMaterial = shellMaterial()
-        let shell = SCNNode(geometry: box)
+        let m = edgeInflation
+        let lo = SCNVector3(-m, -m, -m)
+        let hi = SCNVector3(width + m, height + m, length + m)
+        let c = [
+            SCNVector3(lo.x, lo.y, lo.z), SCNVector3(hi.x, lo.y, lo.z),
+            SCNVector3(hi.x, lo.y, hi.z), SCNVector3(lo.x, lo.y, hi.z),
+            SCNVector3(lo.x, hi.y, lo.z), SCNVector3(hi.x, hi.y, lo.z),
+            SCNVector3(hi.x, hi.y, hi.z), SCNVector3(lo.x, hi.y, hi.z),
+        ]
+        let indices: [Int32] = [
+            0, 1, 1, 2, 2, 3, 3, 0, // bottom face
+            4, 5, 5, 6, 6, 7, 7, 4, // top face
+            0, 4, 1, 5, 2, 6, 3, 7, // vertical edges
+        ]
+        let source = SCNGeometrySource(vertices: c)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .line)
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        geometry.firstMaterial = lineMaterial()
+        let shell = SCNNode(geometry: geometry)
         shell.name = outlineNodeName
-        // Match `generateSolidBody`'s body placement, then grow about its centre.
-        shell.position = SCNVector3(width / 2, height / 2, length / 2)
-        shell.scale = SCNVector3(outlineScale, outlineScale, outlineScale)
         brick.addChildNode(shell)
     }
 
@@ -79,36 +96,44 @@ enum BrickStepStyler {
 
     // MARK: - Step emphasis
 
-    /// Apply build-order emphasis to a whole placement subtree.
-    static func apply(_ emphasis: Emphasis, to root: SCNNode) {
+    /// Apply build-order emphasis to a whole placement subtree. `previousOpacity`
+    /// (1 = opaque) lets the user see through already-built pieces.
+    static func apply(_ emphasis: Emphasis, to root: SCNNode, previousOpacity: CGFloat = 1) {
         // LEGO-style contrast outline: light bricks get a black outline, dark
         // bricks get a white one (based on the brick's own luminance).
         let edge = edgeColor(for: representativeBodyColor(root))
         root.enumerateHierarchy { node, _ in
             if node.name == outlineNodeName {
-                // Bolder edge on the active pieces — a colour-agnostic "add now"
-                // cue that works even for black/white/grey bricks.
-                let scale = emphasis == .current ? outlineScaleCurrent : outlineScale
-                node.scale = SCNVector3(scale, scale, scale)
+                // Every shown step keeps its edges so piece boundaries always read;
+                // the current step's edge glows slightly to stand out.
                 if let geometry = node.geometry {
                     styleOutline(geometry, emphasis: emphasis, edge: edge)
                 }
             } else if let geometry = node.geometry {
-                styleBody(geometry, emphasis: emphasis)
+                styleBody(geometry, emphasis: emphasis, previousOpacity: previousOpacity)
             }
         }
     }
 
-    private static func styleBody(_ geometry: SCNGeometry, emphasis: Emphasis) {
+    private static func styleBody(_ geometry: SCNGeometry, emphasis: Emphasis, previousOpacity: CGFloat) {
         for material in geometry.materials {
             guard let base = baseColor(of: material) else { continue }
             switch emphasis {
             case .current:
+                // Vivid, opaque, self-lit — the pieces to add *now*.
                 material.diffuse.contents = base
                 material.emission.contents = scaled(base, by: 0.12) // gentle self-glow
+                material.transparency = 1
+                material.blendMode = .alpha
+                material.writesToDepthBuffer = true
             case .previous:
+                // Desaturated + ghosted. Not writing depth lets the transparency
+                // actually read against same-coloured bricks behind it.
                 material.diffuse.contents = desaturated(base)
                 material.emission.contents = UIColor.black
+                material.transparency = previousOpacity
+                material.blendMode = .alpha
+                material.writesToDepthBuffer = previousOpacity >= 0.999
             }
         }
     }
@@ -116,8 +141,8 @@ enum BrickStepStyler {
     private static func styleOutline(_ geometry: SCNGeometry, emphasis: Emphasis, edge: UIColor) {
         for material in geometry.materials {
             material.diffuse.contents = edge
-            // A slight glow makes the (already bolder) current-step edge read.
-            material.emission.contents = emphasis == .current ? scaled(edge, by: 0.5) : UIColor.black
+            // Current-step edges glow a touch so the active pieces read.
+            material.emission.contents = emphasis == .current ? scaled(edge, by: 0.6) : UIColor.black
         }
     }
 
@@ -163,6 +188,19 @@ enum BrickStepStyler {
         material.cullMode = .front           // render only the shell's inside faces
         material.isDoubleSided = false
         material.writesToDepthBuffer = true
+        material.readsFromDepthBuffer = true
+        return material
+    }
+
+    /// Flat, depth-tested material for the edge-wireframe lines. Reads depth so
+    /// hidden back edges are occluded, but doesn't write it to avoid fighting
+    /// the body surfaces the lines trace.
+    private static func lineMaterial() -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = UIColor.black
+        material.isDoubleSided = true
+        material.writesToDepthBuffer = false
         material.readsFromDepthBuffer = true
         return material
     }

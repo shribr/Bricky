@@ -24,7 +24,7 @@ enum AssemblySceneBuilder {
         let l = Float(placement.dimensions.studsLong) * pitch
         brick.position = SCNVector3(-w / 2, 0, -l / 2)
 
-        // Black inverted-hull outline sized to the solid body, for the paper
+        // Thin edge-wireframe outline sized to the solid body, for the paper
         // LEGO-instructions look. Added as a child of the brick so it inherits
         // the same offset and never changes the placement node count.
         let bodyHeight = Float(placement.dimensions.heightUnits) * plate

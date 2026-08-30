@@ -24,6 +24,10 @@ struct BuildStepViewer: View {
     @State private var sceneController = BuildSceneController()
     /// Flips true once the model is built, so the view fits on first layout.
     @State private var contentReady = false
+    /// User-adjustable opacity of already-built pieces. Defaults below 1 so
+    /// previous bricks are ghosted out of the box — that ghosting is what
+    /// differentiates them from the vivid, opaque, outlined current step.
+    @State private var previousOpacity: Double = 0.6
     @Environment(\.dismiss) private var dismiss
 
     init(project: LegoProject) {
@@ -76,6 +80,9 @@ struct BuildStepViewer: View {
                 }
             }
             .onAppear { setupScene() }
+            .onChange(of: previousOpacity) { _, _ in
+                showNodesUpToStep(currentStep)
+            }
         }
     }
 
@@ -118,10 +125,31 @@ struct BuildStepViewer: View {
                 }
             }
 
+            if currentStep > 0 {
+                transparencySlider
+            }
             navigationButtons
         }
         .padding()
         .background(.ultraThinMaterial)
+    }
+
+    /// See-through control for already-built pieces (opaque by default).
+    private var transparencySlider: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "cube.transparent")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Slider(value: $previousOpacity, in: 0.15...1.0)
+                .tint(Color.legoBlue)
+                .accessibilityLabel("See-through level for already-built pieces")
+            Text("\(Int(previousOpacity * 100))%")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 38, alignment: .trailing)
+        }
+        .padding(.horizontal, 4)
     }
 
     private var navigationButtons: some View {
@@ -316,7 +344,11 @@ struct BuildStepViewer: View {
                     // earlier steps recede via desaturation — never transparency
                     // and never a forced grey.
                     node.isHidden = false
-                    BrickStepStyler.apply(index == step ? .current : .previous, to: node)
+                    BrickStepStyler.apply(
+                        index == step ? .current : .previous,
+                        to: node,
+                        previousOpacity: CGFloat(previousOpacity)
+                    )
                 }
             }
         }
