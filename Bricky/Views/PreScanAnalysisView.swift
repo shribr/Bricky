@@ -76,7 +76,7 @@ struct PreScanAnalysisView: View {
                         actionLabel(
                             icon: "cube.transparent",
                             title: "Scan to Set",
-                            subtitle: "Photograph a real object and forge a buildable brick model of it",
+                            subtitle: "Photograph a real object and get a buildable brick model with step-by-step 3D instructions you can rotate and build.",
                             proLocked: !subscriptions.isPro
                         )
                     }

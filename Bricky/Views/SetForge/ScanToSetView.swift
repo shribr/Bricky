@@ -15,6 +15,7 @@ struct ScanToSetView: View {
     @State private var showCamera = false
     @State private var showSweep = false
     @State private var showGuidedAngles = false
+    @State private var showObjectCapture = false
     @State private var showFileImporter = false
     @State private var showPaywall = false
     @State private var navigateToResult = false
@@ -77,6 +78,9 @@ struct ScanToSetView: View {
             GuidedAngleCaptureView { images in
                 if !images.isEmpty { viewModel.generateFromImages(images) }
             }
+        }
+        .fullScreenCover(isPresented: $showObjectCapture) {
+            ObjectCaptureView { url in viewModel.generateFromMesh(url: url) }
         }
         .fileImporter(
             isPresented: $showFileImporter,
@@ -239,6 +243,16 @@ struct ScanToSetView: View {
                 .foregroundStyle(.secondary)
 
             if cameraAvailable {
+                if ObjectCaptureView.isSupported {
+                    capture3DButton(
+                        title: "Scan with LiDAR",
+                        subtitle: "Highest fidelity — orbit the object (iPhone/iPad Pro)",
+                        icon: "arkit"
+                    ) {
+                        if viewModel.isProUser { showObjectCapture = true } else { showPaywall = true }
+                    }
+                }
+
                 capture3DButton(
                     title: "Photograph 4 Angles",
                     subtitle: "Front, left, back, right — guided",

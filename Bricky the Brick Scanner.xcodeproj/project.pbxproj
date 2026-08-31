@@ -339,6 +339,7 @@
 		D7075ECE075B9269D44255C7 /* DescribeSetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D8A2BCF0F0D7BF336ABDB9 /* DescribeSetView.swift */; };
 		D72987AA1754F85027FDA391 /* SetForgePolishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6705DAF3B1067D3A5F3DC34B /* SetForgePolishTests.swift */; };
 		D747F248FDE7A600B95DBA0E /* report-20260427-012909.md in Resources */ = {isa = PBXBuildFile; fileRef = 544934D070B345F613AE5EBC /* report-20260427-012909.md */; };
+		D7DD727BCC7EB0252806BC6C /* ObjectCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B2A0C416B050B71A073515 /* ObjectCaptureView.swift */; };
 		D885A3F57419D722DECD92A0 /* MinifigurePartClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BD5FB6FCF526AF012EDD9E /* MinifigurePartClassifier.swift */; };
 		D972C778B6615C228725D26E /* MosaicLDRExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B4C65AFC5FAEA0B1A1E88F /* MosaicLDRExporter.swift */; };
 		D9813BB08631FC3F45DCC703 /* report-20260427-005834.md in Resources */ = {isa = PBXBuildFile; fileRef = F037CAB99D8B39CE75C95ED9 /* report-20260427-005834.md */; };
@@ -490,6 +491,7 @@
 		25C2442A5A513C4D8F057EA0 /* HybridFigureAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridFigureAnalyzer.swift; sourceTree = "<group>"; };
 		25C3FB53FD13493CF42AEB11 /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
 		26AAB22D9F2EDDF4771B8D26 /* MosaicEngineGoldenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicEngineGoldenTests.swift; sourceTree = "<group>"; };
+		26B2A0C416B050B71A073515 /* ObjectCaptureView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ObjectCaptureView.swift; sourceTree = "<group>"; };
 		2710E5FCA8DD30C3B69CBDAE /* SetForgeContract.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetForgeContract.swift; sourceTree = "<group>"; };
 		2782245B609B25E939705779 /* MosaicGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicGenerator.swift; sourceTree = "<group>"; };
 		27FA9E7E7EFFC2A639382B35 /* SetForgeTextServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetForgeTextServiceTests.swift; sourceTree = "<group>"; };
@@ -1080,6 +1082,7 @@
 				05D83D95D2C078B05E196F69 /* GeneratedSetsGalleryView.swift */,
 				78696F26599EC6F05F0EA262 /* GuidedAngleCaptureView.swift */,
 				51963EC526B281CF781B3D43 /* Model3DViewerView.swift */,
+				26B2A0C416B050B71A073515 /* ObjectCaptureView.swift */,
 			);
 			name = SetForge;
 			path = SetForge;
@@ -1868,6 +1871,7 @@
 				AD55FC3314A1FFE9BA9B7186 /* SetModelLibrary.swift in Sources */,
 				DDF70AA72833824B95EDFCA6 /* BrickStepStyler.swift in Sources */,
 				A7B2BB40BA256C0857686C2B /* SetModelsView.swift in Sources */,
+				D7DD727BCC7EB0252806BC6C /* ObjectCaptureView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
