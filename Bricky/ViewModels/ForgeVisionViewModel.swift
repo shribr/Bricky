@@ -217,7 +217,9 @@ final class ForgeVisionViewModel: ObservableObject {
         // Tier 1 — hosted multiview → genuine 3D model.
         var meshModel: VoxelModel?
         if let meshService, let token {
-            let jpegs = images.prefix(4).compactMap { $0.jpegData(compressionQuality: 0.85) }
+            // Cloud multiview wants ~4 evenly-spaced angles (front/left/back/right).
+            let cloudViews = VideoSweepCapture.selectViews(from: images, count: 4)
+            let jpegs = cloudViews.compactMap { $0.jpegData(compressionQuality: 0.85) }
             if !jpegs.isEmpty {
                 do {
                     let url = try await meshService.generateMesh(
@@ -231,6 +233,20 @@ final class ForgeVisionViewModel: ObservableObject {
                 } catch {
                     meshModel = nil
                 }
+            }
+        }
+        if Task.isCancelled { return }
+
+        // Tier 1.5 — on-device photogrammetry from the captured angles → a
+        // genuine 3D mesh. Uses ALL the angles (not just the first photo), so a
+        // walk-around / multi-angle scan reconstructs real geometry.
+        if meshModel == nil, PhotogrammetryReconstructor.isSupported {
+            if let url = await PhotogrammetryReconstructor.reconstruct(images: images) {
+                meshModel = try? await Task.detached(priority: .userInitiated) {
+                    try MeshVoxelizer.voxelize(
+                        assetURL: url, size: size, subject: subject.isEmpty ? "Scan" : subject
+                    )
+                }.value
             }
         }
         if Task.isCancelled { return }
@@ -258,7 +274,8 @@ final class ForgeVisionViewModel: ObservableObject {
             if Task.isCancelled { return }
             result = set
             phase = .completed
-            GeneratedSetStore.shared.save(set, sourceImages: Array(images.prefix(4)))
+            // Save a few evenly-spaced angles as the scan's source thumbnails.
+            GeneratedSetStore.shared.save(set, sourceImages: VideoSweepCapture.selectViews(from: images, count: 4))
         } catch {
             if Task.isCancelled { return }
             phase = .failed(error.localizedDescription)

@@ -35,7 +35,9 @@ struct VideoSweepCaptureView: View {
         .onDisappear { sweep.stop() }
         .onChange(of: sweep.completed) { _, done in
             guard done else { return }
-            let views = sweep.selectedViews()
+            // Pass many evenly-spaced frames so on-device photogrammetry has
+            // enough overlapping views to reconstruct real 3D geometry.
+            let views = sweep.selectedViews(32)
             sweep.stop()
             onComplete(views)
             dismiss()

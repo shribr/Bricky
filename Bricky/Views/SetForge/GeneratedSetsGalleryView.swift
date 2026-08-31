@@ -6,6 +6,8 @@ import SwiftUI
 /// the full result screen; swipe to delete. Offline; all data is on-device.
 struct GeneratedSetsGalleryView: View {
     @StateObject private var store = GeneratedSetStore.shared
+    /// Set whose interactive 3D instructions are being presented.
+    @State private var instructionsSet: GeneratedLegoSet?
 
     var body: some View {
         Group {
@@ -19,6 +21,21 @@ struct GeneratedSetsGalleryView: View {
                         } label: {
                             row(for: set)
                         }
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                instructionsSet = set
+                            } label: {
+                                Label("3D Steps", systemImage: "cube.transparent")
+                            }
+                            .tint(Color.legoBlue)
+                        }
+                        .contextMenu {
+                            Button {
+                                instructionsSet = set
+                            } label: {
+                                Label("View 3D Instructions", systemImage: "cube.transparent")
+                            }
+                        }
                     }
                     .onDelete { store.delete(at: $0) }
                 }
@@ -26,6 +43,9 @@ struct GeneratedSetsGalleryView: View {
         }
         .navigationTitle("My Forged Sets")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $instructionsSet) { set in
+            BuildStepViewer(assembly: set.asAssemblyModel(), title: set.name)
+        }
     }
 
     // MARK: - Row
