@@ -35,8 +35,41 @@ struct SetCollectionView: View {
         return result
     }
 
+    /// Prominent entry into the interactive 3D building-instruction models.
+    private var buildInstructionsSection: some View {
+        Section {
+            NavigationLink {
+                SetModelsView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "cube.transparent.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.legoBlue)
+                        .frame(width: 32)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("3D Building Instructions")
+                            .font(.headline)
+                        Text("Step-by-step 3D models you can rotate and build")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    if SetModelLibrary.entries().count > 0 {
+                        Text("\(SetModelLibrary.entries().count)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
     var body: some View {
         List {
+            // 3D building instructions entry (prominent, discoverable)
+            buildInstructionsSection
+
             // Stats
             if !collectionStore.collection.isEmpty {
                 statsSection

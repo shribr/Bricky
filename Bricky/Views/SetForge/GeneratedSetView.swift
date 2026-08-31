@@ -11,6 +11,7 @@ struct GeneratedSetView: View {
     @StateObject private var inventoryStore = InventoryStore.shared
     @State private var shareItem: ShareItem?
     @State private var showInstructions = false
+    @State private var show3DInstructions = false
     @State private var show3DViewer = false
     @State private var previewImage: PreviewImage?
     @Environment(\.dismiss) private var dismiss
@@ -61,6 +62,9 @@ struct GeneratedSetView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showInstructions) {
             InstructionStepsView(set: set)
+        }
+        .fullScreenCover(isPresented: $show3DInstructions) {
+            BuildStepViewer(assembly: set.asAssemblyModel(), title: set.name)
         }
         .sheet(item: $shareItem) { item in
             ShareSheet(items: [item.url])
@@ -207,15 +211,25 @@ struct GeneratedSetView: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button {
-                showInstructions = true
+                show3DInstructions = true
             } label: {
-                Label("View Building Instructions", systemImage: "list.number")
+                Label("View 3D Instructions", systemImage: "cube.transparent")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.legoBlue)
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+
+            Button {
+                showInstructions = true
+            } label: {
+                Label("Printable Step List", systemImage: "list.number")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
             }
 
             Button {
