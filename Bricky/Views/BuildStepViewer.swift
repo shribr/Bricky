@@ -137,6 +137,9 @@ struct BuildStepViewer: View {
             if currentStep > 0 && !isCompletionPage {
                 fadeSlider
             }
+            if canReplay {
+                replayButton
+            }
             navigationButtons
         }
         .padding()
@@ -172,6 +175,25 @@ struct BuildStepViewer: View {
                 .frame(width: 38, alignment: .trailing)
         }
         .padding(.horizontal, 4)
+    }
+
+    /// Replays the current step's fly-in — the digital "assembly arrow" for this
+    /// page — so the user can watch the new pieces drop into place again. Only
+    /// meaningful on a real build step that adds pieces.
+    private var canReplay: Bool {
+        !isCompletionPage
+            && currentStep < stepNodes.count
+            && !stepNodes[currentStep].isEmpty
+    }
+
+    private var replayButton: some View {
+        Button { replayCurrentStep() } label: {
+            Label("Replay step", systemImage: "arrow.clockwise")
+                .font(.caption.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .tint(Color.legoBlue)
+        .accessibilityLabel("Replay this step's animation")
     }
 
     private var navigationButtons: some View {
@@ -362,6 +384,7 @@ struct BuildStepViewer: View {
             let all = stepNodes.flatMap { $0 }
             for node in all {
                 node.isHidden = false
+                BrickStepStyler.stopPulsing(node)
                 BrickStepStyler.apply(.finished, to: node)
             }
             sceneController.allVisibleNodes = all
@@ -383,6 +406,7 @@ struct BuildStepViewer: View {
             for node in nodes {
                 if index > step {
                     node.isHidden = true
+                    BrickStepStyler.stopPulsing(node)
                 } else {
                     node.isHidden = false
                     BrickStepStyler.apply(
@@ -390,6 +414,12 @@ struct BuildStepViewer: View {
                         to: node,
                         previousProminence: CGFloat(1 - previousTransparency)
                     )
+                    // Only the pieces added in *this* step pulse "add these now".
+                    if index == step {
+                        BrickStepStyler.startPulsing(node)
+                    } else {
+                        BrickStepStyler.stopPulsing(node)
+                    }
                 }
             }
         }
@@ -431,6 +461,14 @@ struct BuildStepViewer: View {
         currentStep = steps.count  // the completed-model page
         animateReveal()
         HapticManager.impact(.medium)
+    }
+
+    /// Re-run the current step's fly-in without changing the step, so the user
+    /// can watch the "add these now" pieces drop into place again.
+    private func replayCurrentStep() {
+        guard canReplay else { return }
+        animateReveal()
+        HapticManager.impact(.light)
     }
 
     private func animateReveal() {

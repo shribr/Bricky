@@ -23,6 +23,17 @@ enum BrickStepStyler {
     /// skip them when desaturating the real brick body.
     static let outlineNodeName = "brick_outline_shell"
 
+    /// Stable key for the repeating "add these now" glow so it can be started on
+    /// the current step's pieces and cleanly removed when they stop being current.
+    static let pulseActionKey = "brick_current_pulse"
+
+    /// One full breathe (dim → bright → dim) of the current-step pulse.
+    private static let pulsePeriod: TimeInterval = 1.1
+    /// The static current-step self-glow (matches `.current` in `styleBody`).
+    private static let pulseBaseGlow: CGFloat = 0.12
+    /// The brightest point of the pulse.
+    private static let pulsePeakGlow: CGFloat = 0.55
+
     /// Box edge wireframes sit a hair proud of the body (mm) so lines avoid
     /// z-fighting without a visible gap. Small enough that adjacent bricks'
     /// shared edges read as a single line, not a doubled one.
@@ -141,6 +152,46 @@ enum BrickStepStyler {
             material.diffuse.contents = edge
             // Current-step edges glow a touch so the active pieces read.
             material.emission.contents = emphasis == .current ? scaled(edge, by: 0.6) : UIColor.black
+        }
+    }
+
+    // MARK: - Current-step pulse
+
+    /// Gently pulse the body glow of a current-step piece so "add these now"
+    /// is unmistakable. Applied per node with a stable key so it can be removed
+    /// the moment the piece stops being current. Idempotent: re-styling (e.g. the
+    /// see-through slider) won't restart or double up the animation.
+    static func startPulsing(_ root: SCNNode) {
+        guard root.action(forKey: pulseActionKey) == nil else { return }
+        let period = pulsePeriod
+        let base = pulseBaseGlow
+        let peak = pulsePeakGlow
+        let breathe = SCNAction.customAction(duration: period) { node, elapsed in
+            // 0 → 1 → 0 across the period (cosine ease, no seam at the loop).
+            let phase = (1 - cos(2 * .pi * Double(elapsed) / period)) / 2
+            let glow = base + (peak - base) * CGFloat(phase)
+            applyGlow(glow, to: node)
+        }
+        root.runAction(SCNAction.repeatForever(breathe), forKey: pulseActionKey)
+    }
+
+    /// Stop the current-step pulse. Only removes the repeating action; the caller
+    /// re-applies the correct emphasis (which resets emission), so this never
+    /// leaves a stale glow behind.
+    static func stopPulsing(_ root: SCNNode) {
+        guard root.action(forKey: pulseActionKey) != nil else { return }
+        root.removeAction(forKey: pulseActionKey)
+    }
+
+    /// Set the body-material emission of `root`'s subtree to a scaled self-glow,
+    /// skipping the edge-outline shells. Drives each frame of the pulse.
+    private static func applyGlow(_ factor: CGFloat, to root: SCNNode) {
+        root.enumerateHierarchy { node, _ in
+            guard node.name != outlineNodeName, let geometry = node.geometry else { return }
+            for material in geometry.materials {
+                guard let base = baseColor(of: material) else { continue }
+                material.emission.contents = scaled(base, by: factor)
+            }
         }
     }
 

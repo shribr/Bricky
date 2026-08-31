@@ -10,7 +10,9 @@ import Foundation
 /// `INSTRUCTIONS_GENERATOR.md`).
 enum SetForgeInstructions {
 
-    static let maxBricksPerStep = 40
+    /// Max bricks introduced in a single step. Kept modest so forged/scanned
+    /// sets read as followable instructions, not a wall of pieces per layer.
+    static let maxBricksPerStep = 20
 
     /// The bricks placed in each step, in the same order as `steps(for:)`.
     /// Element `i` holds exactly the bricks introduced by `steps(for:)[i]`, so
