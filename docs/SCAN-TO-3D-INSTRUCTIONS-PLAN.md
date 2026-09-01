@@ -121,7 +121,48 @@ photogrammetry UI is the new piece**.
 3. **Item 2** (Object Capture UI) — device-only; build + verify on hardware.
 4. **Item 4** (quality pass).
 
+## 8. Cloud AI providers & deployment
+
+The "Cloud AI" reconstruction mode (Settings → 3D Reconstruction) routes the
+scan to a hosted mesh provider via `services/recognition-proxy`. Two ways to run
+it:
+
+| Provider | `MESH_PROVIDER` | Per-scan cost | Setup |
+|---|---|---|---|
+| Tripo (default) | `tripo` | paid (global monthly cap) | set `TRIPO_API_KEY` |
+| Self-hosted TripoSR/InstantMesh | `selfhosted` | ~$0 (your GPU/Replicate) | set `SELFHOSTED_MESH_URL` (+ optional `SELFHOSTED_MESH_KEY`) |
+
+**Who can use it**
+- **Developer override** (7-tap) → dev-bypass token; honored only where
+  `DEV_BYPASS_TOKEN` is set (the developer's own deployment).
+- **Real Bricky Pro** → the app sends the Apple-signed StoreKit JWS; the proxy
+  validates it (`verifyEntitlement`) and accepts it for the mesh endpoints,
+  behind the same global spend cap. GPT-4o recognition/set-ID stay
+  developer-only.
+
+**Self-hosted endpoint contract** — POST JSON `{ mode: 'text'|'image'|'multiview',
+prompt?, imageBase64?, imagesBase64?, mime?, size }` → `{ modelUrl, format? }`
+(defaults to `usdz`). Deploy any TripoSR/InstantMesh-compatible service
+(MIT/Apache) on Replicate or a GPU host and point `SELFHOSTED_MESH_URL` at it.
+
+**Function app settings**
+```
+MESH_PROVIDER=selfhosted            # or "tripo"
+SELFHOSTED_MESH_URL=https://…       # required for selfhosted
+SELFHOSTED_MESH_KEY=…               # optional bearer
+APPSTORE_BUNDLE_ID=com.bricky.app   # default
+APPSTORE_ENVIRONMENT=Production     # default
+APPSTORE_VERIFY_CHAIN=true          # verify Apple signature chain in prod
+```
+
+Verify the Pro path in the StoreKit sandbox/TestFlight — a real receipt can't be
+exercised in the simulator or unit tests.
+
 ## Changelog
+- 2026-09-01 · Added §8 Cloud AI providers & deployment: Pro users can opt into
+  Cloud AI (StoreKit JWS validated server-side, behind the spend cap) and a
+  `selfhosted` mesh provider for ~$0-per-scan; documented env vars + endpoint
+  contract.
 - 2026-08-30 · Initial standalone plan. Confirmed the mesh→voxel→set→assembly→viewer
   chain and `asAssemblyModel()` bridge already exist; scoped remaining work to
   viewer-wiring (Item 1), entry point (Item 3), device-only Object Capture UI

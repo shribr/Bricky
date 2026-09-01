@@ -30,6 +30,7 @@ final class ForgeVisionViewModel: ObservableObject {
     private let isProProvider: @MainActor () -> Bool
     private let meshService: SetForgeMeshService?
     private let entitlementProvider: () async -> String?
+    private let reconstructionMode: @MainActor () -> ScanSettings.MeshReconstructionMode
     private var task: Task<Void, Never>?
 
     init(
@@ -37,11 +38,15 @@ final class ForgeVisionViewModel: ObservableObject {
         meshService: SetForgeMeshService? = AzureTripoMeshClient(),
         entitlementProvider: @escaping () async -> String? = {
             await SubscriptionManager.shared.recognitionEntitlementToken()
+        },
+        reconstructionMode: @escaping @MainActor () -> ScanSettings.MeshReconstructionMode = {
+            ScanSettings.shared.meshReconstructionMode
         }
     ) {
         self.isProProvider = isProProvider
         self.meshService = meshService
         self.entitlementProvider = entitlementProvider
+        self.reconstructionMode = reconstructionMode
     }
 
     // MARK: - Derived state
@@ -138,11 +143,12 @@ final class ForgeVisionViewModel: ObservableObject {
     private func run(image: UIImage, size: VoxelModel.Size, subject: String) async {
         let token = await entitlementProvider()
         let name = subject.isEmpty ? "My Scan" : subject
+        let useCloud = reconstructionMode() == .cloudAI
 
-        // Tier 1 — hosted image→3D (developer-only). On any failure, fall back
+        // Tier 1 — hosted image→3D (Cloud AI mode). On any failure, fall back
         // to the on-device photo relief so generation never hard-fails.
         var meshModel: VoxelModel?
-        if let meshService, let token, let jpeg = image.jpegData(compressionQuality: 0.85) {
+        if useCloud, let meshService, let token, let jpeg = image.jpegData(compressionQuality: 0.85) {
             do {
                 let url = try await meshService.generateMesh(
                     imageData: jpeg, mime: "image/jpeg", size: size, entitlementToken: token
@@ -214,11 +220,18 @@ final class ForgeVisionViewModel: ObservableObject {
         let token = await entitlementProvider()
         let name = subject.isEmpty ? "My 3D Scan" : subject
 
-        // Tier 1 — hosted multiview → genuine 3D model.
+        // Remove each frame's background up-front so BOTH the 3D reconstruction
+        // and the saved previews use only the subject, not the surrounding scene.
+        let subjects: [UIImage] = await Task.detached(priority: .userInitiated) {
+            images.map { PhotoVoxelizer.isolatedSubjectImage($0) ?? $0 }
+        }.value
+        if Task.isCancelled { return }
+
+        // Tier 1 — hosted multiview → genuine 3D model (Cloud AI mode).
         var meshModel: VoxelModel?
-        if let meshService, let token {
+        if reconstructionMode() == .cloudAI, let meshService, let token {
             // Cloud multiview wants ~4 evenly-spaced angles (front/left/back/right).
-            let cloudViews = VideoSweepCapture.selectViews(from: images, count: 4)
+            let cloudViews = VideoSweepCapture.selectViews(from: subjects, count: 4)
             let jpegs = cloudViews.compactMap { $0.jpegData(compressionQuality: 0.85) }
             if !jpegs.isEmpty {
                 do {
@@ -241,7 +254,7 @@ final class ForgeVisionViewModel: ObservableObject {
         // genuine 3D mesh. Uses ALL the angles (not just the first photo), so a
         // walk-around / multi-angle scan reconstructs real geometry.
         if meshModel == nil, PhotogrammetryReconstructor.isSupported {
-            if let url = await PhotogrammetryReconstructor.reconstruct(images: images) {
+            if let url = await PhotogrammetryReconstructor.reconstruct(images: subjects) {
                 meshModel = try? await Task.detached(priority: .userInitiated) {
                     try MeshVoxelizer.voxelize(
                         assetURL: url, size: size, subject: subject.isEmpty ? "Scan" : subject
@@ -274,8 +287,8 @@ final class ForgeVisionViewModel: ObservableObject {
             if Task.isCancelled { return }
             result = set
             phase = .completed
-            // Save a few evenly-spaced angles as the scan's source thumbnails.
-            GeneratedSetStore.shared.save(set, sourceImages: VideoSweepCapture.selectViews(from: images, count: 4))
+            // Save the background-removed subject angles as the scan's previews.
+            GeneratedSetStore.shared.save(set, sourceImages: VideoSweepCapture.selectViews(from: subjects, count: 4))
         } catch {
             if Task.isCancelled { return }
             phase = .failed(error.localizedDescription)

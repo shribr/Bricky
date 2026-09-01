@@ -4,7 +4,7 @@ import {
   type HttpResponseInit,
   type InvocationContext,
 } from '@azure/functions';
-import { verifyDevBypassToken } from '../entitlement.js';
+import { verifyDevBypassToken, verifyEntitlement } from '../entitlement.js';
 import { createMeshProvider } from '../meshProvider.js';
 import { TableQuotaStore, type QuotaStore } from '../quota.js';
 import {
@@ -94,11 +94,14 @@ export async function forgeMeshFromText(
       ? (body.size as ForgeSize)
       : 'medium';
 
-    // Entitlement (developer-only).
-    const entitlement = verifyDevBypassToken(body.entitlementToken, env('DEV_BYPASS_TOKEN'));
-    if (!entitlement) {
-      throw new ProxyError(403, 'not_entitled', 'Cloud model generation is not available.');
-    }
+    // Entitlement: real Bricky Pro (StoreKit JWS) or developer bypass.
+    const entitlement =
+      verifyDevBypassToken(body.entitlementToken, env('DEV_BYPASS_TOKEN')) ??
+      verifyEntitlement(body.entitlementToken, {
+        bundleId: env('APPSTORE_BUNDLE_ID') ?? 'com.bricky.app',
+        environment: env('APPSTORE_ENVIRONMENT') ?? 'Production',
+        verifyChain: env('APPSTORE_VERIFY_CHAIN') === 'true',
+      });
 
     // Global spend guard FIRST (cheap fail-fast before per-user).
     try {

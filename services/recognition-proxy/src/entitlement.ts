@@ -25,6 +25,9 @@ import { ProxyError } from './types.js';
  */
 
 const PRO_PRODUCT_IDS = new Set([
+  // Shipping iOS product: a single non-consumable "Bricky Pro" unlock.
+  'com.bricky.app.pro',
+  // Reserved for a future subscription model (accepted for forward-compat).
   'com.bricky.app.pro.monthly',
   'com.bricky.app.pro.annual',
 ]);

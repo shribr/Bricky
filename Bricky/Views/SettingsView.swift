@@ -181,6 +181,22 @@ struct SettingsView: View {
 
                 Divider()
 
+                // 3D Reconstruction (Set Forge / Scan to Set)
+                Text("3D Reconstruction")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Picker("Method", selection: $scanSettings.meshReconstructionMode) {
+                    ForEach(ScanSettings.MeshReconstructionMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text(scanSettings.meshReconstructionMode.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+
                 // Scan Locations (geolocation)
                 Text("Scan Locations")
                     .font(.subheadline.weight(.semibold))

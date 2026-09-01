@@ -26,6 +26,14 @@ test('accepts an active Pro entitlement and returns userKey', () => {
   assert.equal(result.productId, 'com.bricky.app.pro.monthly');
 });
 
+test('accepts the shipping non-consumable Pro product', () => {
+  const result = verifyEntitlement(
+    token({ ...validPayload, productId: 'com.bricky.app.pro' }),
+    opts,
+  );
+  assert.equal(result.productId, 'com.bricky.app.pro');
+});
+
 test('rejects a missing token', () => {
   assert.throws(() => verifyEntitlement(undefined, opts), (e: unknown) => {
     return e instanceof ProxyError && e.status === 401 && e.code === 'not_entitled';

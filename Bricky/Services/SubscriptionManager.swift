@@ -184,14 +184,34 @@ final class SubscriptionManager: ObservableObject {
         return "\(AppConfig.appName) Pro"
     }
 
-    /// Token the AI recognition proxy verifies before spending an Azure call.
-    /// Cloud AI is developer-only, so the only valid token is the developer-
-    /// bypass token, returned solely when the in-app developer override is on.
-    /// The proxy honors it only when its `DEV_BYPASS_TOKEN` is configured (which
-    /// is left set on the developer's own deployment and unset everywhere else).
+    /// Token the cloud mesh/recognition proxy verifies before spending a paid
+    /// call. Two valid forms, in priority order:
+    ///
+    /// 1. **Developer override** — the shared dev-bypass token, returned only
+    ///    when the in-app developer override (7-tap trick) is on. This produces
+    ///    no StoreKit receipt and is honored only where `DEV_BYPASS_TOKEN` is
+    ///    configured (the developer's own deployment). It unlocks every cloud
+    ///    capability, including the developer-only GPT-4o recognition/set-ID.
+    /// 2. **Real Bricky Pro** — the Apple-signed StoreKit JWS for the Pro
+    ///    entitlement. The proxy validates it server-side and accepts it for the
+    ///    Cloud AI **mesh** endpoints (opt-in via Settings → 3D Reconstruction →
+    ///    Cloud AI), behind the global monthly spend cap. GPT-4o recognition and
+    ///    set-ID remain developer-only regardless of this token.
+    ///
+    /// Returns `nil` for free users (or when no Pro entitlement is present), so
+    /// callers fall back to the on-device pipeline.
     func recognitionEntitlementToken() async -> String? {
-        guard developerProOverride else { return nil }
-        return AppConfig.aiRecognitionDevBypassToken
+        if developerProOverride {
+            return AppConfig.aiRecognitionDevBypassToken
+        }
+        // Real Pro purchase: hand the proxy the Apple-signed JWS for the Pro
+        // entitlement so it can verify authenticity before spending.
+        for await result in Transaction.currentEntitlements {
+            guard let transaction = try? checkVerified(result),
+                  Self.productIDs.contains(transaction.productID) else { continue }
+            return result.jwsRepresentation
+        }
+        return nil
     }
 
     // MARK: - StoreKit 2 Purchase

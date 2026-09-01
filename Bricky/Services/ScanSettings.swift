@@ -97,6 +97,30 @@ final class ScanSettings: ObservableObject {
         }
     }
 
+    // MARK: - 3D Reconstruction
+
+    /// How Set Forge turns a scan into a 3D model.
+    enum MeshReconstructionMode: String, CaseIterable, Identifiable {
+        case onDevice = "On-Device"
+        case cloudAI = "Cloud AI"
+
+        var id: String { rawValue }
+
+        var description: String {
+            switch self {
+            case .onDevice: return "Free and private — reconstructs on your device (blockier for organic shapes)."
+            case .cloudAI: return "Higher-fidelity 3D from your photos via a cloud model (Pro; uses the network)."
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .onDevice: return "iphone"
+            case .cloudAI: return "cloud"
+            }
+        }
+    }
+
     /// Scan workflow mode: regular (auto-capture) or detailed (guided segments)
     @Published var scanMode: ScanMode {
         didSet { UserDefaults.standard.set(scanMode.rawValue, forKey: UserDefaultsKey.ScanSettings.scanMode) }
@@ -105,6 +129,11 @@ final class ScanSettings: ObservableObject {
     /// Spatial tracking approach: 2D screen-space (current) or AR world tracking (future)
     @Published var trackingMode: TrackingMode {
         didSet { UserDefaults.standard.set(trackingMode.rawValue, forKey: UserDefaultsKey.ScanSettings.trackingMode) }
+    }
+
+    /// How Set Forge reconstructs a 3D model from a scan (on-device vs Cloud AI).
+    @Published var meshReconstructionMode: MeshReconstructionMode {
+        didSet { UserDefaults.standard.set(meshReconstructionMode.rawValue, forKey: UserDefaultsKey.ScanSettings.meshReconstructionMode) }
     }
 
     /// Scanner operating policy: strictly local, offline-first with cached
@@ -263,6 +292,8 @@ final class ScanSettings: ObservableObject {
         }
         let trackStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.trackingMode) ?? TrackingMode.screenSpace.rawValue
         self.trackingMode = TrackingMode(rawValue: trackStr) ?? .screenSpace
+        let meshStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.meshReconstructionMode) ?? MeshReconstructionMode.onDevice.rawValue
+        self.meshReconstructionMode = MeshReconstructionMode(rawValue: meshStr) ?? .onDevice
         self.locationSnapshotsEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled)
         self.useCompositeMode = defaults.bool(forKey: UserDefaultsKey.ScanSettings.useCompositeMode)
         self.preRenderOnComplete = defaults.bool(forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete)

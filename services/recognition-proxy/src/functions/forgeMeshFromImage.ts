@@ -4,7 +4,7 @@ import {
   type HttpResponseInit,
   type InvocationContext,
 } from '@azure/functions';
-import { verifyDevBypassToken } from '../entitlement.js';
+import { verifyDevBypassToken, verifyEntitlement } from '../entitlement.js';
 import { createMeshProvider } from '../meshProvider.js';
 import { TableQuotaStore, type QuotaStore } from '../quota.js';
 import {
@@ -87,10 +87,13 @@ export async function forgeMeshFromImage(
       ? (body.size as ForgeSize)
       : 'medium';
 
-    const entitlement = verifyDevBypassToken(body.entitlementToken, env('DEV_BYPASS_TOKEN'));
-    if (!entitlement) {
-      throw new ProxyError(403, 'not_entitled', 'Cloud model generation is not available.');
-    }
+    const entitlement =
+      verifyDevBypassToken(body.entitlementToken, env('DEV_BYPASS_TOKEN')) ??
+      verifyEntitlement(body.entitlementToken, {
+        bundleId: env('APPSTORE_BUNDLE_ID') ?? 'com.bricky.app',
+        environment: env('APPSTORE_ENVIRONMENT') ?? 'Production',
+        verifyChain: env('APPSTORE_VERIFY_CHAIN') === 'true',
+      });
 
     // Global spend guard first.
     try {

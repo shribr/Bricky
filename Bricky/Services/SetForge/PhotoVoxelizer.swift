@@ -173,11 +173,27 @@ enum PhotoVoxelizer {
     /// 4. Fallback → a centre crop, so edge/background clutter never dominates
     ///    even when Vision finds no explicit subject (also keeps the feature
     ///    robust where Vision is unavailable).
-    private static func isolatedSubject(_ cg: CGImage) -> CGImage {
+    static func isolatedSubject(_ cg: CGImage) -> CGImage {
         if let person = personSegmentedSubject(cg) { return person }
         if let foreground = foregroundMasked(cg) { return foreground }
         if let salient = saliencyCropped(cg) { return salient }
         return centerCropped(cg)
+    }
+
+    /// The subject cut out of `image` and composited onto a solid `background`
+    /// (opaque, so it's JPEG-safe), cropped to the subject. Shared by the
+    /// multi-angle → photogrammetry path so the 3D reconstruction and previews
+    /// use only the subject, not the surrounding scene. `nil` if unreadable.
+    static func isolatedSubjectImage(_ image: UIImage, onBackground background: UIColor = .white) -> UIImage? {
+        guard let cg = image.normalizedOrientation().cgImage else { return nil }
+        let subject = isolatedSubject(cg)
+        let size = CGSize(width: subject.width, height: subject.height)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            background.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            UIImage(cgImage: subject).draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 
     /// Keep the central `fraction` of each axis — a safe fallback biased to where

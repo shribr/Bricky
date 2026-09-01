@@ -269,4 +269,26 @@ final class SubscriptionManagerAIQuotaTests: XCTestCase {
             AppConfig.proMonthlyAIRecognitionLimit
         )
     }
+
+    /// The developer override always yields the shared dev-bypass token,
+    /// regardless of its configured value.
+    func testEntitlementTokenIsDevBypassWhenOverrideOn() async {
+        let mgr = SubscriptionManager.shared
+        mgr.developerProOverride = true
+        let token = await mgr.recognitionEntitlementToken()
+        XCTAssertEqual(token, AppConfig.aiRecognitionDevBypassToken)
+    }
+
+    /// Free, non-developer users must never receive a cloud token, so callers
+    /// fall back to the on-device pipeline.
+    func testEntitlementTokenIsNilForFreeUser() async {
+        let mgr = SubscriptionManager.shared
+        mgr.developerProOverride = false
+        // Only assert the free-user contract when StoreKit granted no Pro
+        // entitlement in this test environment.
+        if !mgr.isPro {
+            let token = await mgr.recognitionEntitlementToken()
+            XCTAssertNil(token, "Free, non-developer users must not get a cloud token.")
+        }
+    }
 }

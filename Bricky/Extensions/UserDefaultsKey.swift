@@ -52,6 +52,7 @@ enum UserDefaultsKey {
         static let identificationMode = "ScanSettings.identificationMode"
         static let locationSnapshotsEnabled = "ScanSettings.locationSnapshotsEnabled"
         static let meshColorRamp = "ScanSettings.meshColorRamp"
+        static let meshReconstructionMode = "ScanSettings.meshReconstructionMode"
         static let meshResolution = "ScanSettings.meshResolution"
         static let preRenderOnComplete = "ScanSettings.preRenderOnComplete"
         static let scanMode = "ScanSettings.scanMode"

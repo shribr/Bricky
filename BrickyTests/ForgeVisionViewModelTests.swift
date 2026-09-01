@@ -12,6 +12,16 @@ final class ForgeVisionViewModelTests: XCTestCase {
         func generateMesh(images: [Data], mime: String, size: VoxelModel.Size, entitlementToken: String) async throws -> URL { url }
     }
 
+    /// Records whether the cloud mesh service was invoked, to prove mode gating.
+    private final class SpyMeshService: SetForgeMeshService, @unchecked Sendable {
+        let url: URL
+        private(set) var imageCalled = false
+        init(url: URL) { self.url = url }
+        func generateMesh(prompt: String, size: VoxelModel.Size, entitlementToken: String) async throws -> URL { url }
+        func generateMesh(imageData: Data, mime: String, size: VoxelModel.Size, entitlementToken: String) async throws -> URL { imageCalled = true; return url }
+        func generateMesh(images: [Data], mime: String, size: VoxelModel.Size, entitlementToken: String) async throws -> URL { imageCalled = true; return url }
+    }
+
     private func solidImage(_ color: UIColor = .systemRed, size: CGSize = CGSize(width: 120, height: 120)) -> UIImage {
         UIGraphicsImageRenderer(size: size).image { ctx in
             color.setFill(); ctx.fill(CGRect(origin: .zero, size: size))
@@ -63,7 +73,8 @@ final class ForgeVisionViewModelTests: XCTestCase {
         let vm = ForgeVisionViewModel(
             isProProvider: { true },
             meshService: StubMeshService(url: URL(fileURLWithPath: "/nonexistent/model.usdz")),
-            entitlementProvider: { "tok" }
+            entitlementProvider: { "tok" },
+            reconstructionMode: { .cloudAI }
         )
         vm.sourceImage = solidImage(.systemBlue)
         vm.generate()
@@ -75,11 +86,38 @@ final class ForgeVisionViewModelTests: XCTestCase {
         let vm = ForgeVisionViewModel(
             isProProvider: { true },
             meshService: StubMeshService(url: URL(fileURLWithPath: "/nonexistent/model.usdz")),
-            entitlementProvider: { "tok" }
+            entitlementProvider: { "tok" },
+            reconstructionMode: { .cloudAI }
         )
         vm.generateFromImages([solidImage(.systemGreen), solidImage(.systemRed)])
         await waitForResult(vm)
         XCTAssertNotNil(vm.result, "Multiview failure should fall back to a single-photo relief")
+    }
+
+    func testOnDeviceModeSkipsCloudMeshService() async {
+        let spy = SpyMeshService(url: URL(fileURLWithPath: "/nonexistent/model.usdz"))
+        let vm = ForgeVisionViewModel(
+            isProProvider: { true }, meshService: spy,
+            entitlementProvider: { "tok" }, reconstructionMode: { .onDevice }
+        )
+        vm.sourceImage = solidImage()
+        vm.generate()
+        await waitForResult(vm)
+        XCTAssertNotNil(vm.result)
+        XCTAssertFalse(spy.imageCalled, "On-Device mode must not call the cloud mesh service")
+    }
+
+    func testCloudModeAttemptsMeshService() async {
+        let spy = SpyMeshService(url: URL(fileURLWithPath: "/nonexistent/model.usdz"))
+        let vm = ForgeVisionViewModel(
+            isProProvider: { true }, meshService: spy,
+            entitlementProvider: { "tok" }, reconstructionMode: { .cloudAI }
+        )
+        vm.sourceImage = solidImage()
+        vm.generate()
+        await waitForResult(vm)
+        XCTAssertTrue(spy.imageCalled, "Cloud AI mode must attempt the cloud mesh service")
+        XCTAssertNotNil(vm.result, "Falls back to on-device relief when the cloud mesh is unreadable")
     }
 
     func testMultiviewBlockedForNonPro() async {
