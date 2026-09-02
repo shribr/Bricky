@@ -58,6 +58,7 @@
 		21B2DE9D9C7FCF1E0BB32127 /* MosaicGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 815403900D6C26B4CBBAD13B /* MosaicGeneratorView.swift */; };
 		22184BDF590C6B08A3FBD539 /* SprintJCommunityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC6B3E9E9AAC132713F85AB /* SprintJCommunityTests.swift */; };
 		262C845E1BBE97DCDFBABB2C /* BrickClassificationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAB64811A197ABCF1D3C1F4 /* BrickClassificationPipeline.swift */; };
+		26ECD23D1D4979068E44B813 /* IlluminationNormalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16519C21D7546A3142B2477F /* IlluminationNormalizerTests.swift */; };
 		277EA536808369FADD7468E6 /* ScanAutoStopMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A363F7355521EB78CF0886A /* ScanAutoStopMonitor.swift */; };
 		278B21965B3DB12DC774A0B1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83531232B8BF9A9B795E914 /* OnboardingView.swift */; };
 		27D029C163B8A4A8DA649216 /* DailyChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81040741125F65C2B8ED671E /* DailyChallenge.swift */; };
@@ -171,6 +172,7 @@
 		6AD109C830B95C194224A87E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */; };
 		6AF975212B3A6FB9A6D5F334 /* MosaicScanHistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1072C8F306EA42B3734BAE9D /* MosaicScanHistoryStoreTests.swift */; };
 		6B7F5CE0D1BC6B10FB4C9134 /* CloudKitCommunityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */; };
+		6C42AC4E32292E5855B1E9E2 /* IlluminationNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEEA795FC068A7EE7D6DAC9 /* IlluminationNormalizer.swift */; };
 		6D5574E04B4A3B3A70F1B26E /* ImageRecognitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B12E3BB7AA22D22B7F83029 /* ImageRecognitionView.swift */; };
 		6DA47EE301A62B6F15A24D38 /* clip_embeddings.bin in Resources */ = {isa = PBXBuildFile; fileRef = 5FCCEE648179E1E149AC6C1D /* clip_embeddings.bin */; };
 		6E876296716A1ECA382DF400 /* ScannerGroundTruthHarnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E22D971F163092F0000B3CD /* ScannerGroundTruthHarnessTests.swift */; };
@@ -459,6 +461,7 @@
 		0B12E3BB7AA22D22B7F83029 /* ImageRecognitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionView.swift; sourceTree = "<group>"; };
 		0C9598800607FE66FCA7EB02 /* MinifigureScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureScanHistoryStore.swift; sourceTree = "<group>"; };
 		0CBB702DF4BD9264251C72D1 /* LDrawTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDrawTests.swift; sourceTree = "<group>"; };
+		0CEEA795FC068A7EE7D6DAC9 /* IlluminationNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IlluminationNormalizer.swift; sourceTree = "<group>"; };
 		0F02C2039E4A6BBECE32EAF6 /* FaceEmbeddingIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceEmbeddingIndex.swift; sourceTree = "<group>"; };
 		0FF75A56D8CF95C49D75EF7E /* BrickModelSceneView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickModelSceneView.swift; sourceTree = "<group>"; };
 		1072C8F306EA42B3734BAE9D /* MosaicScanHistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicScanHistoryStoreTests.swift; sourceTree = "<group>"; };
@@ -470,6 +473,7 @@
 		14391CDC7FC7A578CD5DD6EE /* lego_minifigure_forestman_archer_ cas240a_fig-006868.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "lego_minifigure_forestman_archer_ cas240a_fig-006868.jpeg"; sourceTree = "<group>"; };
 		14B4C65AFC5FAEA0B1A1E88F /* MosaicLDRExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicLDRExporter.swift; sourceTree = "<group>"; };
 		153709824478E08403412691 /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
+		16519C21D7546A3142B2477F /* IlluminationNormalizerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IlluminationNormalizerTests.swift; sourceTree = "<group>"; };
 		16CE0D8C133FE211E6CF4AC8 /* MosaicColorGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicColorGrid.swift; sourceTree = "<group>"; };
 		170BD992A15C9138EB19F154 /* ForgeVisionViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ForgeVisionViewModelTests.swift; sourceTree = "<group>"; };
 		1715DC8C71B0E0578F5F5AC1 /* MinifigureCollectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCollectionStoreTests.swift; sourceTree = "<group>"; };
@@ -1051,6 +1055,7 @@
 				D520B4523F2E2263059757BD /* AssemblySceneBuilder.swift */,
 				88FB9723891E4E2B3EEFE938 /* BrickStepStyler.swift */,
 				7640A34EC17AB16B071B2C17 /* BrickInstanceTracker.swift */,
+				0CEEA795FC068A7EE7D6DAC9 /* IlluminationNormalizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1306,6 +1311,7 @@
 				98BC37A0FDB2138E6D8750B1 /* SetForgeInstructionsTests.swift */,
 				58AA074A0CF0E35491A694C4 /* PhotoVoxelizerSubjectTests.swift */,
 				1E344E4B34CB361A6BC216A3 /* BrickInstanceTrackerTests.swift */,
+				16519C21D7546A3142B2477F /* IlluminationNormalizerTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1896,6 +1902,7 @@
 				E872FD6135A9A2ECF0EBD1A6 /* PhotogrammetryReconstructor.swift in Sources */,
 				F8648700F8E55B2320ED5399 /* BrickInstanceTracker.swift in Sources */,
 				D1BCB767DCEAA16A7458948F /* TrackedBrickOverlayView.swift in Sources */,
+				6C42AC4E32292E5855B1E9E2 /* IlluminationNormalizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1989,6 +1996,7 @@
 				7F1AC4E6A74BEA472F9C266C /* SetForgeInstructionsTests.swift in Sources */,
 				94FCA88EDE977BEDA0DE8F97 /* PhotoVoxelizerSubjectTests.swift in Sources */,
 				5C19DC300BB697779548D406 /* BrickInstanceTrackerTests.swift in Sources */,
+				26ECD23D1D4979068E44B813 /* IlluminationNormalizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -46,6 +46,10 @@ final class BrickClassificationPipeline {
             let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
             var allDetections: [BrickDetection] = []
 
+            // Estimate a global gray-world illuminant once, then apply it to
+            // every crop so a colored light cast doesn't shift classified colors.
+            let gains = IlluminationNormalizer.estimateGrayWorldGains(from: cgImage)
+
             // Stage 1: Object proposals via rectangle + contour detection
             let (proposals, contourPaths) = self.generateObjectProposals(cgImage: cgImage)
 
@@ -54,7 +58,8 @@ final class BrickClassificationPipeline {
                 if let detection = self.classifyRegion(
                     cgImage: cgImage,
                     boundingBox: proposal,
-                    imageSize: imageSize
+                    imageSize: imageSize,
+                    gains: gains
                 ) {
                     allDetections.append(detection)
                 }
@@ -62,7 +67,7 @@ final class BrickClassificationPipeline {
 
             // Stage 3: If few detections, use saliency + grid fallback
             if allDetections.count < 15 {
-                let gridDetections = self.gridBasedDetection(cgImage: cgImage, imageSize: imageSize)
+                let gridDetections = self.gridBasedDetection(cgImage: cgImage, imageSize: imageSize, gains: gains)
                 allDetections.append(contentsOf: gridDetections)
             }
 
@@ -84,6 +89,9 @@ final class BrickClassificationPipeline {
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
             return []
         }
+
+        // Per-frame gray-world illuminant estimate, applied to every crop below.
+        let gains = IlluminationNormalizer.estimateGrayWorldGains(from: cgImage)
 
         // Lightweight: rectangles + contours for live preview
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
@@ -122,7 +130,8 @@ final class BrickClassificationPipeline {
             if let detection = classifyRegion(
                 cgImage: cgImage,
                 boundingBox: box,
-                imageSize: imageSize
+                imageSize: imageSize,
+                gains: gains
             ) {
                 detections.append(detection)
             }
@@ -304,7 +313,7 @@ final class BrickClassificationPipeline {
 
     // MARK: - Stage 2: Region Classification
 
-    private func classifyRegion(cgImage: CGImage, boundingBox: CGRect, imageSize: CGSize) -> BrickDetection? {
+    private func classifyRegion(cgImage: CGImage, boundingBox: CGRect, imageSize: CGSize, gains: WhiteBalanceGains = .identity) -> BrickDetection? {
         // Extract the region from the image
         let pixelRect = CGRect(
             x: boundingBox.origin.x * imageSize.width,
@@ -318,7 +327,7 @@ final class BrickClassificationPipeline {
               let cropped = cgImage.cropping(to: pixelRect) else { return nil }
 
         // Color analysis
-        let (dominantColor, histogram) = analyzeColor(cropped)
+        let (dominantColor, histogram) = analyzeColor(cropped, gains: gains)
 
         // Skip background-like regions (only filter very extreme values)
         let brightness = colorBrightness(dominantColor)
@@ -566,7 +575,7 @@ final class BrickClassificationPipeline {
 
     // MARK: - Color Analysis
 
-    private func analyzeColor(_ cgImage: CGImage) -> (LegoColor, [LegoColor: Float]) {
+    private func analyzeColor(_ cgImage: CGImage, gains: WhiteBalanceGains = .identity) -> (LegoColor, [LegoColor: Float]) {
         // Sample multiple points for a histogram
         let sampleSize = 8
         let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -588,9 +597,10 @@ final class BrickClassificationPipeline {
         for y in 0..<sampleSize {
             for x in 0..<sampleSize {
                 let offset = (y * sampleSize + x) * 4
-                let r = CGFloat(pixels[offset]) / 255.0
-                let g = CGFloat(pixels[offset + 1]) / 255.0
-                let b = CGFloat(pixels[offset + 2]) / 255.0
+                let r0 = CGFloat(pixels[offset]) / 255.0
+                let g0 = CGFloat(pixels[offset + 1]) / 255.0
+                let b0 = CGFloat(pixels[offset + 2]) / 255.0
+                let (r, g, b) = IlluminationNormalizer.apply(gains, r: r0, g: g0, b: b0)
 
                 let color = classifyColorHSL(r: r, g: g, b: b)
                 colorCounts[color, default: 0] += 1
@@ -695,7 +705,7 @@ final class BrickClassificationPipeline {
 
     // MARK: - Grid Fallback
 
-    private func gridBasedDetection(cgImage: CGImage, imageSize: CGSize) -> [BrickDetection] {
+    private func gridBasedDetection(cgImage: CGImage, imageSize: CGSize, gains: WhiteBalanceGains = .identity) -> [BrickDetection] {
         var detections: [BrickDetection] = []
         let gridSize = 12
 
@@ -720,7 +730,7 @@ final class BrickClassificationPipeline {
                 guard !pixelRect.isEmpty,
                       let cropped = cgImage.cropping(to: pixelRect) else { continue }
 
-                let (color, _) = analyzeColor(cropped)
+                let (color, _) = analyzeColor(cropped, gains: gains)
                 let brightness = colorBrightness(color)
 
                 // Skip background cells (only pure white/very bright backgrounds)
