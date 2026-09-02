@@ -85,6 +85,7 @@ export type ErrorCode =
   | 'not_entitled'
   | 'quota_exceeded'
   | 'upstream_error'
+  | 'upstream_timeout'
   | 'not_configured'
   | 'not_found'
   | 'rate_limited';

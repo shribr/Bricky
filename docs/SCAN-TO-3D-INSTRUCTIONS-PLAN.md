@@ -130,7 +130,14 @@ it:
 | Provider | `MESH_PROVIDER` | Per-scan cost | Setup |
 |---|---|---|---|
 | Tripo (default) | `tripo` | paid (global monthly cap) | set `TRIPO_API_KEY` |
+| Replicate (open-source TripoSR/InstantMesh) | `replicate` | pay-per-use, no GPU to host | set `REPLICATE_API_TOKEN` + `REPLICATE_MODEL_VERSION` |
 | Self-hosted TripoSR/InstantMesh | `selfhosted` | ~$0 (your GPU/Replicate) | set `SELFHOSTED_MESH_URL` (+ optional `SELFHOSTED_MESH_KEY`) |
+
+`replicate` is the lowest-effort low-cost option: no service to deploy, just a
+token and the version hash of an image→3D model that outputs a Model I/O-readable
+mesh (prefer OBJ/USDZ). It's image-based, so text→3D is unsupported and multi-view
+uses the first (front) view. `selfhosted` is for when you run the model behind
+your own HTTP wrapper.
 
 **Who can use it**
 - **Developer override** (7-tap) → dev-bypass token; honored only where
@@ -147,9 +154,12 @@ prompt?, imageBase64?, imagesBase64?, mime?, size }` → `{ modelUrl, format? }`
 
 **Function app settings**
 ```
-MESH_PROVIDER=selfhosted            # or "tripo"
+MESH_PROVIDER=selfhosted            # "tripo" | "replicate" | "selfhosted"
 SELFHOSTED_MESH_URL=https://…       # required for selfhosted
 SELFHOSTED_MESH_KEY=…               # optional bearer
+REPLICATE_API_TOKEN=…              # required for replicate
+REPLICATE_MODEL_VERSION=…          # required for replicate (image→3D version hash)
+REPLICATE_IMAGE_FIELD=image_path    # optional; input field name (default)
 APPSTORE_BUNDLE_ID=com.bricky.app   # default
 APPSTORE_ENVIRONMENT=Production     # default
 APPSTORE_VERIFY_CHAIN=true          # verify Apple signature chain in prod
@@ -159,6 +169,9 @@ Verify the Pro path in the StoreKit sandbox/TestFlight — a real receipt can't 
 exercised in the simulator or unit tests.
 
 ## Changelog
+- 2026-09-02 · Added a first-class `replicate` mesh provider (pay-per-use
+  open-source TripoSR/InstantMesh, no GPU to host — token + model version only);
+  updated §8 provider table + env settings.
 - 2026-09-01 · Added §8 Cloud AI providers & deployment: Pro users can opt into
   Cloud AI (StoreKit JWS validated server-side, behind the spend cap) and a
   `selfhosted` mesh provider for ~$0-per-scan; documented env vars + endpoint

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SelfHostedMeshProvider, TripoProvider, createMeshProvider } from '../src/meshProvider.js';
+import { SelfHostedMeshProvider, TripoProvider, ReplicateMeshProvider, createMeshProvider } from '../src/meshProvider.js';
 import { ProxyError } from '../src/types.js';
 
 function sequenceFetch(payloads: Array<{ json: unknown }>): typeof fetch {
@@ -107,6 +107,104 @@ test('SelfHostedMeshProvider throws upstream_error on malformed response', async
     () => provider.forgeFromImage('aGVsbG8=', 'image/jpeg', 'small', { fetchImpl }),
     (e) => e instanceof ProxyError && e.status === 502 && e.code === 'upstream_error',
   );
+});
+
+test('createMeshProvider returns a ReplicateMeshProvider when MESH_PROVIDER=replicate', () => {
+  const provider = createMeshProvider({
+    MESH_PROVIDER: 'Replicate',
+    REPLICATE_API_TOKEN: 'r8_x',
+    REPLICATE_MODEL_VERSION: 'ver123',
+  });
+  assert.equal(provider.name, 'replicate');
+  assert.ok(provider instanceof ReplicateMeshProvider);
+});
+
+test('createMeshProvider throws not_configured when REPLICATE_MODEL_VERSION is missing', () => {
+  assert.throws(
+    () => createMeshProvider({ MESH_PROVIDER: 'replicate', REPLICATE_API_TOKEN: 'r8_x' }),
+    (e) => e instanceof ProxyError && e.status === 503 && e.code === 'not_configured',
+  );
+});
+
+test('ReplicateMeshProvider.forgeFromImage creates a prediction, polls, and returns the mesh URL', async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const responses = [
+    { ok: true, status: 201, json: async () => ({ id: 'p1', status: 'processing', urls: { get: 'https://api.replicate.test/v1/predictions/p1' } }) },
+    { ok: true, status: 200, json: async () => ({ id: 'p1', status: 'succeeded', output: 'https://cdn.replicate.test/mesh.obj' }) },
+  ];
+  let i = 0;
+  const fetchImpl = (async (url: string, init: RequestInit) => {
+    calls.push({ url, init });
+    return responses[Math.min(i++, responses.length - 1)] as unknown as Response;
+  }) as unknown as typeof fetch;
+
+  const provider = new ReplicateMeshProvider({
+    apiToken: 'r8_secret',
+    modelVersion: 'ver123',
+    baseUrl: 'https://api.replicate.test/v1',
+  });
+  const result = await provider.forgeFromImage('aGVsbG8=', 'image/png', 'small', {
+    fetchImpl,
+    sleep: async () => {},
+  });
+
+  assert.equal(result.modelUrl, 'https://cdn.replicate.test/mesh.obj');
+  assert.equal(result.format, 'obj');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, 'https://api.replicate.test/v1/predictions');
+  assert.equal(calls[0].init.method, 'POST');
+  const createHeaders = calls[0].init.headers as Record<string, string>;
+  assert.equal(createHeaders.authorization, 'Token r8_secret');
+  assert.equal(createHeaders.prefer, 'wait');
+  const body = JSON.parse(calls[0].init.body as string);
+  assert.equal(body.version, 'ver123');
+  assert.equal(body.input.image_path, 'data:image/png;base64,aGVsbG8=');
+  assert.equal(calls[1].url, 'https://api.replicate.test/v1/predictions/p1');
+  assert.equal(calls[1].init.method ?? 'GET', 'GET');
+});
+
+test('ReplicateMeshProvider returns immediately on a synchronous succeeded prediction', async () => {
+  let count = 0;
+  const fetchImpl = (async () => {
+    count++;
+    return { ok: true, status: 201, json: async () => ({ status: 'succeeded', output: ['https://cdn.replicate.test/a.glb'] }) } as unknown as Response;
+  }) as unknown as typeof fetch;
+  const provider = new ReplicateMeshProvider({ apiToken: 'r8', modelVersion: 'v', baseUrl: 'https://api.replicate.test/v1' });
+  const result = await provider.forgeFromImage('aGk=', 'image/jpeg', 'small', { fetchImpl });
+  assert.equal(result.modelUrl, 'https://cdn.replicate.test/a.glb');
+  assert.equal(result.format, 'glb');
+  assert.equal(count, 1, 'no polling when the create call already succeeded');
+});
+
+test('ReplicateMeshProvider throws upstream_error when the prediction fails', async () => {
+  const fetchImpl = (async () =>
+    ({ ok: true, status: 201, json: async () => ({ status: 'failed' }) }) as unknown as Response) as unknown as typeof fetch;
+  const provider = new ReplicateMeshProvider({ apiToken: 'r8', modelVersion: 'v', baseUrl: 'https://api.replicate.test/v1' });
+  await assert.rejects(
+    () => provider.forgeFromImage('aGk=', 'image/jpeg', 'small', { fetchImpl, sleep: async () => {} }),
+    (e) => e instanceof ProxyError && e.status === 502 && e.code === 'upstream_error',
+  );
+});
+
+test('ReplicateMeshProvider does not support text-to-3D', () => {
+  const provider = new ReplicateMeshProvider({ apiToken: 'r8', modelVersion: 'v' });
+  assert.throws(
+    () => provider.forgeFromText(),
+    (e) => e instanceof ProxyError && e.status === 503 && e.code === 'not_configured',
+  );
+});
+
+test('ReplicateMeshProvider.forgeFromMultiview uses the first view', async () => {
+  const calls: Array<{ init: RequestInit }> = [];
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    calls.push({ init });
+    return { ok: true, status: 201, json: async () => ({ status: 'succeeded', output: 'https://cdn.replicate.test/m.usdz' }) } as unknown as Response;
+  }) as unknown as typeof fetch;
+  const provider = new ReplicateMeshProvider({ apiToken: 'r8', modelVersion: 'v', baseUrl: 'https://api.replicate.test/v1' });
+  const result = await provider.forgeFromMultiview(['front==', 'left=='], 'image/jpeg', 'medium', { fetchImpl });
+  assert.equal(result.format, 'usdz');
+  const body = JSON.parse(calls[0].init.body as string);
+  assert.equal(body.input.image_path, 'data:image/jpeg;base64,front==');
 });
 
 test('TripoProvider.forgeFromText delegates and returns a model', async () => {

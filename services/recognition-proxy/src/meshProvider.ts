@@ -158,6 +158,161 @@ export class SelfHostedMeshProvider implements MeshProvider {
   }
 }
 
+/** Config for the Replicate-hosted open-source mesh models. */
+export interface ReplicateMeshConfig {
+  /** Replicate API token (sent as `Authorization: Token <token>`). */
+  apiToken: string;
+  /** Model version hash to run, e.g. a TripoSR/InstantMesh version. */
+  modelVersion: string;
+  /** Input field the model expects the image under (default `image_path`). */
+  imageField?: string;
+  /** API base (override for testing; default `https://api.replicate.com/v1`). */
+  baseUrl?: string;
+}
+
+interface ReplicatePrediction {
+  id?: string;
+  status?: string;
+  output?: unknown;
+  urls?: { get?: string };
+}
+
+/** First downloadable URL in a Replicate `output` (string | array | object). */
+function extractOutputUrl(output: unknown): string {
+  if (typeof output === 'string') return output;
+  if (Array.isArray(output)) {
+    const first = output.find((o) => typeof o === 'string');
+    return typeof first === 'string' ? first : '';
+  }
+  if (output && typeof output === 'object') {
+    const url = (output as { url?: unknown }).url;
+    return typeof url === 'string' ? url : '';
+  }
+  return '';
+}
+
+/** Model I/O-readable format from the URL extension (default `glb`). */
+function formatFromUrl(url: string): string {
+  const m = url.match(/\.(usdz|usdc|obj|glb|gltf|ply)(?:\?|#|$)/i);
+  return m ? m[1].toLowerCase() : 'glb';
+}
+
+/**
+ * Replicate provider — runs an open-source image→3D model (TripoSR/InstantMesh)
+ * on Replicate's pay-per-use GPUs, so "Cloud AI" works with no always-on GPU and
+ * only an API token. Set `MESH_PROVIDER=replicate`, `REPLICATE_API_TOKEN`, and
+ * `REPLICATE_MODEL_VERSION` (the version hash of an image→3D model that outputs a
+ * Model I/O-readable mesh — prefer OBJ/USDZ). These models are image-based, so
+ * text→3D is unsupported; multi-view uses the first (front) view.
+ */
+export class ReplicateMeshProvider implements MeshProvider {
+  readonly name = 'replicate';
+  constructor(private readonly config: ReplicateMeshConfig) {}
+
+  forgeFromText(): Promise<MeshResult> {
+    throw new ProxyError(
+      503,
+      'not_configured',
+      'Text-to-3D is not supported by the Replicate provider; scan a photo or multiple views.',
+    );
+  }
+
+  forgeFromImage(
+    imageBase64: string,
+    mime: string,
+    _size: ForgeSize,
+    options?: PollOptions,
+  ): Promise<MeshResult> {
+    return this.run(imageBase64, mime, options);
+  }
+
+  forgeFromMultiview(
+    imagesBase64: string[],
+    mime: string,
+    _size: ForgeSize,
+    options?: PollOptions,
+  ): Promise<MeshResult> {
+    const first = imagesBase64[0];
+    if (!first) {
+      throw new ProxyError(400, 'bad_request', 'No views provided.');
+    }
+    return this.run(first, mime, options);
+  }
+
+  private async run(imageBase64: string, mime: string, options?: PollOptions): Promise<MeshResult> {
+    const fetchImpl = options?.fetchImpl ?? fetch;
+    const sleep = options?.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+    const maxAttempts = options?.maxAttempts ?? 90;
+    const intervalMs = options?.pollIntervalMs ?? 2000;
+    const base = this.config.baseUrl ?? 'https://api.replicate.com/v1';
+    const imageField = this.config.imageField ?? 'image_path';
+    const dataUri = `data:${mime};base64,${imageBase64}`;
+
+    let prediction = await this.request(
+      `${base}/predictions`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Token ${this.config.apiToken}`,
+          'content-type': 'application/json',
+          // Resolve synchronously when the run is fast enough to skip polling.
+          prefer: 'wait',
+        },
+        body: JSON.stringify({
+          version: this.config.modelVersion,
+          input: { [imageField]: dataUri },
+        }),
+      },
+      fetchImpl,
+    );
+
+    let attempt = 0;
+    while (prediction.status !== 'succeeded') {
+      if (prediction.status === 'failed' || prediction.status === 'canceled') {
+        throw new ProxyError(502, 'upstream_error', 'Replicate mesh generation failed.');
+      }
+      if (attempt >= maxAttempts) {
+        throw new ProxyError(504, 'upstream_timeout', 'Replicate mesh generation timed out.');
+      }
+      await sleep(intervalMs);
+      const pollUrl = prediction.urls?.get ?? `${base}/predictions/${prediction.id ?? ''}`;
+      prediction = await this.request(
+        pollUrl,
+        { method: 'GET', headers: { authorization: `Token ${this.config.apiToken}` } },
+        fetchImpl,
+      );
+      attempt++;
+    }
+
+    const modelUrl = extractOutputUrl(prediction.output);
+    if (modelUrl.length === 0) {
+      throw new ProxyError(502, 'upstream_error', 'Replicate returned no model URL.');
+    }
+    return { modelUrl, format: formatFromUrl(modelUrl) };
+  }
+
+  private async request(
+    url: string,
+    init: RequestInit,
+    fetchImpl: typeof fetch,
+  ): Promise<ReplicatePrediction> {
+    let response: Response;
+    try {
+      response = await fetchImpl(url, init);
+    } catch {
+      throw new ProxyError(502, 'upstream_error', 'Replicate mesh generation failed.');
+    }
+    if (!response.ok) {
+      throw new ProxyError(502, 'upstream_error', 'Replicate mesh generation failed.');
+    }
+    try {
+      return (await response.json()) as ReplicatePrediction;
+    } catch {
+      throw new ProxyError(502, 'upstream_error', 'Replicate mesh generation failed.');
+    }
+  }
+}
+
 type Env = Record<string, string | undefined>;
 
 function requireEnv(env: Env, name: string): string {
@@ -185,6 +340,15 @@ export function createMeshProvider(env: Env = process.env): MeshProvider {
       return new SelfHostedMeshProvider({
         url: requireEnv(env, 'SELFHOSTED_MESH_URL'),
         key: env.SELFHOSTED_MESH_KEY,
+      });
+    case 'replicate':
+      // Pay-per-use open-source image→3D (TripoSR/InstantMesh) with only a token
+      // and a model version — no GPU to host. Prefer a version that outputs OBJ/USDZ.
+      return new ReplicateMeshProvider({
+        apiToken: requireEnv(env, 'REPLICATE_API_TOKEN'),
+        modelVersion: requireEnv(env, 'REPLICATE_MODEL_VERSION'),
+        imageField: env.REPLICATE_IMAGE_FIELD,
+        baseUrl: env.REPLICATE_API_BASE,
       });
     // case 'meshy': return new MeshyProvider({ apiKey: requireEnv(env, 'MESHY_API_KEY') });
     // case 'csm':   return new CSMProvider({ apiKey: requireEnv(env, 'CSM_API_KEY') });
