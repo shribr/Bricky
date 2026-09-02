@@ -19,6 +19,11 @@ final class BrickClassificationPipeline {
         let color: LegoColor
         let dimensions: PieceDimensions
         let confidence: Float
+        /// Separate confidence in the piece's SHAPE (geometry / studs / catalog
+        /// dimensional match) vs its COLOR (agreement of sampled pixels on the
+        /// dominant color). Defaulted so lightweight construction sites can omit.
+        var shapeConfidence: Float = 0.5
+        var colorConfidence: Float = 0.5
         let colorHistogram: [LegoColor: Float]
         /// Normalized contour points (0-1, Vision coords) tracing the brick perimeter.
         var contourPoints: [CGPoint]?
@@ -365,6 +370,18 @@ final class BrickClassificationPipeline {
         if area > 0.005 { confidence += 0.05 }
         confidence = min(confidence, 0.95)
 
+        // Shape confidence: geometry signals — studs, catalog dimensional match,
+        // plausible area. Independent of how sure we are of the color.
+        var shapeConfidence: Float = 0.4
+        if studInfo.studCount > 0 { shapeConfidence += 0.25 }
+        if match != nil { shapeConfidence += 0.2 }
+        if area > 0.005 { shapeConfidence += 0.1 }
+        shapeConfidence = min(shapeConfidence, 0.95)
+
+        // Color confidence: how unanimous the sampled pixels were on the winning
+        // color (its share of the histogram). A shadowed/mixed crop scores low.
+        let colorConfidence = min(0.98, max(0.05, histogram[dominantColor] ?? 0.5))
+
         return BrickDetection(
             boundingBox: boundingBox,
             pixelRect: pixelRect,
@@ -374,6 +391,8 @@ final class BrickClassificationPipeline {
             color: dominantColor,
             dimensions: dimensions,
             confidence: confidence,
+            shapeConfidence: shapeConfidence,
+            colorConfidence: colorConfidence,
             colorHistogram: histogram
         )
     }

@@ -26,6 +26,9 @@ final class ObjectRecognitionService: ObservableObject {
         let source: String // "offline"
         /// Normalized contour points (0-1, Vision coords) tracing the brick perimeter.
         var contourPoints: [CGPoint]?
+        /// Separate confidence in the brick's shape vs its color (0–1).
+        var shapeConfidence: Float = 0.5
+        var colorConfidence: Float = 0.5
     }
 
     /// Process a video frame from the camera
@@ -46,7 +49,9 @@ final class ObjectRecognitionService: ObservableObject {
                 estimatedDimensions: det.dimensions,
                 partNumber: det.partNumber,
                 source: "offline",
-                contourPoints: det.contourPoints
+                contourPoints: det.contourPoints,
+                shapeConfidence: det.shapeConfidence,
+                colorConfidence: det.colorConfidence
             )
         }
 
@@ -74,7 +79,9 @@ final class ObjectRecognitionService: ObservableObject {
                     estimatedDimensions: det.dimensions,
                     partNumber: det.partNumber,
                     source: "offline",
-                    contourPoints: det.contourPoints
+                    contourPoints: det.contourPoints,
+                    shapeConfidence: det.shapeConfidence,
+                    colorConfidence: det.colorConfidence
                 )
             }
 

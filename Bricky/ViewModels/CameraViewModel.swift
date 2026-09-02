@@ -286,6 +286,8 @@ final class CameraViewModel: ObservableObject {
                     color: detected.dominantColor,
                     dimensions: detected.estimatedDimensions,
                     confidence: Double(detected.confidence),
+                    shapeConfidence: Double(detected.shapeConfidence),
+                    colorConfidence: Double(detected.colorConfidence),
                     boundingBox: detected.boundingBox,
                     locationSnapshot: nil, // Never render on main thread
                     captureIndex: captureIdx
@@ -667,6 +669,8 @@ final class CameraViewModel: ObservableObject {
                 color: detection.dominantColor,
                 dimensions: detection.estimatedDimensions,
                 confidence: Double(detection.confidence),
+                shapeConfidence: Double(detection.shapeConfidence),
+                colorConfidence: Double(detection.colorConfidence),
                 boundingBox: detection.boundingBox,
                 captureIndex: captureIdx
             )

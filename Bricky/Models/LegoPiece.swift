@@ -10,6 +10,10 @@ struct LegoPiece: Identifiable, Codable, Hashable {
     let color: LegoColor
     let dimensions: PieceDimensions
     let confidence: Double
+    /// Separate confidence in the piece's SHAPE vs its COLOR (0–1). Optional so
+    /// scans saved before this existed still decode (nil = not separately scored).
+    var shapeConfidence: Double?
+    var colorConfidence: Double?
     var quantity: Int
 
     /// Normalized bounding box from Vision (origin bottom-left) for the first detection
@@ -30,7 +34,7 @@ struct LegoPiece: Identifiable, Codable, Hashable {
     var captureIndex: Int?
 
     enum CodingKeys: String, CodingKey {
-        case id, partNumber, name, category, color, dimensions, confidence, quantity, boundingBox, detectionLocations, captureIndex
+        case id, partNumber, name, category, color, dimensions, confidence, shapeConfidence, colorConfidence, quantity, boundingBox, detectionLocations, captureIndex
     }
 
     func encode(to encoder: Encoder) throws {
@@ -42,6 +46,8 @@ struct LegoPiece: Identifiable, Codable, Hashable {
         try container.encode(color, forKey: .color)
         try container.encode(dimensions, forKey: .dimensions)
         try container.encode(confidence, forKey: .confidence)
+        try container.encodeIfPresent(shapeConfidence, forKey: .shapeConfidence)
+        try container.encodeIfPresent(colorConfidence, forKey: .colorConfidence)
         try container.encode(quantity, forKey: .quantity)
         if let box = boundingBox {
             try container.encode(CodableRect(rect: box), forKey: .boundingBox)
@@ -59,6 +65,8 @@ struct LegoPiece: Identifiable, Codable, Hashable {
         color = try container.decode(LegoColor.self, forKey: .color)
         dimensions = try container.decode(PieceDimensions.self, forKey: .dimensions)
         confidence = try container.decode(Double.self, forKey: .confidence)
+        shapeConfidence = try container.decodeIfPresent(Double.self, forKey: .shapeConfidence)
+        colorConfidence = try container.decodeIfPresent(Double.self, forKey: .colorConfidence)
         quantity = try container.decode(Int.self, forKey: .quantity)
         if let codableBox = try container.decodeIfPresent(CodableRect.self, forKey: .boundingBox) {
             boundingBox = codableBox.rect
@@ -97,6 +105,8 @@ struct LegoPiece: Identifiable, Codable, Hashable {
         color: LegoColor,
         dimensions: PieceDimensions,
         confidence: Double = 1.0,
+        shapeConfidence: Double? = nil,
+        colorConfidence: Double? = nil,
         quantity: Int = 1,
         boundingBox: CGRect? = nil,
         detectionLocations: [CGRect] = [],
@@ -110,6 +120,8 @@ struct LegoPiece: Identifiable, Codable, Hashable {
         self.color = color
         self.dimensions = dimensions
         self.confidence = confidence
+        self.shapeConfidence = shapeConfidence
+        self.colorConfidence = colorConfidence
         self.quantity = quantity
         self.boundingBox = boundingBox
         self.detectionLocations = detectionLocations

@@ -208,6 +208,14 @@ struct PieceRowView: View {
                             .fontWeight(.medium)
                     }
                     .foregroundStyle(Color.confidenceColor(piece.confidence))
+
+                    // Per-property confidence: the scanner can be sure of shape
+                    // yet unsure of color (or vice versa).
+                    if let shape = piece.shapeConfidence, let color = piece.colorConfidence {
+                        Text("Shape \(Int(shape * 100))% · Color \(Int(color * 100))%")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 

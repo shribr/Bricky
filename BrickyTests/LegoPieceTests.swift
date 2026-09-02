@@ -54,6 +54,58 @@ final class LegoPieceTests: XCTestCase {
         XCTAssertEqual(piece.category, .brick)
     }
 
+    func testPerPropertyConfidenceRoundTrips() throws {
+        let piece = LegoPiece(
+            partNumber: "3003",
+            name: "Brick 2×2",
+            category: .brick,
+            color: .blue,
+            dimensions: PieceDimensions(studsWide: 2, studsLong: 2, heightUnits: 3),
+            confidence: 0.7,
+            shapeConfidence: 0.9,
+            colorConfidence: 0.4
+        )
+        let data = try JSONEncoder().encode(piece)
+        let decoded = try JSONDecoder().decode(LegoPiece.self, from: data)
+        XCTAssertEqual(decoded.shapeConfidence ?? -1, 0.9, accuracy: 0.0001)
+        XCTAssertEqual(decoded.colorConfidence ?? -1, 0.4, accuracy: 0.0001)
+    }
+
+    func testDefaultPerPropertyConfidenceIsNil() {
+        let piece = LegoPiece(
+            partNumber: "3001",
+            name: "Brick 2×4",
+            category: .brick,
+            color: .red,
+            dimensions: PieceDimensions(studsWide: 2, studsLong: 4, heightUnits: 3)
+        )
+        XCTAssertNil(piece.shapeConfidence)
+        XCTAssertNil(piece.colorConfidence)
+    }
+
+    func testDecodingLegacyPieceWithoutPerPropertyConfidenceYieldsNil() throws {
+        // A scan saved before per-property confidence existed omits both keys.
+        // `encodeIfPresent` drops nil fields, so encoding a default piece
+        // produces exactly that legacy shape.
+        let legacy = LegoPiece(
+            partNumber: "3001",
+            name: "Brick 2×4",
+            category: .brick,
+            color: .red,
+            dimensions: PieceDimensions(studsWide: 2, studsLong: 4, heightUnits: 3),
+            confidence: 0.8
+        )
+        let data = try JSONEncoder().encode(legacy)
+        let json = String(decoding: data, as: UTF8.self)
+        XCTAssertFalse(json.contains("shapeConfidence"))
+        XCTAssertFalse(json.contains("colorConfidence"))
+
+        let decoded = try JSONDecoder().decode(LegoPiece.self, from: data)
+        XCTAssertNil(decoded.shapeConfidence)
+        XCTAssertNil(decoded.colorConfidence)
+        XCTAssertEqual(decoded.confidence, 0.8)
+    }
+
     // MARK: - PieceCategory
 
     func testPieceCategorySystemImages() {
