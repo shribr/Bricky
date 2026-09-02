@@ -741,9 +741,12 @@ struct EditPieceView: View {
         // Log correction if anything changed (for model improvement)
         let original = session.pieces[index]
         let heightUnits = selectedCategory == .plate || selectedCategory == .tile ? 1 : 3
-        if original.name != name || original.category != selectedCategory ||
-           original.color != selectedColor || original.dimensions.studsWide != studsWide ||
-           original.dimensions.studsLong != studsLong {
+        let shapeChanged = original.category != selectedCategory ||
+            original.dimensions.studsWide != studsWide ||
+            original.dimensions.studsLong != studsLong ||
+            original.name != name
+        let colorChanged = original.color != selectedColor
+        if shapeChanged || colorChanged {
             CorrectionLogger.shared.logCorrection(
                 original: original,
                 correctedName: name,
@@ -752,6 +755,25 @@ struct EditPieceView: View {
                 correctedStudsWide: studsWide,
                 correctedStudsLong: studsLong
             )
+
+            // Persist the crop + confirmed answer so the scanner learns this
+            // brick for future scans (needs the source image + a bounding box).
+            if let box = piece.boundingBox,
+               let source = session.sourceImage(for: piece),
+               let crop = Self.cropImage(source, visionBox: box) {
+                BrickCorrectionStore.shared.record(
+                    crop: crop,
+                    partNumber: piece.partNumber,
+                    name: name,
+                    category: selectedCategory,
+                    color: selectedColor,
+                    studsWide: studsWide,
+                    studsLong: studsLong,
+                    heightUnits: heightUnits,
+                    correctedShape: shapeChanged,
+                    correctedColor: colorChanged
+                )
+            }
         }
 
         let oldQty = session.pieces[index].quantity
@@ -767,5 +789,20 @@ struct EditPieceView: View {
         )
         session.pieces[index] = updated
         session.totalPiecesFound += (quantity - oldQty)
+    }
+
+    /// Crop the source image to a piece's Vision bounding box (origin
+    /// bottom-left, normalized) for storing as correction training data.
+    private static func cropImage(_ image: UIImage, visionBox: CGRect) -> UIImage? {
+        guard let cg = image.cgImage else { return nil }
+        let w = CGFloat(cg.width), h = CGFloat(cg.height)
+        let rect = CGRect(
+            x: visionBox.origin.x * w,
+            y: (1 - visionBox.origin.y - visionBox.height) * h,
+            width: visionBox.width * w,
+            height: visionBox.height * h
+        ).intersection(CGRect(x: 0, y: 0, width: w, height: h))
+        guard !rect.isEmpty, let cropped = cg.cropping(to: rect) else { return nil }
+        return UIImage(cgImage: cropped)
     }
 }

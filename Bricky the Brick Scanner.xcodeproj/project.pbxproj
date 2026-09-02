@@ -12,6 +12,7 @@
 		041D123D659D0A07C7666148 /* ShareCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4CF02322D2006E0C99F8B44 /* ShareCreationView.swift */; };
 		04C452E195B06060AC82EBF4 /* LDrawColorMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B86874852D5B48B3807DEF9 /* LDrawColorMap.swift */; };
 		05377A8DA04EE7EBB0D73A7C /* MinifigurePartClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49447E4BE19517E0C82FC57 /* MinifigurePartClassifierTests.swift */; };
+		0573FDFCB9802582B0B2FA83 /* BrickCorrectionRerankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03275461757F13C9197C6B5 /* BrickCorrectionRerankerTests.swift */; };
 		0574D530F5B65F1CE1AB6F71 /* BuildSuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F4E25FB64DBA81C66E90F86 /* BuildSuggestionsView.swift */; };
 		07537A8D1F4D7AA4E51B2589 /* CorrectionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF551B07D7C9FEE159BD34 /* CorrectionLogger.swift */; };
 		08D9E052EE1EBB6227F3E7D3 /* ScanSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341503AC5A0E9408BBCF3F91 /* ScanSettings.swift */; };
@@ -176,6 +177,8 @@
 		6D5574E04B4A3B3A70F1B26E /* ImageRecognitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B12E3BB7AA22D22B7F83029 /* ImageRecognitionView.swift */; };
 		6DA47EE301A62B6F15A24D38 /* clip_embeddings.bin in Resources */ = {isa = PBXBuildFile; fileRef = 5FCCEE648179E1E149AC6C1D /* clip_embeddings.bin */; };
 		6E876296716A1ECA382DF400 /* ScannerGroundTruthHarnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E22D971F163092F0000B3CD /* ScannerGroundTruthHarnessTests.swift */; };
+		6EA0E77D661ADCE8BB593482 /* BrickCorrectionReranker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED50BBB9F90446CA69869EF /* BrickCorrectionReranker.swift */; };
+		70BD93F0945882AB67AD8CE6 /* BrickCorrectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B58254E46FA6B6811F606 /* BrickCorrectionStoreTests.swift */; };
 		71D4CF4B512F5EBD7241A69D /* report-20260427-014902.md in Resources */ = {isa = PBXBuildFile; fileRef = CE7D68885517565EA509A4A5 /* report-20260427-014902.md */; };
 		72E89504E4AE7F009D69BE27 /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6CD37B1D3BC2D6BAB6B90D /* CommunityViewModel.swift */; };
 		732CC68E06EB97C3EC91BAF2 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0F4D0557C0654002C63D3F /* PerformanceMonitor.swift */; };
@@ -378,6 +381,7 @@
 		E353E9BAF6EAB4E20324ACCD /* LDrawParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E9288C2505F74A7BB3BCD /* LDrawParser.swift */; };
 		E38B834A2CA583E76569107B /* MinifigureCatalog.json.gz in Resources */ = {isa = PBXBuildFile; fileRef = 039B3F9EA1710068B304DBE9 /* MinifigureCatalog.json.gz */; };
 		E3ADACF1DBD7864C04E500D1 /* RecognizedSubject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357D7792FB6087F2FDEC576 /* RecognizedSubject.swift */; };
+		E3F67C0E6C29F7F7FC2FD32F /* BrickCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2FCFDEEC2FC159005FD7EF /* BrickCorrectionStore.swift */; };
 		E40E67D37CB081822AD693DA /* clip_embeddings_index.json in Resources */ = {isa = PBXBuildFile; fileRef = CE3E5BE1A034252914030F45 /* clip_embeddings_index.json */; };
 		E512DAC5DBA6F37EED2BABC4 /* CameraImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FCA450ACD4DD3B120DCB10 /* CameraImagePicker.swift */; };
 		E585F58881A6F176BE20060C /* GeneratedLegoSetAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C751FEDB6669F71732DC977 /* GeneratedLegoSetAssembly.swift */; };
@@ -673,6 +677,7 @@
 		8BD03DEB75C5604E3F4CF004 /* PileGeometryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileGeometryService.swift; sourceTree = "<group>"; };
 		8BD3A9F8333CC94A28950903 /* LegoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoSet.swift; sourceTree = "<group>"; };
 		8BFE9D3BF6106A1E2A53C683 /* lego_minifigure_m_tron_sp033_fig-000065.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "lego_minifigure_m_tron_sp033_fig-000065.jpeg"; sourceTree = "<group>"; };
+		8C2FCFDEEC2FC159005FD7EF /* BrickCorrectionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickCorrectionStore.swift; sourceTree = "<group>"; };
 		8CBC4ABF82BE0A0D38C820C7 /* BuildStepViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildStepViewer.swift; sourceTree = "<group>"; };
 		8CD8A66880643479583100CE /* PhotoSubjectClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSubjectClassifierTests.swift; sourceTree = "<group>"; };
 		8DEC8B9D627AC7883789D989 /* UserCorrectionReranker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserCorrectionReranker.swift; sourceTree = "<group>"; };
@@ -714,6 +719,7 @@
 		A758EAE8395E07540C8F0844 /* TrackedBrickOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrackedBrickOverlayView.swift; sourceTree = "<group>"; };
 		A989E630393136FB68A0F3D2 /* CameraScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScanView.swift; sourceTree = "<group>"; };
 		AA9F0C66986001376904782C /* PieceFilterSortBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceFilterSortBar.swift; sourceTree = "<group>"; };
+		AB6B58254E46FA6B6811F606 /* BrickCorrectionStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickCorrectionStoreTests.swift; sourceTree = "<group>"; };
 		AB7E3CB71061833D94EA17AB /* MinifigureReferenceImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureReferenceImageStore.swift; sourceTree = "<group>"; };
 		AB86A3EFB207E0117757F00D /* ScanLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLocationService.swift; sourceTree = "<group>"; };
 		ADBF551B07D7C9FEE159BD34 /* CorrectionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectionLogger.swift; sourceTree = "<group>"; };
@@ -774,6 +780,7 @@
 		CF3F043020FE5C5E9432A511 /* LegoProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegoProject.swift; sourceTree = "<group>"; };
 		CF55E3F430CE9A1DBD908A1D /* BrickGeometryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickGeometryGenerator.swift; sourceTree = "<group>"; };
 		CF78302B65C7B523FB3CCD26 /* buildmodel_heart.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_heart.ldr; sourceTree = "<group>"; };
+		D03275461757F13C9197C6B5 /* BrickCorrectionRerankerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickCorrectionRerankerTests.swift; sourceTree = "<group>"; };
 		D046FE7B968B7489D4F87C65 /* MinifigureIdentificationService+TorsoSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MinifigureIdentificationService+TorsoSignature.swift"; sourceTree = "<group>"; };
 		D11C8A0F0AB126A3FC62A2A4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		D194F1D3ACC63AE3BEFE5862 /* model.ldr */ = {isa = PBXFileReference; lastKnownFileType = text; path = model.ldr; sourceTree = "<group>"; };
@@ -851,6 +858,7 @@
 		FDC99F34973FC98694BF9744 /* BrickLinkURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickLinkURLTests.swift; sourceTree = "<group>"; };
 		FE9DA55DA345FE7951948094 /* MultiScanFindResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiScanFindResultsView.swift; sourceTree = "<group>"; };
 		FEBA2383E14AA9320FADB141 /* UIImage+Orientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Orientation.swift"; sourceTree = "<group>"; };
+		FED50BBB9F90446CA69869EF /* BrickCorrectionReranker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickCorrectionReranker.swift; sourceTree = "<group>"; };
 		FF25352802DFFB2CCF2A2CF4 /* FeatureTipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTipView.swift; sourceTree = "<group>"; };
 		FF9FCC3E73A6228E59EFE447 /* BrickitBoundingBoxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickitBoundingBoxView.swift; sourceTree = "<group>"; };
 		FFB375C77E07413F15B21E16 /* report-20260427-013531.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "report-20260427-013531.md"; sourceTree = "<group>"; };
@@ -1056,6 +1064,8 @@
 				88FB9723891E4E2B3EEFE938 /* BrickStepStyler.swift */,
 				7640A34EC17AB16B071B2C17 /* BrickInstanceTracker.swift */,
 				0CEEA795FC068A7EE7D6DAC9 /* IlluminationNormalizer.swift */,
+				8C2FCFDEEC2FC159005FD7EF /* BrickCorrectionStore.swift */,
+				FED50BBB9F90446CA69869EF /* BrickCorrectionReranker.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1312,6 +1322,8 @@
 				58AA074A0CF0E35491A694C4 /* PhotoVoxelizerSubjectTests.swift */,
 				1E344E4B34CB361A6BC216A3 /* BrickInstanceTrackerTests.swift */,
 				16519C21D7546A3142B2477F /* IlluminationNormalizerTests.swift */,
+				AB6B58254E46FA6B6811F606 /* BrickCorrectionStoreTests.swift */,
+				D03275461757F13C9197C6B5 /* BrickCorrectionRerankerTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1903,6 +1915,8 @@
 				F8648700F8E55B2320ED5399 /* BrickInstanceTracker.swift in Sources */,
 				D1BCB767DCEAA16A7458948F /* TrackedBrickOverlayView.swift in Sources */,
 				6C42AC4E32292E5855B1E9E2 /* IlluminationNormalizer.swift in Sources */,
+				E3F67C0E6C29F7F7FC2FD32F /* BrickCorrectionStore.swift in Sources */,
+				6EA0E77D661ADCE8BB593482 /* BrickCorrectionReranker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1997,6 +2011,8 @@
 				94FCA88EDE977BEDA0DE8F97 /* PhotoVoxelizerSubjectTests.swift in Sources */,
 				5C19DC300BB697779548D406 /* BrickInstanceTrackerTests.swift in Sources */,
 				26ECD23D1D4979068E44B813 /* IlluminationNormalizerTests.swift in Sources */,
+				70BD93F0945882AB67AD8CE6 /* BrickCorrectionStoreTests.swift in Sources */,
+				0573FDFCB9802582B0B2FA83 /* BrickCorrectionRerankerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
