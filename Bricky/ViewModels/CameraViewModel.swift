@@ -15,6 +15,15 @@ final class CameraViewModel: ObservableObject {
     @Published var lastCapturedImage: UIImage?
     @Published var liveDetections: [ObjectRecognitionService.DetectedObject] = []
 
+    /// World-anchored per-brick tracker (AR mode): dedups physical bricks in 3D
+    /// so orbiting doesn't recount, and drives the persistent "counted" overlay.
+    let brickTracker = BrickInstanceTracker()
+    /// Screen-projected markers for already-counted bricks; refreshed each AR frame.
+    @Published var countedBrickMarkers: [BrickScreenMarker] = []
+    /// Live camera viewport size (set by the scan view); used to project world
+    /// brick positions to screen and detections back into world space.
+    var scanViewportSize: CGSize = .zero
+
     /// When set, the scanner enters "find piece" mode — highlighting only this piece type
     @Published var targetPiece: LegoPiece?
     /// Whether the target piece has been found in the current frame
@@ -107,6 +116,8 @@ final class CameraViewModel: ObservableObject {
         coverageTracker.reconfigure(columns: detail.columns, rows: detail.rows)
 
         scanCoordinator.start()
+        brickTracker.reset()
+        countedBrickMarkers = []
 
         if scanSettings.scanMode == .detailed {
             statusMessage = "Slowly sweep camera over your brick pile…"
@@ -195,6 +206,7 @@ final class CameraViewModel: ObservableObject {
             cameraManager.stopSession()
         }
         scanCoordinator.reset()
+        countedBrickMarkers = []
 
         // Save to scan history
         if scanSession.totalPiecesFound > 0 {
@@ -561,6 +573,7 @@ final class CameraViewModel: ObservableObject {
             let state = self._callbackState.withLock { $0 }
             guard state.isActive, state.isAR else { return }
             self.scanCoordinator.geometry.onARFrameUpdated()
+            self.refreshCountedMarkers()
         }
 
         // AR tracking state updates removed — ContinuousScanCoordinator does not
@@ -661,6 +674,23 @@ final class CameraViewModel: ObservableObject {
             // Sample depth at the detection center (LiDAR / sceneDepth devices only).
             let depth: Float? = isARMode ? sampleDepth(for: detection.boundingBox) : nil
             scanSession.addPiece(piece, depth: depth)
+
+            // World-anchored tracking (AR + depth only): place the brick in 3D so
+            // it's counted once regardless of camera orbit, and gets a persistent
+            // "counted" marker. Degrades to no-op when depth is unavailable.
+            if isARMode, scanViewportSize != .zero,
+               let world = arCameraManager.worldPosition(
+                   forNormalizedScreenPoint: CGPoint(x: detection.boundingBox.midX,
+                                                     y: 1 - detection.boundingBox.midY),
+                   viewportSize: scanViewportSize) {
+                brickTracker.record(
+                    worldPosition: world,
+                    partNumber: piece.partNumber,
+                    name: piece.name,
+                    color: detection.dominantColor,
+                    confidence: detection.confidence
+                )
+            }
         }
 
         let added = scanSession.totalPiecesFound - beforeCount
@@ -678,6 +708,23 @@ final class CameraViewModel: ObservableObject {
                     await self?.autoSaveSessionBackground()
                 }
             }
+        }
+    }
+
+    /// Re-project every world-tracked brick to screen for the persistent
+    /// "counted" overlay. Off-screen / behind-camera bricks drop out (projection
+    /// returns nil), so markers naturally follow the camera as it moves.
+    private func refreshCountedMarkers() {
+        guard isARMode, scanViewportSize != .zero else {
+            if !countedBrickMarkers.isEmpty { countedBrickMarkers = [] }
+            return
+        }
+        countedBrickMarkers = brickTracker.bricks.compactMap { brick in
+            guard let pt = arCameraManager.projectToScreen(
+                worldPoint: brick.worldPosition,
+                viewportSize: scanViewportSize
+            ) else { return nil }
+            return BrickScreenMarker(id: brick.id, point: pt, color: brick.color, label: brick.name)
         }
     }
 

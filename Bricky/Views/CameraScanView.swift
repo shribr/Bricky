@@ -36,6 +36,17 @@ struct CameraScanView: View {
 
     var body: some View {
         ZStack {
+            // Track the live viewport size so world-anchored brick markers can be
+            // projected to screen (and detections unprojected to world).
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { viewModel.scanViewportSize = proxy.size }
+                    .onChange(of: proxy.size) { _, newSize in
+                        viewModel.scanViewportSize = newSize
+                    }
+            }
+            .allowsHitTesting(false)
+
             // Camera Preview — switches between AR and standard
             if viewModel.isARMode {
                 ARCameraPreview(session: viewModel.arCameraManager.session)
@@ -48,6 +59,14 @@ struct CameraScanView: View {
             // Live detection bounding boxes (hidden in "None" overlay mode)
             if viewModel.isScanning && !viewModel.liveDetections.isEmpty && themeManager.scanOverlayStyle != .none {
                 LiveDetectionOverlayView(detections: viewModel.liveDetections)
+                    .ignoresSafeArea()
+            }
+
+            // Persistent "already counted" markers, anchored to world-tracked
+            // bricks (AR + depth). Unlike the transient per-frame boxes above,
+            // these stay pinned to each physical brick as the camera moves.
+            if viewModel.isScanning && viewModel.isARMode && !viewModel.countedBrickMarkers.isEmpty {
+                TrackedBrickOverlayView(markers: viewModel.countedBrickMarkers)
                     .ignoresSafeArea()
             }
 

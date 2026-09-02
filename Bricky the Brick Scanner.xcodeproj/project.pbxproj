@@ -142,6 +142,7 @@
 		5A11130F495E73997AF7FA2F /* ForgeSizePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2E1B2B0E9504BA612A7142 /* ForgeSizePicker.swift */; };
 		5B4BFAA9885CC916D4E2511A /* DailyChallengeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94735FD2C6A5358AF7B8DC47 /* DailyChallengeCard.swift */; };
 		5BE2CAEBF90D0FD3E5605A58 /* LegoPiece.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83CC8DA6570B80F29F9C562 /* LegoPiece.swift */; };
+		5C19DC300BB697779548D406 /* BrickInstanceTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E344E4B34CB361A6BC216A3 /* BrickInstanceTrackerTests.swift */; };
 		5E035242918813A585958FAC /* LDrawLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 806060A04B07F3F1BA5AA723 /* LDrawLibrary.swift */; };
 		5E16D20416A6D40C3E3048C2 /* StorageBin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BF55BE400C39A582C522D8 /* StorageBin.swift */; };
 		5E20B6372432B41BF07DA730 /* InventoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55CB1B06779D65EBCD57B680 /* InventoryStore.swift */; };
@@ -330,6 +331,7 @@
 		D13B9ED92FA5A2FBFEB3B1A3 /* AssemblyPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE714B7914F54536512EA5F /* AssemblyPreviewView.swift */; };
 		D18E94E7FD0A18F36922B7DD /* ScanCoverageOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB51EB9DADD42EB559FAD70 /* ScanCoverageOverlayView.swift */; };
 		D19888028C276C594C289798 /* lego_minifigure_imperial_guard_pi061_fig-004757.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 7C059882C9898C604B8D2F68 /* lego_minifigure_imperial_guard_pi061_fig-004757.jpeg */; };
+		D1BCB767DCEAA16A7458948F /* TrackedBrickOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A758EAE8395E07540C8F0844 /* TrackedBrickOverlayView.swift */; };
 		D2B1A14CBB82CEB47A64BDA2 /* PhotoScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76B35002D5D440D2D430958 /* PhotoScanView.swift */; };
 		D2E412BFCE0B1C29F3FAAB48 /* PreScanAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B237F4AB897A20C02940F668 /* PreScanAnalysisView.swift */; };
 		D3C15A6C88D0EE831CD425CF /* PileGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA431A281966BE3D4ED8906 /* PileGeometry.swift */; };
@@ -405,6 +407,7 @@
 		F43CCB1C6AA4004F7F73FE9B /* DetailedScanOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0004B89780348419A95B7249 /* DetailedScanOverlayView.swift */; };
 		F4F4F189E5416EE4A540C9A1 /* PileResultsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47784C4C53E0ED16264B452C /* PileResultsSheetView.swift */; };
 		F568C7B20155F1D498A16968 /* ARCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A6DCA2C9B6A4A54B492659 /* ARCameraManager.swift */; };
+		F8648700F8E55B2320ED5399 /* BrickInstanceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7640A34EC17AB16B071B2C17 /* BrickInstanceTracker.swift */; };
 		FA7085B2BCFC0DAF7B93B090 /* lego_minifigure_arctic_explore_female_ cty0491_fig-007213.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 7D668D7CFDF0118AEE4F1848 /* lego_minifigure_arctic_explore_female_ cty0491_fig-007213.jpeg */; };
 		FBA1B59A5BA53C77E1FBE364 /* MosaicPacker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8389B68611956AC8C55F414 /* MosaicPacker.swift */; };
 		FBFBD0F6CA60EAA6FAAE7EC0 /* LDrawModelParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AB78186B7339EC8BC44F4 /* LDrawModelParserTests.swift */; };
@@ -478,6 +481,7 @@
 		1B25B8819718427E5CFF4386 /* TorsoVisualSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorsoVisualSignature.swift; sourceTree = "<group>"; };
 		1DFD2690D7AF2F59C7851C5C /* MeshVoxelizerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshVoxelizerTests.swift; sourceTree = "<group>"; };
 		1E2B74A119C2499E68F0A66E /* buildmodel_skyscraper.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_skyscraper.ldr; sourceTree = "<group>"; };
+		1E344E4B34CB361A6BC216A3 /* BrickInstanceTrackerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickInstanceTrackerTests.swift; sourceTree = "<group>"; };
 		1E440C896D7EDC0AB683ACC5 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
 		1EA5295D9ADE9E473502C551 /* ARCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraPreview.swift; sourceTree = "<group>"; };
 		1F11369AC84678F0AEA7A989 /* BrickognizeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickognizeService.swift; sourceTree = "<group>"; };
@@ -625,6 +629,7 @@
 		73B8019EBC18527D6236FD88 /* grid.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = grid.json; sourceTree = "<group>"; };
 		752C267106AA2DF3B921C810 /* MosaicPartsAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MosaicPartsAggregator.swift; sourceTree = "<group>"; };
 		75501A1108A5419BCF857648 /* buildmodel_bridge.ldr */ = {isa = PBXFileReference; includeInIndex = 1; path = buildmodel_bridge.ldr; sourceTree = "<group>"; };
+		7640A34EC17AB16B071B2C17 /* BrickInstanceTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrickInstanceTracker.swift; sourceTree = "<group>"; };
 		76E9DC5E0CF122DD6988BE8C /* PieceCatalogViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceCatalogViewModelTests.swift; sourceTree = "<group>"; };
 		78696F26599EC6F05F0EA262 /* GuidedAngleCaptureView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GuidedAngleCaptureView.swift; sourceTree = "<group>"; };
 		787158B595504389A0E5D9C5 /* VoxelShapeLibraryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoxelShapeLibraryTests.swift; sourceTree = "<group>"; };
@@ -702,6 +707,7 @@
 		A6114165C0944AC3D7AB74E3 /* LegoClipVision.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = LegoClipVision.mlpackage; sourceTree = "<group>"; };
 		A64791025FC767A2813750BE /* MinifigureCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogView.swift; sourceTree = "<group>"; };
 		A71ABC00264BEE119191B3AA /* SprintDFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintDFeatureTests.swift; sourceTree = "<group>"; };
+		A758EAE8395E07540C8F0844 /* TrackedBrickOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrackedBrickOverlayView.swift; sourceTree = "<group>"; };
 		A989E630393136FB68A0F3D2 /* CameraScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScanView.swift; sourceTree = "<group>"; };
 		AA9F0C66986001376904782C /* PieceFilterSortBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceFilterSortBar.swift; sourceTree = "<group>"; };
 		AB7E3CB71061833D94EA17AB /* MinifigureReferenceImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureReferenceImageStore.swift; sourceTree = "<group>"; };
@@ -1044,6 +1050,7 @@
 				DAFC053BAA6D18BAA072E410 /* ProceduralAssemblyGenerator.swift */,
 				D520B4523F2E2263059757BD /* AssemblySceneBuilder.swift */,
 				88FB9723891E4E2B3EEFE938 /* BrickStepStyler.swift */,
+				7640A34EC17AB16B071B2C17 /* BrickInstanceTracker.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1298,6 +1305,7 @@
 				E5E991F85A87F6F78EDBFFCF /* BuildStepViewerPolishTests.swift */,
 				98BC37A0FDB2138E6D8750B1 /* SetForgeInstructionsTests.swift */,
 				58AA074A0CF0E35491A694C4 /* PhotoVoxelizerSubjectTests.swift */,
+				1E344E4B34CB361A6BC216A3 /* BrickInstanceTrackerTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1414,6 +1422,7 @@
 				4EA7D1F29A1A263CA8C12A7B /* BuildFeatureExplainerView.swift */,
 				BFE714B7914F54536512EA5F /* AssemblyPreviewView.swift */,
 				F79B850F76CE0FB45DF9B602 /* SetModelsView.swift */,
+				A758EAE8395E07540C8F0844 /* TrackedBrickOverlayView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1885,6 +1894,8 @@
 				A7B2BB40BA256C0857686C2B /* SetModelsView.swift in Sources */,
 				D7DD727BCC7EB0252806BC6C /* ObjectCaptureView.swift in Sources */,
 				E872FD6135A9A2ECF0EBD1A6 /* PhotogrammetryReconstructor.swift in Sources */,
+				F8648700F8E55B2320ED5399 /* BrickInstanceTracker.swift in Sources */,
+				D1BCB767DCEAA16A7458948F /* TrackedBrickOverlayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1977,6 +1988,7 @@
 				1566F1E00CCE07DCEC6EACCD /* BuildStepViewerPolishTests.swift in Sources */,
 				7F1AC4E6A74BEA472F9C266C /* SetForgeInstructionsTests.swift in Sources */,
 				94FCA88EDE977BEDA0DE8F97 /* PhotoVoxelizerSubjectTests.swift in Sources */,
+				5C19DC300BB697779548D406 /* BrickInstanceTrackerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
