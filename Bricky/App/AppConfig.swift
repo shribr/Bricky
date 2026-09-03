@@ -166,6 +166,28 @@ enum AppConfig {
         return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/correctionIndex")
     }
 
+    /// Server endpoint that serves known-answer honeypot items (no ground-truth
+    /// labels) for the "help train" quiz. Overridable via `BRICKY_HONEYPOTS_ENDPOINT`.
+    static var honeypotsEndpoint: URL? {
+        if let raw = infoPlistString("BRICKY_HONEYPOTS_ENDPOINT") ??
+            ProcessInfo.processInfo.environment["BRICKY_HONEYPOTS_ENDPOINT"],
+           let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/honeypots")
+    }
+
+    /// Server endpoint that ingests a user's honeypot answer (graded server-side
+    /// against the secret truth). Overridable via `BRICKY_SUBMIT_HONEYPOT_ENDPOINT`.
+    static var submitHoneypotEndpoint: URL? {
+        if let raw = infoPlistString("BRICKY_SUBMIT_HONEYPOT_ENDPOINT") ??
+            ProcessInfo.processInfo.environment["BRICKY_SUBMIT_HONEYPOT_ENDPOINT"],
+           let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/submitHoneypot")
+    }
+
     /// Monthly AI recognition allowance. Cloud AI is developer-only, so this is
     /// just a safety cap on the developer's own Azure GPT-4o spend; it keeps
     /// total spend under the development cost cap while testing. Everyone without

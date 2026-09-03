@@ -138,6 +138,7 @@
 		56FF033F3FB326CB1B401D44 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E271909EA72E6BCA74B3A0C /* CameraPreview.swift */; };
 		57489AB75D0AA03134FE3493 /* GeneratedSetsGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D83D95D2C078B05E196F69 /* GeneratedSetsGalleryView.swift */; };
 		579DC316F2E895CA69FFCF31 /* LiDARTopographicRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26D16F859D5B68C96CC68AC /* LiDARTopographicRenderer.swift */; };
+		57C579F61208283FEBC6BF32 /* HoneypotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A0FA133335691D60DB6648 /* HoneypotService.swift */; };
 		5809ED45C985CF23490E6649 /* LiDARTopographicRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC883C3B9260A99734D2106 /* LiDARTopographicRendererTests.swift */; };
 		58283081EEC8DB393B88322F /* MosaicVision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9D4FFC1E63AE5F388AB817 /* MosaicVision.swift */; };
 		5950E537F4F82EFFAED30622 /* PieceCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33A0DBCEE1FF6A32C7D8AA4 /* PieceCatalogViewModel.swift */; };
@@ -425,6 +426,7 @@
 		FBFBD0F6CA60EAA6FAAE7EC0 /* LDrawModelParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AB78186B7339EC8BC44F4 /* LDrawModelParserTests.swift */; };
 		FD1A781F06A8BB347C239F69 /* PileDiffService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4716DEF5B361CBC8B1267080 /* PileDiffService.swift */; };
 		FD77816013125F7BB0409987 /* LocationColorSchemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861CE3D27DC2F9D45A7376F3 /* LocationColorSchemeTests.swift */; };
+		FD94CB3AE376966FB4DBE0F1 /* HoneypotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F800D6D9293EFF33CB5A33F /* HoneypotServiceTests.swift */; };
 		FF15D624DFDE0864411D967F /* FaceEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B3303486A1BD62AF95F59E /* FaceEmbeddingService.swift */; };
 		FFC974C1A306069D23B676A4 /* ColorCalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF6118D1B7D9C6012302D5C /* ColorCalibrationStore.swift */; };
 /* End PBXBuildFile section */
@@ -604,6 +606,7 @@
 		5E2E1B2B0E9504BA612A7142 /* ForgeSizePicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ForgeSizePicker.swift; sourceTree = "<group>"; };
 		5E451E7463159D06800E2112 /* CloudKitCommunityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCommunityService.swift; sourceTree = "<group>"; };
 		5E94FF5CF654C13C88E7CBB9 /* SetForgeEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetForgeEngineTests.swift; sourceTree = "<group>"; };
+		5F800D6D9293EFF33CB5A33F /* HoneypotServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HoneypotServiceTests.swift; sourceTree = "<group>"; };
 		5FCCEE648179E1E149AC6C1D /* clip_embeddings.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = clip_embeddings.bin; sourceTree = "<group>"; };
 		6132486D36717408A5FB1485 /* ImageRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionService.swift; sourceTree = "<group>"; };
 		61338725147C0143FDFD72F5 /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
@@ -764,6 +767,7 @@
 		C34F62C4664682E64D816799 /* ScanMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMapView.swift; sourceTree = "<group>"; };
 		C3FCA450ACD4DD3B120DCB10 /* CameraImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraImagePicker.swift; sourceTree = "<group>"; };
 		C53D992EB0C6063AE0CED1FB /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		C5A0FA133335691D60DB6648 /* HoneypotService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HoneypotService.swift; sourceTree = "<group>"; };
 		C68F10331A7DBE97B6AE405C /* MinifigureCatalogUserFiguresTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinifigureCatalogUserFiguresTests.swift; sourceTree = "<group>"; };
 		C6D2AAA757CF2ECF7728AE17 /* SortingSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortingSuggestionsView.swift; sourceTree = "<group>"; };
 		C70A4F8890AF918AA211333D /* PieceImageGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceImageGenerator.swift; sourceTree = "<group>"; };
@@ -1081,6 +1085,7 @@
 				8E43FD4D8020877FB687EE65 /* VerificationReliabilityStore.swift */,
 				363A82F3058F9C84807271F5 /* ContributionUploadQueue.swift */,
 				08647A0FB6494DBFE780ECF6 /* CorrectionIndexService.swift */,
+				C5A0FA133335691D60DB6648 /* HoneypotService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1342,6 +1347,7 @@
 				34A7D3198009551B9D02829B /* VerificationReliabilityStoreTests.swift */,
 				CD357232C3EEBBC092F308F9 /* ContributionUploadQueueTests.swift */,
 				4FB8E035421AAA7A0392A8D6 /* CorrectionIndexServiceTests.swift */,
+				5F800D6D9293EFF33CB5A33F /* HoneypotServiceTests.swift */,
 			);
 			path = BrickyTests;
 			sourceTree = "<group>";
@@ -1938,6 +1944,7 @@
 				4EE57BE9DD9C0545D1B1CA9A /* VerificationReliabilityStore.swift in Sources */,
 				1E2F6F5401F397755EC473EB /* ContributionUploadQueue.swift in Sources */,
 				A519C2137A2A6CB0B150F58D /* CorrectionIndexService.swift in Sources */,
+				57C579F61208283FEBC6BF32 /* HoneypotService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2037,6 +2044,7 @@
 				8C7590FAC7CA1FC09C32F2D6 /* VerificationReliabilityStoreTests.swift in Sources */,
 				D9830A171292171A5BAA34ED /* ContributionUploadQueueTests.swift in Sources */,
 				F460024E481DCECB13FAC3C0 /* CorrectionIndexServiceTests.swift in Sources */,
+				FD94CB3AE376966FB4DBE0F1 /* HoneypotServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
