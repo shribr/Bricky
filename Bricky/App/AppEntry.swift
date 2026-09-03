@@ -38,6 +38,8 @@ struct AppEntry: App {
                         _ = LDrawLibrary.shared.isAvailable
                     }
                     Task { await MinifigureCatalog.shared.load() }
+                    // Pull the latest crowdsourced correction index (open to all).
+                    Task { await CorrectionIndexService.shared.refresh() }
                 }
         }
     }

@@ -65,16 +65,20 @@ final class ObjectRecognitionService: ObservableObject {
         DispatchQueue.main.async { self.isProcessing = true }
 
         let startTime = Date()
-        // Snapshot the user's brick corrections up front (immutable value array)
-        // so the background reranker never reads @Published state off-thread.
+        // Snapshot corrections + server consensus up front (immutable value
+        // arrays) so the background reranker never reads @Published state off-thread.
         let corrections = BrickCorrectionStore.shared.corrections
+        let serverEntries = CorrectionIndexService.shared.entries
 
         pipeline.detectBricks(in: image) { [weak self] offlineDetections in
             guard let self else { return }
 
-            // Apply past user corrections to matching bricks (still path only).
+            // Global consensus first, then the user's own local corrections on top.
+            let serverApplied = BrickCorrectionReranker.shared.applyServerIndex(
+                to: offlineDetections, in: image, using: serverEntries
+            )
             let corrected = BrickCorrectionReranker.shared.apply(
-                to: offlineDetections, in: image, using: corrections
+                to: serverApplied, in: image, using: corrections
             )
 
             let objects = corrected.map { det in

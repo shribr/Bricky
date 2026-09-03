@@ -132,4 +132,46 @@ final class BrickCorrectionRerankerTests: XCTestCase {
         XCTAssertEqual(out.colorConfidence, 0.97, accuracy: 0.0001)
         XCTAssertEqual(out.shapeConfidence, 0.5, accuracy: 0.0001, "shape confidence unchanged")
     }
+
+    // MARK: - Server correction index
+
+    func testL2AndDecodeFloat32() {
+        XCTAssertEqual(BrickCorrectionReranker.l2([0, 0], [3, 4]) ?? -1, 5, accuracy: 0.0001)
+        let vals: [Float] = [1, -2.5, 3.25]
+        let data = vals.withUnsafeBytes { Data($0) }
+        XCTAssertEqual(BrickCorrectionReranker.decodeFloat32(data), vals)
+    }
+
+    func testApplyServerEntryOverridesShapeAndColor() throws {
+        let part = try XCTUnwrap(LegoPartsCatalog.shared.pieces.first)
+        let entry = ServerCorrectionEntry(
+            clusterId: "c1", embeddingBase64: "", shapeLabel: part.partNumber,
+            colorLabel: LegoColor.blue.rawValue, members: 5,
+            shapeConfidence: 0.9, colorConfidence: 0.8
+        )
+        let out = reranker.applyServerEntry(entry, to: detection())
+        XCTAssertEqual(out.partNumber, part.partNumber)
+        XCTAssertEqual(out.category, part.category)
+        XCTAssertEqual(out.color, .blue)
+        XCTAssertGreaterThanOrEqual(out.shapeConfidence, 0.9 - 0.0001)
+        XCTAssertGreaterThanOrEqual(out.colorConfidence, 0.8 - 0.0001)
+    }
+
+    func testApplyServerEntryColorOnlyLeavesShape() {
+        let entry = ServerCorrectionEntry(
+            clusterId: "c2", embeddingBase64: "", shapeLabel: nil,
+            colorLabel: LegoColor.blue.rawValue, members: 3,
+            shapeConfidence: 0, colorConfidence: 0.7
+        )
+        let out = reranker.applyServerEntry(entry, to: detection())
+        XCTAssertEqual(out.color, .blue, "color corrected")
+        XCTAssertEqual(out.category, .brick, "shape untouched")
+        XCTAssertEqual(out.partNumber, "9999", "shape untouched")
+    }
+
+    func testApplyServerIndexEmptyEntriesIsNoOp() {
+        let out = reranker.applyServerIndex(to: [detection()], in: gradientImage(), using: [])
+        XCTAssertEqual(out.count, 1)
+        XCTAssertEqual(out[0].color, .red)
+    }
 }

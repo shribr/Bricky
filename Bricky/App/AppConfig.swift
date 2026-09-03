@@ -154,6 +154,18 @@ enum AppConfig {
         return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/contributeFlag")
     }
 
+    /// Server endpoint that serves the crowdsourced correction index (promoted
+    /// consensus labels) to ALL users — reading improvements is open; only
+    /// contributing is gated. Overridable via `BRICKY_CORRECTION_INDEX_ENDPOINT`.
+    static var correctionIndexEndpoint: URL? {
+        if let raw = infoPlistString("BRICKY_CORRECTION_INDEX_ENDPOINT") ??
+            ProcessInfo.processInfo.environment["BRICKY_CORRECTION_INDEX_ENDPOINT"],
+           let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/correctionIndex")
+    }
+
     /// Monthly AI recognition allowance. Cloud AI is developer-only, so this is
     /// just a safety cap on the developer's own Azure GPT-4o spend; it keeps
     /// total spend under the development cost cap while testing. Everyone without

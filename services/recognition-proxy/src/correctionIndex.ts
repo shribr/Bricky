@@ -34,6 +34,18 @@ export interface CorrectionIndex {
   entries: CorrectionIndexEntry[];
 }
 
+/** Per-user tally of agreements/disagreements earned in one aggregate run. */
+export interface ReputationDelta {
+  agreed: number;
+  disagreed: number;
+}
+
+/** Result of a trust-aware aggregate: the index plus per-user reputation deltas. */
+export interface AggregateResult {
+  index: CorrectionIndex;
+  reputationDeltas: Map<string, ReputationDelta>; // per userKey, summed over promoted channels
+}
+
 /** Encode number[] as base64 of little-endian Float32 — inverse of `decodeEmbedding`. */
 function encodeEmbedding(values: number[]): string {
   const buf = Buffer.alloc(values.length * 4);
@@ -54,18 +66,31 @@ function centroid(embeddings: number[][]): number[] {
 
 /**
  * Cluster + resolve consensus, keeping only clusters where `shape.promoted ||
- * color.promoted`.
+ * color.promoted`, AND compute per-user reputation deltas earned this run.
  *
  * Entry↔cluster alignment: `computeConsensus` re-clusters internally via
  * `clusterVotes` in input order. We therefore cluster ONCE here with the SAME
- * threshold and SAME vote order, so `clusters[i]` (member embeddings for the
- * centroid) lines up exactly with `consensus[i]` (the resolved shape/color).
- * Both are deterministic single-pass, so index `i` refers to the same cluster.
+ * threshold and SAME vote order, so `clusters[i]` (member votes for the centroid
+ * + reputation scoring) lines up exactly with `consensus[i]` (the resolved
+ * shape/color). Both are deterministic single-pass, so index `i` refers to the
+ * same cluster.
+ *
+ * Reputation deltas: for each cluster, for each channel that PROMOTED (shape and
+ * color independently), the promoted `label` is the settled ground truth. Every
+ * member vote's channel label is compared to it — matching → `agreed++`, else
+ * `disagreed++`, accumulated per `userKey`. Channels/clusters that did NOT
+ * promote have no settled ground truth and contribute nothing. A user may agree
+ * on shape yet disagree on color in the same cluster.
  */
-export function buildCorrectionIndex(
+export function aggregate(
   contributions: StoredContribution[],
-  opts: { consensus?: ConsensusOptions; version?: string; now?: Date } = {},
-): CorrectionIndex {
+  opts: {
+    consensus?: ConsensusOptions;
+    version?: string;
+    now?: Date;
+    weightOf?: (userKey: string) => number;
+  } = {},
+): AggregateResult {
   const version = opts.version ?? '1';
   const generatedAt = (opts.now ?? new Date()).toISOString();
 
@@ -78,10 +103,9 @@ export function buildCorrectionIndex(
     predictedColor: c.predictedColor,
   }));
 
-  // Uniform weight for this version. Trust weighting via persisted reputation
-  // (src/reputation.ts) is a LATER slice — do not introduce a reputation store
-  // here; keep the builder pure and self-contained.
-  const weightOf = () => 1;
+  // Trust weighting is supplied by the caller (persisted reputation). Defaults
+  // to uniform weight so pure/self-contained callers behave as before.
+  const weightOf = opts.weightOf ?? (() => 1);
 
   // Pin the same threshold used by both passes so cluster i ↔ consensus i.
   const cosineThreshold = opts.consensus?.cosineThreshold;
@@ -93,10 +117,32 @@ export function buildCorrectionIndex(
   });
 
   const entries: CorrectionIndexEntry[] = [];
+  const reputationDeltas = new Map<string, ReputationDelta>();
+
+  const bump = (userKey: string, agreed: boolean): void => {
+    let d = reputationDeltas.get(userKey);
+    if (!d) {
+      d = { agreed: 0, disagreed: 0 };
+      reputationDeltas.set(userKey, d);
+    }
+    if (agreed) d.agreed++;
+    else d.disagreed++;
+  };
+
   for (let i = 0; i < consensus.length; i++) {
     const c = consensus[i];
+    const members = clusters[i];
+
+    // Earn reputation on each promoted channel against its settled label.
+    if (c.shape.promoted && c.shape.label !== null) {
+      for (const v of members) bump(v.userKey, v.shapeLabel === c.shape.label);
+    }
+    if (c.color.promoted && c.color.label !== null) {
+      for (const v of members) bump(v.userKey, v.colorLabel === c.color.label);
+    }
+
     if (!c.shape.promoted && !c.color.promoted) continue;
-    const rep = centroid(clusters[i].map((v) => v.embedding));
+    const rep = centroid(members.map((v) => v.embedding));
     entries.push({
       clusterId: `${version}-${i}`,
       embeddingBase64: encodeEmbedding(rep),
@@ -108,7 +154,18 @@ export function buildCorrectionIndex(
     });
   }
 
-  return { version, generatedAt, entries };
+  return { index: { version, generatedAt, entries }, reputationDeltas };
+}
+
+/**
+ * Build only the promoted correction index (no reputation deltas). Thin wrapper
+ * over `aggregate` so there is a single clustering/consensus path.
+ */
+export function buildCorrectionIndex(
+  contributions: StoredContribution[],
+  opts: { consensus?: ConsensusOptions; version?: string; now?: Date } = {},
+): CorrectionIndex {
+  return aggregate(contributions, opts).index;
 }
 
 // --- Persistence ---------------------------------------------------------
