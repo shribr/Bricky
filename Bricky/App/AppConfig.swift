@@ -142,6 +142,18 @@ enum AppConfig {
         return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/forgeMeshFromMultiview")
     }
 
+    /// Server endpoint that ingests anonymized brick corrections/confirmations
+    /// for crowdsourced scanner accuracy. Overridable via
+    /// `BRICKY_CONTRIBUTE_FLAG_ENDPOINT`.
+    static var contributeFlagEndpoint: URL? {
+        if let raw = infoPlistString("BRICKY_CONTRIBUTE_FLAG_ENDPOINT") ??
+            ProcessInfo.processInfo.environment["BRICKY_CONTRIBUTE_FLAG_ENDPOINT"],
+           let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "https://\(appName.lowercased())-recognition.azurewebsites.net/api/contributeFlag")
+    }
+
     /// Monthly AI recognition allowance. Cloud AI is developer-only, so this is
     /// just a safety cap on the developer's own Azure GPT-4o spend; it keeps
     /// total spend under the development cost cap while testing. Everyone without

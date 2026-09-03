@@ -197,6 +197,17 @@ struct SettingsView: View {
 
                 Divider()
 
+                // Community accuracy (strict opt-in, no photos)
+                Text("Community")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Toggle("Help Improve Bricky for Everyone", isOn: $scanSettings.shareCorrectionsEnabled)
+                Text("Shares anonymized brick corrections (no photos — just an on-device fingerprint and the label) so the scanner gets more accurate for all users. Turn off anytime.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+
                 // Scan Locations (geolocation)
                 Text("Scan Locations")
                     .font(.subheadline.weight(.semibold))

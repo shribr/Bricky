@@ -216,6 +216,13 @@ final class ScanSettings: ObservableObject {
         didSet { UserDefaults.standard.set(locationFilterRadiusKm, forKey: UserDefaultsKey.ScanSettings.locationFilterRadiusKm) }
     }
 
+    /// Opt-in: share anonymized brick corrections/confirmations (embedding +
+    /// labels only, never photos) to improve the scanner for everyone. Strict
+    /// opt-in — default off.
+    @Published var shareCorrectionsEnabled: Bool {
+        didSet { UserDefaults.standard.set(shareCorrectionsEnabled, forKey: UserDefaultsKey.ScanSettings.shareCorrectionsEnabled) }
+    }
+
     // MARK: - Pile Mesh Overlay
 
     enum MeshColorRamp: String, CaseIterable, Identifiable {
@@ -294,6 +301,7 @@ final class ScanSettings: ObservableObject {
         self.trackingMode = TrackingMode(rawValue: trackStr) ?? .screenSpace
         let meshStr = defaults.string(forKey: UserDefaultsKey.ScanSettings.meshReconstructionMode) ?? MeshReconstructionMode.onDevice.rawValue
         self.meshReconstructionMode = MeshReconstructionMode(rawValue: meshStr) ?? .onDevice
+        self.shareCorrectionsEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.shareCorrectionsEnabled)
         self.locationSnapshotsEnabled = defaults.bool(forKey: UserDefaultsKey.ScanSettings.locationSnapshotsEnabled)
         self.useCompositeMode = defaults.bool(forKey: UserDefaultsKey.ScanSettings.useCompositeMode)
         self.preRenderOnComplete = defaults.bool(forKey: UserDefaultsKey.ScanSettings.preRenderOnComplete)

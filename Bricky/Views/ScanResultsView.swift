@@ -548,6 +548,17 @@ struct ScanResultsView: View {
                     Button {
                         VerificationReliabilityStore.shared.record(predictedConfidence: piece.confidence, wasCorrect: true)
                         HapticManager.notification(.success)
+                        if ContributionUploadQueue.shared.isSharingEnabled,
+                           let box = piece.boundingBox,
+                           let source = session.sourceImage(for: piece),
+                           let crop = EditPieceView.cropImage(source, visionBox: box) {
+                            ContributionUploadQueue.shared.enqueueCorrection(
+                                crop: crop, action: "confirm", predicted: piece,
+                                userPartNumber: piece.partNumber, userColor: piece.color,
+                                userStudsWide: piece.dimensions.studsWide, userStudsLong: piece.dimensions.studsLong,
+                                correctedShape: false, correctedColor: false)
+                            Task { await ContributionUploadQueue.shared.flush() }
+                        }
                     } label: {
                         Label("Mark Correct", systemImage: "checkmark.circle")
                     }
@@ -797,6 +808,15 @@ struct EditPieceView: View {
                     correctedShape: shapeChanged,
                     correctedColor: colorChanged
                 )
+
+                // Also share it anonymously (embedding + labels, no photo) when opted in.
+                ContributionUploadQueue.shared.enqueueCorrection(
+                    crop: crop, action: "correct", predicted: original,
+                    userPartNumber: piece.partNumber, userColor: selectedColor,
+                    userStudsWide: studsWide, userStudsLong: studsLong,
+                    correctedShape: shapeChanged, correctedColor: colorChanged
+                )
+                Task { await ContributionUploadQueue.shared.flush() }
             }
         }
 
@@ -817,7 +837,7 @@ struct EditPieceView: View {
 
     /// Crop the source image to a piece's Vision bounding box (origin
     /// bottom-left, normalized) for storing as correction training data.
-    private static func cropImage(_ image: UIImage, visionBox: CGRect) -> UIImage? {
+    fileprivate static func cropImage(_ image: UIImage, visionBox: CGRect) -> UIImage? {
         guard let cg = image.cgImage else { return nil }
         let w = CGFloat(cg.width), h = CGFloat(cg.height)
         let rect = CGRect(

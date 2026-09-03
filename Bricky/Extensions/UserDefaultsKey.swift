@@ -54,6 +54,7 @@ enum UserDefaultsKey {
         static let meshColorRamp = "ScanSettings.meshColorRamp"
         static let meshReconstructionMode = "ScanSettings.meshReconstructionMode"
         static let meshResolution = "ScanSettings.meshResolution"
+        static let shareCorrectionsEnabled = "ScanSettings.shareCorrectionsEnabled"
         static let preRenderOnComplete = "ScanSettings.preRenderOnComplete"
         static let scanMode = "ScanSettings.scanMode"
         static let segmentGridSize = "ScanSettings.segmentGridSize"
