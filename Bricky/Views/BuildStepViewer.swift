@@ -75,6 +75,7 @@ struct BuildStepViewer: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray4))
                 .overlay(alignment: .topTrailing) { cameraControls }
+                .overlay(alignment: .bottomLeading) { gestureHint }
                 .accessibilityLabel(isCompletionPage ? "3D view of the completed model" : "3D assembly view showing step \(currentStep + 1) of \(totalSteps)")
 
                 stepControlPanel
@@ -242,6 +243,18 @@ struct BuildStepViewer: View {
         .padding(10)
     }
 
+    /// Tells users the two distinct manipulation gestures + zoom.
+    private var gestureHint: some View {
+        Text("1 finger: rotate · 2 fingers: move · pinch: zoom")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: Capsule())
+            .padding(10)
+            .accessibilityLabel("Gestures: one finger rotates, two fingers move, pinch zooms")
+    }
+
     private func cameraButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button {
             action()
@@ -389,7 +402,6 @@ struct BuildStepViewer: View {
             }
             sceneController.allVisibleNodes = all
             sceneController.visibleNodes = all
-            sceneController.frameCurrent()
             return
         }
         let currentEntity = step < stepEntities.count ? stepEntities[step] : 0
@@ -432,7 +444,6 @@ struct BuildStepViewer: View {
         }
         sceneController.allVisibleNodes = stepNodes.prefix(step + 1).flatMap { $0 }
         sceneController.visibleNodes = focus.isEmpty ? stepNodes.prefix(step + 1).flatMap { $0 } : focus
-        sceneController.frameCurrent()
     }
 
     // MARK: - Navigation
@@ -485,6 +496,11 @@ struct BuildStepViewer: View {
         showNodesUpToStep(currentStep)
         for node in newNodes { node.position.y -= drop }
         SCNTransaction.commit()
+
+        // Frame AFTER the pieces settle to their final positions, so a growing
+        // model recenters each step instead of framing the mid-fly-in (displaced)
+        // bounds — which is what pushed later steps off-screen.
+        sceneController.frameCurrent()
     }
 }
 
@@ -596,6 +612,8 @@ private struct InstructionSceneView: UIViewRepresentable {
         view.scene = scene
         view.pointOfView = pointOfView
         view.allowsCameraControl = true
+        // Two distinct gestures: 1-finger orbit (rotate) + 2-finger pan (move).
+        view.cameraControlConfiguration.allowsTranslation = true
         view.antialiasingMode = .multisampling2X
         view.backgroundColor = .clear
         controller.scnView = view
