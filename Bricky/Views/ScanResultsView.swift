@@ -28,6 +28,9 @@ struct ScanResultsView: View {
     @State private var showSortingSuggestions = false
     /// Search / sort / filter state for the detected pieces list.
     @StateObject private var filterState = PieceFilterSortState()
+    /// Measured accuracy from the user's own verify actions (honest, unlike the
+    /// heuristic per-piece confidence).
+    @ObservedObject private var reliability = VerificationReliabilityStore.shared
 
     var body: some View {
         Group {
@@ -181,6 +184,15 @@ struct ScanResultsView: View {
 
             // Confidence summary
             confidenceSummary
+
+            // Measured accuracy from the user's own verifications — an honest
+            // number, unlike the heuristic per-piece confidence above.
+            if let accuracy = reliability.observedAccuracy {
+                Label("Verified accuracy: \(Int(accuracy * 100))% over \(reliability.totalSamples) checks",
+                      systemImage: "checkmark.shield")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             // Sprint C — captured location. Tappable chip that opens the pin on
             // a map. Purple/lavender (not red) so it never reads as an error.
@@ -532,6 +544,18 @@ struct ScanResultsView: View {
                         } label: {
                             Label("Find in Pile Photo", systemImage: "mappin.circle.fill")
                         }
+                    }
+                    Button {
+                        VerificationReliabilityStore.shared.record(predictedConfidence: piece.confidence, wasCorrect: true)
+                        HapticManager.notification(.success)
+                    } label: {
+                        Label("Mark Correct", systemImage: "checkmark.circle")
+                    }
+                    Button {
+                        VerificationReliabilityStore.shared.record(predictedConfidence: piece.confidence, wasCorrect: false)
+                        pieceToEdit = piece
+                    } label: {
+                        Label("Mark Wrong / Fix", systemImage: "xmark.circle")
                     }
                     Button {
                         pieceToEdit = piece

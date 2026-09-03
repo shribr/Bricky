@@ -100,6 +100,20 @@ struct CameraScanView: View {
                 // Top status bar
                 topBar
 
+                // Honest world-anchored count (LiDAR/depth AR only): distinct
+                // physical bricks tracked in 3D, not per-frame detections.
+                if viewModel.isARMode && viewModel.isScanning && viewModel.trackedBrickCount > 0 {
+                    Label("\(viewModel.trackedBrickCount) counted in 3D", systemImage: "cube.transparent")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.green.opacity(0.85), in: Capsule())
+                        .padding(.top, 4)
+                        .accessibilityLabel("\(viewModel.trackedBrickCount) bricks counted in 3D")
+                }
+
                 // Lighting warning
                 if let suggestion = environmentMonitor.assessment.suggestion {
                     HStack(spacing: 8) {

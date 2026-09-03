@@ -20,6 +20,8 @@ final class CameraViewModel: ObservableObject {
     let brickTracker = BrickInstanceTracker()
     /// Screen-projected markers for already-counted bricks; refreshed each AR frame.
     @Published var countedBrickMarkers: [BrickScreenMarker] = []
+    /// Honest count of physical bricks tracked in 3D world space (AR + depth).
+    @Published private(set) var trackedBrickCount: Int = 0
     /// Live camera viewport size (set by the scan view); used to project world
     /// brick positions to screen and detections back into world space.
     var scanViewportSize: CGSize = .zero
@@ -118,6 +120,7 @@ final class CameraViewModel: ObservableObject {
         scanCoordinator.start()
         brickTracker.reset()
         countedBrickMarkers = []
+        trackedBrickCount = 0
 
         if scanSettings.scanMode == .detailed {
             statusMessage = "Slowly sweep camera over your brick pile…"
@@ -730,6 +733,7 @@ final class CameraViewModel: ObservableObject {
             ) else { return nil }
             return BrickScreenMarker(id: brick.id, point: pt, color: brick.color, label: brick.name)
         }
+        trackedBrickCount = brickTracker.count
     }
 
     /// Generate an annotated snapshot of the source image with the detected piece highlighted.
