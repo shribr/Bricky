@@ -48,18 +48,28 @@ interface ContributionEntity extends TableEntity {
   EmbeddingBase64: string;
 }
 
+/** A persisted contribution, carrying the `userKey` recorded at save time. */
+export interface StoredContribution extends ContributionObservation {
+  userKey: string;
+}
+
 export interface ContributionStore {
   save(userKey: string, obs: ContributionObservation): Promise<void>;
+  /** Read back recent contributions for batch aggregation (newest-ish first). */
+  listRecent(limit?: number): Promise<StoredContribution[]>;
 }
 
 /**
  * The narrow slice of `TableClient` this store depends on. Declaring it as a
  * structural interface lets tests inject an in-memory fake without any real
  * Azure connectivity. The production `TableClient` satisfies it directly.
+ * `listEntities` is optional so the save-only fakes in existing tests keep
+ * type-checking; the production `TableClient` provides it.
  */
 export interface ContributionTableClient {
   createTable(): Promise<unknown>;
   createEntity(entity: TableEntity): Promise<unknown>;
+  listEntities?<T extends TableEntity>(): AsyncIterable<T>;
 }
 
 function dayMarker(now = new Date()): string {
@@ -111,6 +121,32 @@ export class TableContributionStore implements ContributionStore {
       EmbeddingBase64: obs.embeddingBase64,
     };
     await this.client.createEntity(entity);
+  }
+
+  async listRecent(limit = 5000): Promise<StoredContribution[]> {
+    await this.ensureTable();
+    const out: StoredContribution[] = [];
+    if (!this.client.listEntities) return out;
+    for await (const e of this.client.listEntities<ContributionEntity>()) {
+      out.push({
+        userKey: String(e.UserKey),
+        action: e.Action === 'confirm' ? 'confirm' : 'correct',
+        predictedPartNumber: String(e.PredictedPartNumber),
+        predictedColor: String(e.PredictedColor),
+        predictedConfidence: Number(e.PredictedConfidence),
+        userPartNumber: String(e.UserPartNumber),
+        userColor: String(e.UserColor),
+        userStudsWide: Number(e.UserStudsWide),
+        userStudsLong: Number(e.UserStudsLong),
+        correctedShape: Boolean(e.CorrectedShape),
+        correctedColor: Boolean(e.CorrectedColor),
+        appVersion: String(e.AppVersion),
+        anonUserId: String(e.AnonUserId),
+        embeddingBase64: String(e.EmbeddingBase64),
+      });
+      if (out.length >= limit) break;
+    }
+    return out;
   }
 }
 
