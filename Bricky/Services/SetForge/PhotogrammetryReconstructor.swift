@@ -10,7 +10,7 @@ import RealityKit
 /// genuine 3D mesh (fed to `MeshVoxelizer`) instead of a flat single-photo
 /// relief. Device-only: PhotogrammetrySession isn't in the simulator SDK and
 /// needs a capable device, so unsupported environments return `nil` and callers
-/// fall back to the relief path.
+/// can use the four-view visual-hull path.
 enum PhotogrammetryReconstructor {
 
     /// Whether on-device photogrammetry can run here.

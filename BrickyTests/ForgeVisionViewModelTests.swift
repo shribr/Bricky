@@ -22,9 +22,12 @@ final class ForgeVisionViewModelTests: XCTestCase {
         func generateMesh(images: [Data], mime: String, size: VoxelModel.Size, entitlementToken: String) async throws -> URL { imageCalled = true; return url }
     }
 
-    private func solidImage(_ color: UIColor = .systemRed, size: CGSize = CGSize(width: 120, height: 120)) -> UIImage {
+    private func subjectImage(_ color: UIColor = .systemRed, size: CGSize = CGSize(width: 120, height: 120)) -> UIImage {
         UIGraphicsImageRenderer(size: size).image { ctx in
-            color.setFill(); ctx.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            color.setFill()
+            ctx.cgContext.fillEllipse(in: CGRect(x: 24, y: 12, width: 72, height: 96))
         }
     }
 
@@ -52,7 +55,7 @@ final class ForgeVisionViewModelTests: XCTestCase {
 
     func testNonProCannotGenerate() async {
         let vm = makeVM(pro: false)
-        vm.sourceImage = solidImage()
+        vm.sourceImage = subjectImage()
         vm.generate()
         try? await Task.sleep(nanoseconds: 200_000_000)
         XCTAssertNil(vm.result, "Scan to Set is a Pro feature; non-Pro must not generate")
@@ -60,7 +63,7 @@ final class ForgeVisionViewModelTests: XCTestCase {
 
     func testProGeneratesViaPhotoRelief() async {
         let vm = makeVM(pro: true)
-        vm.sourceImage = solidImage()
+        vm.sourceImage = subjectImage()
         vm.generate()
         await waitForResult(vm)
         XCTAssertNotNil(vm.result)
@@ -76,22 +79,27 @@ final class ForgeVisionViewModelTests: XCTestCase {
             entitlementProvider: { "tok" },
             reconstructionMode: { .cloudAI }
         )
-        vm.sourceImage = solidImage(.systemBlue)
+        vm.sourceImage = subjectImage(.systemBlue)
         vm.generate()
         await waitForResult(vm)
         XCTAssertNotNil(vm.result, "A failed mesh tier should fall back to the photo relief")
     }
 
-    func testMultiviewFallsThroughToPhotoRelief() async {
+    func testMultiviewFallsThroughToFourViewVisualHull() async {
         let vm = ForgeVisionViewModel(
             isProProvider: { true },
             meshService: StubMeshService(url: URL(fileURLWithPath: "/nonexistent/model.usdz")),
             entitlementProvider: { "tok" },
             reconstructionMode: { .cloudAI }
         )
-        vm.generateFromImages([solidImage(.systemGreen), solidImage(.systemRed)])
+        vm.generateFromImages([
+            subjectImage(.systemGreen), subjectImage(.systemRed),
+            subjectImage(.systemGreen), subjectImage(.systemRed)
+        ])
         await waitForResult(vm)
-        XCTAssertNotNil(vm.result, "Multiview failure should fall back to a single-photo relief")
+        XCTAssertNotNil(vm.result, "Multiview failure should use all four views on-device")
+        let depthPositions = Set(vm.result?.bricks.map(\.z) ?? [])
+        XCTAssertGreaterThan(depthPositions.count, 1)
     }
 
     func testOnDeviceModeSkipsCloudMeshService() async {
@@ -100,7 +108,7 @@ final class ForgeVisionViewModelTests: XCTestCase {
             isProProvider: { true }, meshService: spy,
             entitlementProvider: { "tok" }, reconstructionMode: { .onDevice }
         )
-        vm.sourceImage = solidImage()
+        vm.sourceImage = subjectImage()
         vm.generate()
         await waitForResult(vm)
         XCTAssertNotNil(vm.result)
@@ -113,7 +121,7 @@ final class ForgeVisionViewModelTests: XCTestCase {
             isProProvider: { true }, meshService: spy,
             entitlementProvider: { "tok" }, reconstructionMode: { .cloudAI }
         )
-        vm.sourceImage = solidImage()
+        vm.sourceImage = subjectImage()
         vm.generate()
         await waitForResult(vm)
         XCTAssertTrue(spy.imageCalled, "Cloud AI mode must attempt the cloud mesh service")
@@ -122,7 +130,7 @@ final class ForgeVisionViewModelTests: XCTestCase {
 
     func testMultiviewBlockedForNonPro() async {
         let vm = makeVM(pro: false)
-        vm.generateFromImages([solidImage()])
+        vm.generateFromImages([subjectImage()])
         try? await Task.sleep(nanoseconds: 200_000_000)
         XCTAssertNil(vm.result, "Multiview 3D scan is Pro-gated")
     }

@@ -25,6 +25,13 @@ import Vision
 /// engine without changing this contract.
 enum PhotoVoxelizer {
 
+    struct SilhouetteGrid {
+        let width: Int
+        let height: Int
+        let occupied: [Bool]
+        let colors: [LegoColor]
+    }
+
     enum VoxelizeError: LocalizedError {
         case unreadableImage
         case noSubject
@@ -76,19 +83,20 @@ enum PhotoVoxelizer {
             throw VoxelizeError.unreadableImage
         }
 
-        // 3. Occupancy + colour grid from the masked pixels.
-        var occupied = [Bool](repeating: false, count: gridW * gridH)
+        // 3. Occupancy + colour grid from the masked pixels. Vision masks carry
+        // transparency; opaque saliency/centre-crop fallbacks recover the
+        // silhouette by comparing pixels with the crop's border background.
+        let occupied = occupancyMask(pixels: pixels, width: gridW, height: gridH)
         var cellColors = [LegoColor](repeating: .gray, count: gridW * gridH)
         for row in 0..<gridH {
             for col in 0..<gridW {
+                let idx = row * gridW + col
+                guard occupied[idx] else { continue }
                 let offset = (row * gridW + col) * 4
-                guard pixels[offset + 3] >= 40 else { continue } // background
                 guard let match = LegoColor.closest(
                     r: pixels[offset], g: pixels[offset + 1], b: pixels[offset + 2],
                     excludeTransparent: true
                 ) else { continue }
-                let idx = row * gridW + col
-                occupied[idx] = true
                 cellColors[idx] = match.color
             }
         }
@@ -129,6 +137,165 @@ enum PhotoVoxelizer {
             source: .photo,
             subject: subject
         )
+    }
+
+    /// Builds a coarse but genuinely volumetric model from ordered
+    /// front/left/back/right views. Opposing silhouettes are merged to tolerate
+    /// small pose changes, then the front and side projections are intersected
+    /// into a visual hull instead of extruding one photo into a depth mound.
+    static func voxelize(
+        images: [UIImage],
+        size: VoxelModel.Size,
+        subject: String = "Scan"
+    ) throws -> VoxelModel {
+        guard images.count >= 4,
+              let frontImage = images[0].normalizedOrientation().cgImage,
+              let leftImage = images[1].normalizedOrientation().cgImage,
+              let backImage = images[2].normalizedOrientation().cgImage,
+              let rightImage = images[3].normalizedOrientation().cgImage else {
+            throw VoxelizeError.unreadableImage
+        }
+
+        let frontSubject = isolatedSubject(frontImage)
+        let leftSubject = isolatedSubject(leftImage)
+        let backSubject = isolatedSubject(backImage)
+        let rightSubject = isolatedSubject(rightImage)
+        let height = size.maxDimension
+        let width = max(4, min(size.maxDimension, Int(
+            (Double(height) * Double(frontSubject.width) / Double(frontSubject.height)).rounded()
+        )))
+        let depth = max(4, min(size.maxDimension, Int(
+            (Double(height) * Double(leftSubject.width) / Double(leftSubject.height)).rounded()
+        )))
+
+        guard let front = silhouetteGrid(frontSubject, width: width, height: height),
+              let left = silhouetteGrid(leftSubject, width: depth, height: height),
+              let back = silhouetteGrid(backSubject, width: width, height: height),
+              let right = silhouetteGrid(rightSubject, width: depth, height: height),
+              let model = visualHull(
+                front: front,
+                left: left,
+                back: back,
+                right: right,
+                subject: subject
+              ) else {
+            throw VoxelizeError.noSubject
+        }
+        return model
+    }
+
+    static func visualHull(
+        front: SilhouetteGrid,
+        left: SilhouetteGrid,
+        back: SilhouetteGrid,
+        right: SilhouetteGrid,
+        subject: String
+    ) -> VoxelModel? {
+        let width = front.width
+        let height = front.height
+        let depth = left.width
+        guard width > 0, height > 0, depth > 0,
+              back.width == width, back.height == height,
+              left.height == height, right.width == depth, right.height == height,
+              front.occupied.count == width * height,
+              back.occupied.count == width * height,
+              left.occupied.count == depth * height,
+              right.occupied.count == depth * height else { return nil }
+
+        var voxels: [Voxel] = []
+        voxels.reserveCapacity(width * height * depth / 2)
+        for row in 0..<height {
+            let y = height - 1 - row
+            for x in 0..<width {
+                let frontIndex = row * width + x
+                let backIndex = row * width + (width - 1 - x)
+                guard front.occupied[frontIndex] || back.occupied[backIndex] else { continue }
+                let color = front.occupied[frontIndex]
+                    ? front.colors[frontIndex]
+                    : back.colors[backIndex]
+                for z in 0..<depth {
+                    let leftIndex = row * depth + z
+                    let rightIndex = row * depth + (depth - 1 - z)
+                    guard left.occupied[leftIndex] || right.occupied[rightIndex] else { continue }
+                    voxels.append(Voxel(x: x, y: y, z: z, color: color))
+                }
+            }
+        }
+        guard !voxels.isEmpty else { return nil }
+        return VoxelModel(
+            width: width,
+            height: height,
+            depth: depth,
+            voxels: voxels,
+            source: .photo,
+            subject: subject
+        )
+    }
+
+    private static func silhouetteGrid(_ image: CGImage, width: Int, height: Int) -> SilhouetteGrid? {
+        guard let pixels = downsampleAspectFit(image, targetWidth: width, targetHeight: height) else {
+            return nil
+        }
+        let occupied = occupancyMask(pixels: pixels, width: width, height: height)
+        guard occupied.contains(true) else { return nil }
+        let colors = (0..<(width * height)).map { index -> LegoColor in
+            let offset = index * 4
+            return LegoColor.closest(
+                r: pixels[offset],
+                g: pixels[offset + 1],
+                b: pixels[offset + 2],
+                excludeTransparent: true
+            )?.color ?? .gray
+        }
+        return SilhouetteGrid(width: width, height: height, occupied: occupied, colors: colors)
+    }
+
+    /// Produces subject occupancy from a downsampled RGBA image. A real Vision
+    /// mask is authoritative. For opaque fallback crops, the median border
+    /// colour estimates a plain background and prevents the whole rectangular
+    /// photo from becoming model geometry.
+    static func occupancyMask(pixels: [UInt8], width: Int, height: Int) -> [Bool] {
+        guard width > 0, height > 0, pixels.count >= width * height * 4 else { return [] }
+
+        let pixelCount = width * height
+        if stride(from: 3, to: pixelCount * 4, by: 4).contains(where: { pixels[$0] < 250 }) {
+            return (0..<pixelCount).map { pixels[$0 * 4 + 3] >= 40 }
+        }
+
+        var borderRed: [UInt8] = []
+        var borderGreen: [UInt8] = []
+        var borderBlue: [UInt8] = []
+        func appendBorderPixel(x: Int, y: Int) {
+            let offset = (y * width + x) * 4
+            borderRed.append(pixels[offset])
+            borderGreen.append(pixels[offset + 1])
+            borderBlue.append(pixels[offset + 2])
+        }
+        for x in 0..<width {
+            appendBorderPixel(x: x, y: 0)
+            if height > 1 { appendBorderPixel(x: x, y: height - 1) }
+        }
+        if height > 2, width > 1 {
+            for y in 1..<(height - 1) {
+                appendBorderPixel(x: 0, y: y)
+                appendBorderPixel(x: width - 1, y: y)
+            }
+        }
+
+        let middle = borderRed.count / 2
+        let background = (
+            Int(borderRed.sorted()[middle]),
+            Int(borderGreen.sorted()[middle]),
+            Int(borderBlue.sorted()[middle])
+        )
+        let minimumSquaredDistance = 45 * 45
+        return (0..<pixelCount).map { index in
+            let offset = index * 4
+            let red = Int(pixels[offset]) - background.0
+            let green = Int(pixels[offset + 1]) - background.1
+            let blue = Int(pixels[offset + 2]) - background.2
+            return red * red + green * green + blue * blue >= minimumSquaredDistance
+        }
     }
 
     /// Two-pass chamfer distance transform: distance from each occupied cell to

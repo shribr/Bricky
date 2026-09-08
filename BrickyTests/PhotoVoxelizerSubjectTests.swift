@@ -11,6 +11,35 @@ import CoreGraphics
 /// helpers — `alphaBounds` and `pixelRect` — are covered.
 final class PhotoVoxelizerSubjectTests: XCTestCase {
 
+    func testOpaqueFallbackUsesBorderColorToRecoverSubjectSilhouette() {
+        let width = 5
+        let height = 5
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        for y in 1...3 {
+            for x in 1...3 {
+                let offset = (y * width + x) * 4
+                pixels[offset] = 0
+                pixels[offset + 1] = 80
+                pixels[offset + 2] = 200
+            }
+        }
+
+        let occupancy = PhotoVoxelizer.occupancyMask(pixels: pixels, width: width, height: height)
+
+        XCTAssertEqual(occupancy.filter { $0 }.count, 9)
+        XCTAssertFalse(occupancy[0])
+        XCTAssertTrue(occupancy[2 * width + 2])
+    }
+
+    func testOpaqueUniformFallbackHasNoSubjectOccupancy() {
+        var pixels = [UInt8](repeating: 180, count: 4 * 3 * 4)
+        for alphaOffset in stride(from: 3, to: pixels.count, by: 4) {
+            pixels[alphaOffset] = 255
+        }
+        let occupancy = PhotoVoxelizer.occupancyMask(pixels: pixels, width: 4, height: 3)
+        XCTAssertFalse(occupancy.contains(true))
+    }
+
     // MARK: - alphaBounds
 
     /// Builds an RGBA (premultiplied-last) buffer with a rectangular opaque

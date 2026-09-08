@@ -111,8 +111,8 @@ final class ForgeVisionViewModel: ObservableObject {
     }
 
     /// Generate a **genuinely 3D** set from multiple angle photos
-    /// (front/left/back/right) via the hosted multiview model, falling back to a
-    /// single-photo relief if the cloud path isn't available.
+    /// (front/left/back/right) via a hosted mesh, device photogrammetry, or an
+    /// on-device four-view visual hull.
     func generateFromImages(_ images: [UIImage]) {
         guard !isBusy, isProUser, !images.isEmpty else { return }
         let size = selectedSize
@@ -264,8 +264,9 @@ final class ForgeVisionViewModel: ObservableObject {
         }
         if Task.isCancelled { return }
 
-        // Tier 2 — fall back to a single-photo relief of the first angle.
-        let first = images[0]
+        // Tier 2 — reconstruct a coarse on-device visual hull from all four
+        // ordered views. Never substitute a single-photo depth mound for a 3D
+        // scan: if the views cannot produce volume, fail honestly.
         do {
             let generator: GeneratedLegoSet.Generator = meshModel != nil ? .hd : .onDevice
             let set: GeneratedLegoSet = try await Task.detached(priority: .userInitiated) {
@@ -274,7 +275,7 @@ final class ForgeVisionViewModel: ObservableObject {
                     model = meshModel
                 } else {
                     model = try PhotoVoxelizer.voxelize(
-                        image: first, size: size, subject: subject.isEmpty ? "Scan" : subject
+                        images: images, size: size, subject: subject.isEmpty ? "Scan" : subject
                     )
                 }
                 return try SetForgeEngine.shared.generate(from: model, size: size, name: name, generator: generator) { fraction in

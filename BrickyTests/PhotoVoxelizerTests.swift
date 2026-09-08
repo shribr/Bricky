@@ -35,13 +35,11 @@ final class PhotoVoxelizerTests: XCTestCase {
         XCTAssertLessThan(cropped.width, cg.width)
     }
 
-    func testSolidImageStillProducesModelViaCenterCrop() throws {
-        // No detectable subject → centre-crop fallback still yields a buildable
-        // model (robust), rather than blocking the whole feature.
+    func testSolidImageDoesNotProduceRectangularFallbackModel() {
         let image = solidImage(color: UIColor(red: 0.79, green: 0.10, blue: 0.04, alpha: 1))
-        let model = try PhotoVoxelizer.voxelize(image: image, size: .small, subject: "Red")
-        XCTAssertFalse(model.isEmpty)
-        XCTAssertEqual(model.source, .photo)
+        XCTAssertThrowsError(try PhotoVoxelizer.voxelize(image: image, size: .small, subject: "Red")) { error in
+            XCTAssertEqual(error as? PhotoVoxelizer.VoxelizeError, .noSubject)
+        }
     }
 
     func testVoxelizeSubjectImageProducesModel() throws {
@@ -56,6 +54,25 @@ final class PhotoVoxelizerTests: XCTestCase {
         XCTAssertGreaterThan(set.brickCount, 0)
         XCTAssertFalse(set.parts.isEmpty)
         XCTAssertFalse(set.steps.isEmpty)
+    }
+
+    func testFourViewsProduceVolumetricVisualHull() throws {
+        let model = try PhotoVoxelizer.voxelize(
+            images: [
+                subjectImage(color: .systemBlue),
+                subjectImage(color: .systemGreen),
+                subjectImage(color: .systemBlue),
+                subjectImage(color: .systemGreen)
+            ],
+            size: .small,
+            subject: "Person"
+        )
+
+        XCTAssertFalse(model.isEmpty)
+        XCTAssertGreaterThan(model.width, 1)
+        XCTAssertGreaterThan(model.height, 1)
+        XCTAssertGreaterThan(model.depth, 1)
+        XCTAssertGreaterThan(Set(model.voxels.map(\.z)).count, 1)
     }
 
     func testGridRespectsSizePreset() throws {
