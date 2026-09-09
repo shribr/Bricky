@@ -33,6 +33,11 @@ final class RebuildableSetsViewModel: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var rows: [Row] = []
 
+    /// Owned sets that can be fully built from the current inventory.
+    var fullyBuildableCount: Int { rows.filter { $0.completion.isComplete }.count }
+    /// Owned sets successfully evaluated (parts fetched).
+    var evaluatedSetCount: Int { rows.count }
+
     private let bomProvider: SetBOMProviding
     private let isConfigured: Bool
     private let setName: (String) -> String

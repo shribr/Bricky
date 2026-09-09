@@ -104,7 +104,7 @@ struct ScanBrickView: View {
                         .multilineTextAlignment(.center)
                 } else {
                     ForEach(Array(viewModel.candidates.enumerated()), id: \.offset) { _, candidate in
-                        CandidateRow(candidate: candidate) { color in
+                        CandidateRow(candidate: candidate, defaultColor: viewModel.lastUsedColor) { color in
                             addToInventory(candidate, color: color)
                         }
                     }
@@ -161,7 +161,17 @@ private struct CandidateRow: View {
     let candidate: BrickognizeService.MatchedPart
     let onAdd: (LegoColor) -> Void
 
-    @State private var color: LegoColor = .red
+    @State private var color: LegoColor
+
+    init(
+        candidate: BrickognizeService.MatchedPart,
+        defaultColor: LegoColor,
+        onAdd: @escaping (LegoColor) -> Void
+    ) {
+        self.candidate = candidate
+        self.onAdd = onAdd
+        _color = State(initialValue: defaultColor)
+    }
 
     var body: some View {
         HStack(spacing: 12) {

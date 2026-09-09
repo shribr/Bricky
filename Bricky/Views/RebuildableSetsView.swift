@@ -47,6 +47,11 @@ struct RebuildableSetsView: View {
     private var list: some View {
         ScrollView {
             VStack(spacing: 12) {
+                Text("\(viewModel.fullyBuildableCount) of \(viewModel.evaluatedSetCount) owned sets fully buildable")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 ForEach(viewModel.rows) { row in
                     Button { selected = row } label: { RebuildRow(row: row) }
                         .buttonStyle(.plain)

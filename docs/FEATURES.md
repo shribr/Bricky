@@ -12,6 +12,7 @@ Detailed feature descriptions and status for Bricky. For a short summary see the
 | --- | --- | --- |
 | AR brick scanning | ✅ 🧪 | Real-time piece detection with confidence scoring and spatial tracking via ARKit + Vision. |
 | Photo scanning | ✅ | Scan a picked or captured still image; trace the area to scan. Works without a live camera. |
+| Scan one brick | ✅ | Center a single brick and the cloud recognizer (Brickognize) returns ranked candidates to confirm — with a color you pick — into a *Scanned Bricks* inventory. The accurate per-brick path; honors the cloud-recognition setting. |
 | Minifigure identification | ✅ | Fast color cascade → CoreML torso embedding → head/face refinement against a 16K+ figure catalog. |
 | AI subject recognition | 🛠️ dev-only | "Who or What Is This?" — identify famous people, cartoon/film characters, landmarks and famous places, and musicians in a photo via cloud GPT-4o vision. **Hidden, developer-only feature** unlocked solely by the in-app developer override; not exposed to users and not part of any paid tier. The Azure key stays server-side behind the recognition proxy, which accepts only the developer-bypass token. |
 | AI set identification | 🛠️ dev-only | "Identify a Set" — scan an already-built model and find out which official LEGO set it is via cloud GPT-4o vision. Proposes up to three candidates, grounded against the bundled set catalog (verified matches vs. clearly-flagged unverified guesses). **Hidden, developer-only feature** that only appears on the Scanner landing when the in-app developer override is on; reserved as the flagship of a future paid monthly tier. Azure key stays server-side behind the recognition proxy. |
@@ -28,6 +29,7 @@ Detailed feature descriptions and status for Bricky. For a short summary see the
 | Storage bins | ✅ | Group pieces into bins with physical locations. |
 | Import | ✅ | Import inventories from CSV/XML into a new inventory. |
 | Piece & set catalog | ✅ | Browse the LEGO piece catalog and set information; track owned sets and completion. |
+| Sets you can rebuild | ✅ | For each set you own, shows buildable coverage % and the exact missing parts from your scanned inventory — color-aware against each set's real Rebrickable parts list. Needs a Rebrickable key/proxy; unfetchable sets are omitted, not guessed. |
 
 ## Build & create
 

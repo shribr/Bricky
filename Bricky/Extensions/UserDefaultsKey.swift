@@ -41,6 +41,7 @@ enum UserDefaultsKey {
     static let trackingMode = "trackingMode"
     static let scanAutoEnhanceEnabled = "scanAutoEnhanceEnabled"
     static let scanShadowRemovalEnabled = "scanShadowRemovalEnabled"
+    static let lastScannedBrickColor = "scanBrick.lastColor"
 
     // MARK: ScanSettings (owned by `ScanSettings`)
 

@@ -29,15 +29,24 @@ final class ScanBrickViewModel: ObservableObject {
     @Published private(set) var candidates: [BrickognizeService.MatchedPart] = []
     @Published var capturedImage: UIImage?
 
+    /// The color last confirmed by the user, persisted so the picker defaults to
+    /// it on the next brick (people often add several bricks of one color).
+    @Published private(set) var lastUsedColor: LegoColor
+
     private let identifier: PartIdentifying
     private let isCloudEnabled: () -> Bool
+    private let defaults: UserDefaults
 
     init(
         identifier: PartIdentifying = BrickognizeService.shared,
-        isCloudEnabled: @escaping () -> Bool = { ScanSettings.shared.cloudFallbackEnabled }
+        isCloudEnabled: @escaping () -> Bool = { ScanSettings.shared.cloudFallbackEnabled },
+        defaults: UserDefaults = .standard
     ) {
         self.identifier = identifier
         self.isCloudEnabled = isCloudEnabled
+        self.defaults = defaults
+        let stored = defaults.string(forKey: UserDefaultsKey.lastScannedBrickColor)
+        self.lastUsedColor = stored.flatMap { LegoColor(fromString: $0) } ?? .red
     }
 
     /// Identify a captured single-brick photo. Honest states: `.cloudDisabled`
@@ -87,6 +96,13 @@ final class ScanBrickViewModel: ObservableObject {
         store: InventoryStore = .shared
     ) {
         store.addPiece(inventoryPiece(for: candidate, color: color, quantity: quantity), to: inventoryId)
+        rememberColor(color)
+    }
+
+    /// Persist the last-confirmed color so the next brick defaults to it.
+    private func rememberColor(_ color: LegoColor) {
+        lastUsedColor = color
+        defaults.set(color.rawValue, forKey: UserDefaultsKey.lastScannedBrickColor)
     }
 
     func reset() {

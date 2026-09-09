@@ -58,6 +58,8 @@ final class RebuildableSetsViewModelTests: XCTestCase {
         XCTAssertEqual(vm.rows.map(\.setNumber), ["full", "half", "none"])
         XCTAssertTrue(vm.rows[0].completion.isComplete)
         XCTAssertEqual(vm.rows[1].completion.coverage, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(vm.fullyBuildableCount, 1)
+        XCTAssertEqual(vm.evaluatedSetCount, 3)
     }
 
     func testFailingSetsAreSkippedButOthersEvaluated() async {

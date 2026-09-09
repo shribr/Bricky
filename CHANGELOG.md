@@ -12,6 +12,18 @@ is `CURRENT_PROJECT_VERSION`.
 
 ### Added
 
+- **Scan One Brick.** A new Scanner entry that identifies a single, centered
+  brick with the cloud recognizer (Brickognize `predict/parts`) and lets you
+  confirm a ranked candidate — with a color you pick — into a *Scanned Bricks*
+  inventory. This is the accurate per-brick path (one part per capture), distinct
+  from the heuristic pile scanner. Honors the existing cloud-recognition setting
+  and never invents a color the recognizer can't see.
+- **Sets You Can Rebuild.** A new Scanner entry that checks each set you own
+  against your scanned inventory and shows how much of it you can build plus the
+  exact parts you're missing, ranked most-buildable-first. Coverage is
+  color-aware and computed against each set's real Rebrickable parts list via the
+  offline `SetCompletionEngine`; sets whose parts can't be fetched are omitted
+  rather than guessed.
 - **3D model preview on a project's Overview.** The Overview hero is now an
   auto-rotating (drag-to-rotate) 3D render of the finished model built from its
   actual pieces, instead of a flat icon. Falls back to the icon only when a
@@ -118,6 +130,23 @@ is `CURRENT_PROJECT_VERSION`.
 - **Shareable puzzle results** — Solving a puzzle offers a Wordle-style share
   card (filled/empty square grid for clues used, win streak, and score) via the
   standard share sheet. `PuzzleEngine.shareText(for:)`.
+
+### Fixed
+
+- **Pile scanner no longer invents bricks on plain backgrounds.** A solid or
+  textured backdrop (e.g. a black or ribbed-green scanning mat) used to be turned
+  into dozens or hundreds of phantom pieces. The classifier now estimates the
+  backdrop by color family and rejects background-colored regions, and the
+  grid fallback groups real foreground regions instead of labeling every cell a
+  brick. Pixel decoding was also made byte-order-deterministic.
+- **Live scan no longer double-counts one brick.** Nested/overlapping detections
+  from the same physical brick (and per-frame jitter) are now de-duplicated by
+  containment as well as overlap, while genuinely stacked bricks separated by
+  depth still count individually.
+- **Correct brick color on colored surfaces.** Gray-world white balance is now
+  estimated only from near-neutral pixels, so a saturated backdrop (e.g. a green
+  mat) no longer skews a real brick's color (a yellow brick was reading as
+  orange).
 
 ### Changed
 

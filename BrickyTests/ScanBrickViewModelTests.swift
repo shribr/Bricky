@@ -123,4 +123,33 @@ final class ScanBrickViewModelTests: XCTestCase {
         XCTAssertEqual(inv?.pieces.first?.partNumber, "3001")
         XCTAssertEqual(inv?.pieces.first?.quantity, 2)
     }
+
+    func testConfirmRemembersLastUsedColor() {
+        let suiteName = "ScanBrickColorTest-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = InventoryStore.shared
+        let invId = store.createInventory(name: "ScanBrickColorTest-\(UUID().uuidString)")
+        defer { store.deleteInventory(id: invId) }
+
+        let vm = ScanBrickViewModel(
+            identifier: StubIdentifier(result: .success([])),
+            isCloudEnabled: { true },
+            defaults: defaults
+        )
+        XCTAssertEqual(vm.lastUsedColor, .red, "Defaults to red before any confirm")
+
+        let candidate = part(id: "3001", name: "Brick", matchedPartNumber: "3001", isCatalogMatch: true)
+        vm.confirm(candidate, color: .blue, into: invId, store: store)
+        XCTAssertEqual(vm.lastUsedColor, .blue)
+
+        // A fresh VM on the same defaults reads the persisted color.
+        let vm2 = ScanBrickViewModel(
+            identifier: StubIdentifier(result: .success([])),
+            isCloudEnabled: { true },
+            defaults: defaults
+        )
+        XCTAssertEqual(vm2.lastUsedColor, .blue)
+    }
 }
