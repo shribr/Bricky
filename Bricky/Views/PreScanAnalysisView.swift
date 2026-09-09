@@ -17,6 +17,8 @@ struct PreScanAnalysisView: View {
     @State private var showDescribeSet = false
     @State private var showScanToSet = false
     @State private var showForgedSets = false
+    @State private var showScanBrick = false
+    @State private var showRebuildableSets = false
     @ObservedObject private var subscriptions = SubscriptionManager.shared
 
     /// Caps form-control width so buttons never stretch edge-to-edge on iPad.
@@ -69,6 +71,28 @@ struct PreScanAnalysisView: View {
                         )
                     }
                     .accessibilityHint("Opens the photo picker so you can scan an existing image")
+
+                    Button {
+                        showScanBrick = true
+                    } label: {
+                        actionLabel(
+                            icon: "cube",
+                            title: "Scan One Brick",
+                            subtitle: "Center a single brick for an accurate cloud match, then add it to your inventory"
+                        )
+                    }
+                    .accessibilityHint("Opens the single-brick cloud recognizer")
+
+                    Button {
+                        showRebuildableSets = true
+                    } label: {
+                        actionLabel(
+                            icon: "checklist",
+                            title: "Sets You Can Rebuild",
+                            subtitle: "See which of your owned sets you can build from your scanned bricks — and what's missing"
+                        )
+                    }
+                    .accessibilityHint("Shows buildable sets and missing parts from your inventory")
 
                     Button {
                         showScanToSet = true
@@ -139,6 +163,12 @@ struct PreScanAnalysisView: View {
         }
         .navigationDestination(isPresented: $showForgedSets) {
             GeneratedSetsGalleryView()
+        }
+        .navigationDestination(isPresented: $showScanBrick) {
+            ScanBrickView()
+        }
+        .navigationDestination(isPresented: $showRebuildableSets) {
+            RebuildableSetsView()
         }
         .fullScreenCover(isPresented: $showPhotoScan) {
             PhotoScanView()
