@@ -155,7 +155,8 @@ class ScanSession: ObservableObject, Identifiable {
                     return avgDiag > 0 && dist < avgDiag * 0.35
                 }()
 
-                let overlapping = (iou > 0.25) || centroidClose
+                let substantiallyContained = intersectionOverSmaller(box, existingBox) > 0.8
+                let overlapping = (iou > 0.25) || centroidClose || substantiallyContained
                 guard overlapping else { continue }
 
                 // Depth-aware separation: if both detections have depth and
@@ -210,6 +211,14 @@ class ScanSession: ObservableObject, Identifiable {
         let unionArea = Double(a.width * a.height + b.width * b.height) - intersectionArea
         guard unionArea > 0 else { return 0 }
         return intersectionArea / unionArea
+    }
+
+    private func intersectionOverSmaller(_ a: CGRect, _ b: CGRect) -> Double {
+        let intersection = a.intersection(b)
+        guard !intersection.isNull else { return 0 }
+        let smallerArea = min(a.width * a.height, b.width * b.height)
+        guard smallerArea > 0 else { return 0 }
+        return Double(intersection.width * intersection.height / smallerArea)
     }
 
     func removePiece(_ piece: LegoPiece) {

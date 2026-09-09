@@ -40,14 +40,32 @@ enum IlluminationNormalizer {
 
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: n, height: n))
 
+        // Estimate the illuminant from near-neutral pixels only. A strongly
+        // colored background (e.g. a green scanning mat) violates the gray-world
+        // assumption and would otherwise skew a real brick's color.
         var sumR: CGFloat = 0, sumG: CGFloat = 0, sumB: CGFloat = 0
-        let count = CGFloat(n * n)
-        for i in 0..<(n * n) {
+        var neutralCount = 0
+        let total = n * n
+        for i in 0..<total {
             let o = i * 4
-            sumR += CGFloat(pixels[o])
-            sumG += CGFloat(pixels[o + 1])
-            sumB += CGFloat(pixels[o + 2])
+            let r = CGFloat(pixels[o])
+            let g = CGFloat(pixels[o + 1])
+            let b = CGFloat(pixels[o + 2])
+            let maxC = max(r, g, b)
+            let minC = min(r, g, b)
+            guard maxC > 0 else { continue }
+            // Chroma ratio: 0 = gray, →1 = saturated. Keep only low-chroma pixels.
+            if (maxC - minC) / maxC <= 0.25 {
+                sumR += r
+                sumG += g
+                sumB += b
+                neutralCount += 1
+            }
         }
+
+        // Too few neutral pixels to trust a cast estimate — leave color as-is.
+        guard neutralCount >= total / 10 else { return .identity }
+        let count = CGFloat(neutralCount)
         return gains(meanR: sumR / count, meanG: sumG / count, meanB: sumB / count)
     }
 

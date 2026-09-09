@@ -54,6 +54,38 @@ final class ScanSessionTests: XCTestCase {
         XCTAssertEqual(session.totalPiecesFound, 2)
     }
 
+    @MainActor
+    func testNestedOffsetDetectionsCountAsOnePhysicalBrick() {
+        let outerBox = CGRect(x: 0.25, y: 0.35, width: 0.50, height: 0.28)
+        let leftDetail = CGRect(x: 0.28, y: 0.39, width: 0.10, height: 0.10)
+        let rightDetail = CGRect(x: 0.62, y: 0.48, width: 0.10, height: 0.10)
+
+        session.addPiece(makePiece(partNumber: "3001", color: .red, boundingBox: outerBox))
+        session.addPiece(makePiece(partNumber: "4073", category: .round, color: .red, boundingBox: leftDetail))
+        session.addPiece(makePiece(partNumber: "3024", category: .plate, color: .darkRed, boundingBox: rightDetail))
+
+        XCTAssertEqual(session.pieces.count, 1)
+        XCTAssertEqual(session.totalPiecesFound, 1)
+    }
+
+    @MainActor
+    func testContainedDetectionsAtDifferentDepthsRemainSeparate() {
+        let lowerBox = CGRect(x: 0.25, y: 0.35, width: 0.50, height: 0.28)
+        let upperBox = CGRect(x: 0.34, y: 0.40, width: 0.25, height: 0.12)
+
+        session.addPiece(
+            makePiece(partNumber: "3001", color: .red, boundingBox: lowerBox),
+            depth: 0.50
+        )
+        session.addPiece(
+            makePiece(partNumber: "3020", category: .plate, color: .blue, boundingBox: upperBox),
+            depth: 0.55
+        )
+
+        XCTAssertEqual(session.pieces.count, 2)
+        XCTAssertEqual(session.totalPiecesFound, 2)
+    }
+
     // MARK: - Remove Piece
 
     @MainActor
@@ -127,14 +159,16 @@ final class ScanSessionTests: XCTestCase {
     private func makePiece(
         partNumber: String = "3001",
         category: PieceCategory = .brick,
-        color: LegoColor = .red
+        color: LegoColor = .red,
+        boundingBox: CGRect? = nil
     ) -> LegoPiece {
         LegoPiece(
             partNumber: partNumber,
             name: "Test Piece",
             category: category,
             color: color,
-            dimensions: PieceDimensions(studsWide: 2, studsLong: 4, heightUnits: 3)
+            dimensions: PieceDimensions(studsWide: 2, studsLong: 4, heightUnits: 3),
+            boundingBox: boundingBox
         )
     }
 }

@@ -4,7 +4,9 @@ import UIKit
 
 final class BrickClassificationPipelineTests: XCTestCase {
 
-    private func image(redBrick: CGRect? = nil) -> UIImage {
+    private let pipeline = BrickClassificationPipeline()
+
+    private func image(redBrick: CGRect? = nil, texturedBackground: Bool = false) -> UIImage {
         let size = 360
         let context = CGContext(
             data: nil,
@@ -18,6 +20,16 @@ final class BrickClassificationPipelineTests: XCTestCase {
         )!
         context.setFillColor(UIColor.black.cgColor)
         context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        if texturedBackground {
+            context.setStrokeColor(UIColor(white: 0.10, alpha: 1).cgColor)
+            context.setLineWidth(3)
+            for offset in stride(from: 30, through: 330, by: 30) {
+                context.strokeEllipse(in: CGRect(x: offset, y: 24, width: 14, height: 14))
+                context.strokeEllipse(in: CGRect(x: 24, y: offset, width: 14, height: 14))
+                context.strokeEllipse(in: CGRect(x: offset, y: 322, width: 14, height: 14))
+                context.strokeEllipse(in: CGRect(x: 322, y: offset, width: 14, height: 14))
+            }
+        }
         if let redBrick {
             context.setFillColor(UIColor.red.cgColor)
             context.fill(redBrick)
@@ -25,10 +37,72 @@ final class BrickClassificationPipelineTests: XCTestCase {
         return UIImage(cgImage: context.makeImage()!)
     }
 
+    private func greenRibbedMat(yellowPlate: CGRect? = nil) -> UIImage {
+        let size = 360
+        let context = CGContext(
+            data: nil,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue |
+                CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        context.setFillColor(UIColor(red: 0.12, green: 0.38, blue: 0.18, alpha: 1).cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        for column in 0..<12 {
+            let x = CGFloat(column * 30)
+            let shade = column.isMultiple(of: 2) ? 0.16 : 0.26
+            context.setFillColor(UIColor(red: 0.06, green: shade, blue: 0.10, alpha: 1).cgColor)
+            context.fill(CGRect(x: x + 3, y: 0, width: 22, height: CGFloat(size)))
+        }
+        if let yellowPlate {
+            context.setFillColor(UIColor.yellow.cgColor)
+            context.fill(yellowPlate)
+        }
+        return UIImage(cgImage: context.makeImage()!)
+    }
+
     func testSolidBlackBackgroundProducesNoBrickDetections() {
         let result = expectation(description: "Brick detection completes")
-        BrickClassificationPipeline().detectBricks(in: image()) { detections in
+        pipeline.detectBricks(in: image()) { detections in
             XCTAssertTrue(detections.isEmpty)
+            result.fulfill()
+        }
+
+        wait(for: [result], timeout: 10)
+    }
+
+    func testLowContrastTextureOnBlackBackgroundProducesNoDetections() {
+        let result = expectation(description: "Brick detection completes")
+        pipeline.detectBricks(in: image(texturedBackground: true)) { detections in
+            XCTAssertTrue(
+                detections.isEmpty,
+                "Background texture produced \(detections.count) fake bricks"
+            )
+            result.fulfill()
+        }
+
+        wait(for: [result], timeout: 10)
+    }
+
+    func testRibbedGreenMatProducesNoDetections() {
+        let result = expectation(description: "Brick detection completes")
+        pipeline.detectBricks(in: greenRibbedMat()) { detections in
+            XCTAssertTrue(detections.isEmpty, "Green mat produced \(detections.count) fake bricks")
+            result.fulfill()
+        }
+
+        wait(for: [result], timeout: 10)
+    }
+
+    func testYellowPlateOnRibbedGreenMatProducesOneDetection() {
+        let result = expectation(description: "Brick detection completes")
+        let image = greenRibbedMat(yellowPlate: CGRect(x: 105, y: 145, width: 150, height: 70))
+        pipeline.detectBricks(in: image) { detections in
+            XCTAssertEqual(detections.count, 1, "One yellow plate must produce one detection")
+            XCTAssertEqual(detections.first?.color, .yellow)
             result.fulfill()
         }
 
@@ -38,9 +112,8 @@ final class BrickClassificationPipelineTests: XCTestCase {
     func testSingleRedBrickOnBlackBackgroundDoesNotDetectBackgroundAsBricks() {
         let result = expectation(description: "Brick detection completes")
         let scanImage = image(redBrick: CGRect(x: 105, y: 145, width: 150, height: 70))
-        let pipeline = BrickClassificationPipeline()
         pipeline.detectBricks(in: scanImage) { detections in
-            XCTAssertLessThanOrEqual(detections.count, 5)
+            XCTAssertEqual(detections.count, 1, "One physical brick must produce one detection")
             XCTAssertFalse(detections.contains(where: { $0.color == .black }))
             XCTAssertTrue(
                 detections.contains(where: { $0.color == .red || $0.color == .darkRed }),
