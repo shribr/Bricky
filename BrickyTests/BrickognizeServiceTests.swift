@@ -321,6 +321,69 @@ final class BrickognizeServiceTests: XCTestCase {
         XCTAssertTrue(url?.path.hasPrefix("/predict/figs") == true)
     }
 
+    func testPredictPartsURL() {
+        let url = URL(string: "https://api.brickognize.com/predict/parts/")
+        XCTAssertNotNil(url)
+        XCTAssertEqual(url?.host, "api.brickognize.com")
+        XCTAssertTrue(url?.path.hasPrefix("/predict/parts") == true)
+    }
+
+    // MARK: - Parts Response Parsing
+
+    func testBrickognizePartsResponseParsing() throws {
+        // The /predict/parts/ endpoint returns the same schema as /predict/figs/,
+        // with item type "part" and BrickLink part numbers as ids.
+        let json = """
+        {
+            "listing_id": "res-part-1",
+            "bounding_box": {
+                "left": 10, "upper": 10, "right": 90, "lower": 90,
+                "image_width": 100, "image_height": 100, "score": 0.88
+            },
+            "items": [
+                {"id": "3001", "name": "Brick 2 x 4", "img_url": null, "external_sites": [{"name": "bricklink", "url": "https://www.bricklink.com/v2/catalog/catalogitem.page?P=3001"}], "category": "Brick", "type": "part", "score": 0.94},
+                {"id": "3622a", "name": "Brick 1 x 3", "img_url": null, "external_sites": [], "category": "Brick", "type": "part", "score": 0.61}
+            ]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder().decode(BrickognizeTestResponse.self, from: json)
+        XCTAssertEqual(response.items.count, 2)
+        XCTAssertEqual(response.items[0].id, "3001")
+        XCTAssertEqual(response.items[0].type, "part")
+        XCTAssertEqual(response.items[0].name, "Brick 2 x 4")
+        XCTAssertGreaterThan(response.items[0].score, response.items[1].score)
+    }
+
+    // MARK: - Part ID → Catalog Mapping
+
+    func testPartLookupCandidatesStripsTrailingLetters() {
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: "3001"), ["3001"])
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: "3622a"), ["3622a", "3622"])
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: " 3001old "), ["3001old", "3001"])
+    }
+
+    func testPartLookupCandidatesHandlesEmptyAndAllLetters() {
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: ""), [])
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: "   "), [])
+        // An all-letter id has no numeric variant to add.
+        XCTAssertEqual(BrickognizeService.partLookupCandidates(for: "abc"), ["abc"])
+    }
+
+    func testPartCandidatesResolveToRealCatalogEntry() {
+        // A raw Brickognize part id ("3001") resolves directly.
+        let direct = BrickognizeService.partLookupCandidates(for: "3001")
+            .compactMap { LegoPartsCatalog.shared.piece(byPartNumber: $0) }
+            .first
+        XCTAssertEqual(direct?.partNumber, "3001")
+
+        // A design-id with a trailing letter resolves via the stripped variant.
+        let stripped = BrickognizeService.partLookupCandidates(for: "3002x")
+            .compactMap { LegoPartsCatalog.shared.piece(byPartNumber: $0) }
+            .first
+        XCTAssertEqual(stripped?.partNumber, "3002")
+    }
+
     // MARK: - Image Size Capping
 
     func testImageSizeCapping() {

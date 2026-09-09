@@ -42,9 +42,21 @@ actor BrickognizeService {
         let matchConfidence: Double
     }
 
+    /// A recognized brick/part with its best local catalog match (if any).
+    struct MatchedPart: Sendable {
+        let prediction: PredictionResult
+        let matchedPartNumber: String?
+        let matchedName: String?
+        let matchedCategory: PieceCategory?
+        let matchedDimensions: PieceDimensions?
+        /// True when `matchedPartNumber` resolved to a real catalog entry.
+        let isCatalogMatch: Bool
+    }
+
     // MARK: - Configuration
 
     private let apiURL = URL(string: "https://api.brickognize.com/predict/figs/")!
+    private let partsURL = URL(string: "https://api.brickognize.com/predict/parts/")!
     private let session: URLSession
     private var lastRequestTime: Date = .distantPast
     private let minRequestInterval: TimeInterval = 1.0
@@ -64,6 +76,21 @@ actor BrickognizeService {
     /// Identify a minifigure image using the Brickognize cloud API.
     /// Returns up to `maxResults` predictions with matched catalog figures.
     func identify(image: UIImage, maxResults: Int = 5) async throws -> [MatchedResult] {
+        let predictions = try await predict(image: image, endpoint: apiURL, maxResults: maxResults)
+        // Match predictions against our catalog
+        return await matchPredictions(predictions)
+    }
+
+    /// Identify a single brick/part using the Brickognize cloud API.
+    /// Expects one part roughly centered in frame. Returns up to `maxResults`
+    /// ranked predictions, each mapped to a local catalog entry when possible.
+    func identifyPart(image: UIImage, maxResults: Int = 5) async throws -> [MatchedPart] {
+        let predictions = try await predict(image: image, endpoint: partsURL, maxResults: maxResults)
+        return await matchParts(predictions)
+    }
+
+    /// Shared upload + decode for the Brickognize `predict/*` endpoints.
+    private func predict(image: UIImage, endpoint: URL, maxResults: Int) async throws -> [PredictionResult] {
         // Rate limit
         let elapsed = Date().timeIntervalSince(lastRequestTime)
         if elapsed < minRequestInterval {
@@ -91,7 +118,7 @@ actor BrickognizeService {
         body.append(data)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
-        var request = URLRequest(url: apiURL)
+        var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.setValue("Bricky/1.0 (iOS LEGO Scanner)", forHTTPHeaderField: "User-Agent")
@@ -130,8 +157,7 @@ actor BrickognizeService {
             Self.logger.info("  Top: \(top.brickLinkID) \"\(top.name)\" score=\(String(format: "%.3f", top.score))")
         }
 
-        // Match predictions against our catalog
-        return await matchPredictions(Array(predictions))
+        return Array(predictions)
     }
 
     /// Check if the Brickognize API is reachable.
@@ -146,6 +172,55 @@ actor BrickognizeService {
     }
 
     // MARK: - Private
+
+    /// Map Brickognize part predictions to the local parts catalog.
+    ///
+    /// Brickognize returns BrickLink-style part IDs (e.g. "3001", "3622")
+    /// that usually match Rebrickable part numbers directly. We try an exact
+    /// catalog lookup first, then a design-ID variant with any trailing letter
+    /// stripped (BrickLink "3001old" / "98283" quirks). No fabrication: when no
+    /// catalog entry resolves, the prediction is still returned with
+    /// `isCatalogMatch == false` so callers can show the raw name honestly.
+    private func matchParts(_ predictions: [PredictionResult]) async -> [MatchedPart] {
+        let catalog = LegoPartsCatalog.shared
+        return predictions.map { prediction in
+            let candidates = Self.partLookupCandidates(for: prediction.brickLinkID)
+            let match = candidates.lazy.compactMap { catalog.piece(byPartNumber: $0) }.first
+
+            if let match {
+                return MatchedPart(
+                    prediction: prediction,
+                    matchedPartNumber: match.partNumber,
+                    matchedName: match.name,
+                    matchedCategory: match.category,
+                    matchedDimensions: match.dimensions,
+                    isCatalogMatch: true
+                )
+            }
+            return MatchedPart(
+                prediction: prediction,
+                matchedPartNumber: nil,
+                matchedName: prediction.name,
+                matchedCategory: nil,
+                matchedDimensions: nil,
+                isCatalogMatch: false
+            )
+        }
+    }
+
+    /// Ordered, de-duplicated catalog lookup keys for a Brickognize part ID.
+    /// Tries the raw ID first, then a variant with any trailing letters
+    /// stripped (BrickLink design-ID quirks like "3001old" or "3622a").
+    nonisolated static func partLookupCandidates(for brickLinkID: String) -> [String] {
+        let raw = brickLinkID.trimmingCharacters(in: .whitespaces)
+        guard !raw.isEmpty else { return [] }
+        var candidates = [raw]
+        let trimmedTrailingLetters = String(raw.reversed().drop(while: { $0.isLetter }).reversed())
+        if !trimmedTrailingLetters.isEmpty, trimmedTrailingLetters != raw {
+            candidates.append(trimmedTrailingLetters)
+        }
+        return candidates
+    }
 
     /// Match Brickognize predictions (BrickLink IDs/names) to our Rebrickable catalog.
     private func matchPredictions(_ predictions: [PredictionResult]) async -> [MatchedResult] {
