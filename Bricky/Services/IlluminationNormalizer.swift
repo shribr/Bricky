@@ -34,7 +34,8 @@ enum IlluminationNormalizer {
             bitsPerComponent: 8,
             bytesPerRow: n * 4,
             space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue |
+                CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return .identity }
 
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: n, height: n))

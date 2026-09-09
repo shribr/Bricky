@@ -54,6 +54,7 @@ final class BrickClassificationPipeline {
             // Estimate a global gray-world illuminant once, then apply it to
             // every crop so a colored light cast doesn't shift classified colors.
             let gains = IlluminationNormalizer.estimateGrayWorldGains(from: cgImage)
+            let backgroundColor = self.estimateBackgroundColor(in: cgImage, gains: gains)
 
             // Stage 1: Object proposals via rectangle + contour detection
             let (proposals, contourPaths) = self.generateObjectProposals(cgImage: cgImage)
@@ -64,15 +65,22 @@ final class BrickClassificationPipeline {
                     cgImage: cgImage,
                     boundingBox: proposal,
                     imageSize: imageSize,
-                    gains: gains
+                    gains: gains,
+                    backgroundColor: backgroundColor
                 ) {
                     allDetections.append(detection)
                 }
             }
 
-            // Stage 3: If few detections, use saliency + grid fallback
+            // Stage 3: If few detections, group foreground grid cells into
+            // regions. Never treat individual cells as pieces.
             if allDetections.count < 15 {
-                let gridDetections = self.gridBasedDetection(cgImage: cgImage, imageSize: imageSize, gains: gains)
+                let gridDetections = self.gridBasedDetection(
+                    cgImage: cgImage,
+                    imageSize: imageSize,
+                    gains: gains,
+                    backgroundColor: backgroundColor
+                )
                 allDetections.append(contentsOf: gridDetections)
             }
 
@@ -97,6 +105,7 @@ final class BrickClassificationPipeline {
 
         // Per-frame gray-world illuminant estimate, applied to every crop below.
         let gains = IlluminationNormalizer.estimateGrayWorldGains(from: cgImage)
+        let backgroundColor = estimateBackgroundColor(in: cgImage, gains: gains)
 
         // Lightweight: rectangles + contours for live preview
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
@@ -136,7 +145,8 @@ final class BrickClassificationPipeline {
                 cgImage: cgImage,
                 boundingBox: box,
                 imageSize: imageSize,
-                gains: gains
+                gains: gains,
+                backgroundColor: backgroundColor
             ) {
                 detections.append(detection)
             }
@@ -318,7 +328,13 @@ final class BrickClassificationPipeline {
 
     // MARK: - Stage 2: Region Classification
 
-    private func classifyRegion(cgImage: CGImage, boundingBox: CGRect, imageSize: CGSize, gains: WhiteBalanceGains = .identity) -> BrickDetection? {
+    private func classifyRegion(
+        cgImage: CGImage,
+        boundingBox: CGRect,
+        imageSize: CGSize,
+        gains: WhiteBalanceGains = .identity,
+        backgroundColor: LegoColor? = nil
+    ) -> BrickDetection? {
         // Extract the region from the image
         let pixelRect = CGRect(
             x: boundingBox.origin.x * imageSize.width,
@@ -334,9 +350,7 @@ final class BrickClassificationPipeline {
         // Color analysis
         let (dominantColor, histogram) = analyzeColor(cropped, gains: gains)
 
-        // Skip background-like regions (only filter very extreme values)
-        let brightness = colorBrightness(dominantColor)
-        if brightness > 0.97 { return nil }
+        guard dominantColor != backgroundColor else { return nil }
 
         // Shape analysis
         let aspectRatio = boundingBox.width / max(boundingBox.height, 0.001)
@@ -606,7 +620,8 @@ final class BrickClassificationPipeline {
             bitsPerComponent: 8,
             bytesPerRow: sampleSize * 4,
             space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue |
+                CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return (.white, [:]) }
 
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: sampleSize, height: sampleSize))
@@ -724,9 +739,42 @@ final class BrickClassificationPipeline {
 
     // MARK: - Grid Fallback
 
-    private func gridBasedDetection(cgImage: CGImage, imageSize: CGSize, gains: WhiteBalanceGains = .identity) -> [BrickDetection] {
-        var detections: [BrickDetection] = []
+    private func estimateBackgroundColor(
+        in cgImage: CGImage,
+        gains: WhiteBalanceGains
+    ) -> LegoColor? {
+        let width = CGFloat(cgImage.width)
+        let height = CGFloat(cgImage.height)
+        let sampleWidth = max(1, width * 0.12)
+        let sampleHeight = max(1, height * 0.12)
+        let cornerRects = [
+            CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight),
+            CGRect(x: width - sampleWidth, y: 0, width: sampleWidth, height: sampleHeight),
+            CGRect(x: 0, y: height - sampleHeight, width: sampleWidth, height: sampleHeight),
+            CGRect(x: width - sampleWidth, y: height - sampleHeight, width: sampleWidth, height: sampleHeight)
+        ]
+
+        var counts: [LegoColor: Int] = [:]
+        for rect in cornerRects {
+            guard let crop = cgImage.cropping(to: rect) else { continue }
+            let (color, _) = analyzeColor(crop, gains: gains)
+            counts[color, default: 0] += 1
+        }
+        guard let background = counts.max(by: { $0.value < $1.value }),
+              background.value >= 3 else { return nil }
+        return background.key
+    }
+
+    private func gridBasedDetection(
+        cgImage: CGImage,
+        imageSize: CGSize,
+        gains: WhiteBalanceGains = .identity,
+        backgroundColor: LegoColor?
+    ) -> [BrickDetection] {
+        guard let backgroundColor else { return [] }
         let gridSize = 12
+        var foreground = Array(repeating: false, count: gridSize * gridSize)
+        var cellColors = Array(repeating: backgroundColor, count: gridSize * gridSize)
 
         for row in 0..<gridSize {
             for col in 0..<gridSize {
@@ -750,30 +798,92 @@ final class BrickClassificationPipeline {
                       let cropped = cgImage.cropping(to: pixelRect) else { continue }
 
                 let (color, _) = analyzeColor(cropped, gains: gains)
-                let brightness = colorBrightness(color)
-
-                // Skip background cells (only pure white/very bright backgrounds)
-                if brightness > 0.97 { continue }
-
-                let match = catalog.findBestMatch(
-                    category: .brick,
-                    dimensions: PieceDimensions(studsWide: 2, studsLong: 2, heightUnits: 3),
-                    color: color
-                )
-
-                detections.append(BrickDetection(
-                    boundingBox: boundingBox,
-                    pixelRect: pixelRect,
-                    partNumber: match?.partNumber ?? "3003",
-                    name: match?.name ?? "Brick 2×2",
-                    category: .brick,
-                    color: color,
-                    dimensions: PieceDimensions(studsWide: 2, studsLong: 2, heightUnits: 3),
-                    confidence: 0.4,
-                    colorHistogram: [color: 1.0]
-                ))
+                let index = row * gridSize + col
+                cellColors[index] = color
+                foreground[index] = color != backgroundColor
             }
         }
+
+        var detections: [BrickDetection] = []
+        var visited = Array(repeating: false, count: foreground.count)
+        let neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+        for start in foreground.indices where foreground[start] && !visited[start] {
+            var queue = [start]
+            visited[start] = true
+            var cursor = 0
+            var minRow = start / gridSize
+            var maxRow = minRow
+            var minCol = start % gridSize
+            var maxCol = minCol
+
+            while cursor < queue.count {
+                let index = queue[cursor]
+                cursor += 1
+                let row = index / gridSize
+                let col = index % gridSize
+                minRow = min(minRow, row)
+                maxRow = max(maxRow, row)
+                minCol = min(minCol, col)
+                maxCol = max(maxCol, col)
+
+                for (rowOffset, colOffset) in neighbors {
+                    let nextRow = row + rowOffset
+                    let nextCol = col + colOffset
+                    guard nextRow >= 0, nextRow < gridSize,
+                          nextCol >= 0, nextCol < gridSize else { continue }
+                    let next = nextRow * gridSize + nextCol
+                      guard foreground[next], !visited[next],
+                          cellColors[next] == cellColors[index] else { continue }
+                    visited[next] = true
+                    queue.append(next)
+                }
+            }
+
+            guard queue.count >= 2 else { continue }
+            let cellSize = 1.0 / CGFloat(gridSize)
+            let box = CGRect(
+                x: CGFloat(minCol) * cellSize,
+                y: CGFloat(minRow) * cellSize,
+                width: CGFloat(maxCol - minCol + 1) * cellSize,
+                height: CGFloat(maxRow - minRow + 1) * cellSize
+            )
+            var colorCounts: [LegoColor: Int] = [:]
+            for index in queue {
+                colorCounts[cellColors[index], default: 0] += 1
+            }
+            guard let color = colorCounts.max(by: { $0.value < $1.value })?.key else { continue }
+
+            let pixelRect = CGRect(
+                x: box.origin.x * imageSize.width,
+                y: (1 - box.origin.y - box.height) * imageSize.height,
+                width: box.width * imageSize.width,
+                height: box.height * imageSize.height
+            )
+            let studInfo = StudInfo(studCount: 0, studPattern: (0, 0), hasStuds: false)
+            let (category, dimensions, baseName) = classifyShape(
+                aspectRatio: box.width / max(box.height, 0.001),
+                area: box.width * box.height,
+                studInfo: studInfo,
+                regionSize: pixelRect.size,
+                imageSize: imageSize
+            )
+            let match = catalog.findBestMatch(category: category, dimensions: dimensions, color: color)
+            detections.append(BrickDetection(
+                boundingBox: box,
+                pixelRect: pixelRect,
+                partNumber: match?.partNumber ?? "unknown",
+                name: match?.name ?? baseName,
+                category: match?.category ?? category,
+                color: color,
+                dimensions: dimensions,
+                confidence: match == nil ? 0.5 : 0.65,
+                shapeConfidence: match == nil ? 0.4 : 0.6,
+                colorConfidence: Float(colorCounts[color] ?? 0) / Float(queue.count),
+                colorHistogram: colorCounts.mapValues { Float($0) / Float(queue.count) }
+            ))
+        }
+
         return detections
     }
 
@@ -810,19 +920,4 @@ final class BrickClassificationPipeline {
         return Float(intersectionArea / unionArea)
     }
 
-    // MARK: - Utility
-
-    private func colorBrightness(_ color: LegoColor) -> CGFloat {
-        switch color {
-        case .white, .transparent: return 0.95
-        case .yellow, .lime, .tan: return 0.75
-        case .orange, .pink, .lightBlue: return 0.65
-        case .red, .green, .blue, .purple: return 0.45
-        case .gray: return 0.55
-        case .brown, .darkGray: return 0.35
-        case .darkRed, .darkGreen, .darkBlue: return 0.25
-        case .black: return 0.05
-        case .transparentBlue, .transparentRed: return 0.5
-        }
-    }
 }

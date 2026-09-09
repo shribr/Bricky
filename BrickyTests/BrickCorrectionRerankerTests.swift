@@ -2,6 +2,57 @@ import XCTest
 import UIKit
 @testable import Bricky
 
+final class BrickClassificationPipelineTests: XCTestCase {
+
+    private func image(redBrick: CGRect? = nil) -> UIImage {
+        let size = 360
+        let context = CGContext(
+            data: nil,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue |
+                CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        context.setFillColor(UIColor.black.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        if let redBrick {
+            context.setFillColor(UIColor.red.cgColor)
+            context.fill(redBrick)
+        }
+        return UIImage(cgImage: context.makeImage()!)
+    }
+
+    func testSolidBlackBackgroundProducesNoBrickDetections() {
+        let result = expectation(description: "Brick detection completes")
+        BrickClassificationPipeline().detectBricks(in: image()) { detections in
+            XCTAssertTrue(detections.isEmpty)
+            result.fulfill()
+        }
+
+        wait(for: [result], timeout: 10)
+    }
+
+    func testSingleRedBrickOnBlackBackgroundDoesNotDetectBackgroundAsBricks() {
+        let result = expectation(description: "Brick detection completes")
+        let scanImage = image(redBrick: CGRect(x: 105, y: 145, width: 150, height: 70))
+        let pipeline = BrickClassificationPipeline()
+        pipeline.detectBricks(in: scanImage) { detections in
+            XCTAssertLessThanOrEqual(detections.count, 5)
+            XCTAssertFalse(detections.contains(where: { $0.color == .black }))
+            XCTAssertTrue(
+                detections.contains(where: { $0.color == .red || $0.color == .darkRed }),
+                "Expected the red subject; got \(detections.map { "\($0.color.rawValue):\($0.name)" })"
+            )
+            result.fulfill()
+        }
+
+        wait(for: [result], timeout: 10)
+    }
+}
+
 @MainActor
 final class BrickCorrectionRerankerTests: XCTestCase {
 
