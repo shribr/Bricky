@@ -304,9 +304,9 @@ struct HomeView: View {
                             .font(.title2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Scanner")
+                        Text(AppFeature.scanner.title)
                             .font(.headline)
-                        Text("Auto-detects minifigures or brick piles")
+                        Text(AppFeature.scanner.subtitle)
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.7))
                     }
@@ -342,9 +342,9 @@ struct HomeView: View {
                             .font(.title2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Find a Brick")
+                        Text(AppFeature.findABrick.title)
                             .font(.headline)
-                        Text("Search the catalog and locate pieces in any pile")
+                        Text(AppFeature.findABrick.subtitle)
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                     }
@@ -384,9 +384,9 @@ struct HomeView: View {
                             .font(.title2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("See What You Can Build")
+                        Text(AppFeature.seeWhatYouCanBuild.title)
                             .font(.headline)
-                        Text("Turn your scanned bricks into buildable projects with 3D steps")
+                        Text(AppFeature.seeWhatYouCanBuild.subtitle)
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                             .lineLimit(2)
@@ -496,9 +496,9 @@ struct HomeView: View {
                             .foregroundStyle(Color.legoGreen)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Set Collection")
+                        Text(AppFeature.setCollection.title)
                             .font(.headline)
-                        Text("Track LEGO sets and check piece completion")
+                        Text(AppFeature.setCollection.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -529,9 +529,9 @@ struct HomeView: View {
                             .foregroundStyle(Color.legoOrangeLabel)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Storage Bins")
+                        Text(AppFeature.storageBins.title)
                             .font(.headline)
-                        Text("Organize pieces by physical storage location")
+                        Text(AppFeature.storageBins.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -562,9 +562,9 @@ struct HomeView: View {
                             .foregroundStyle(Color.legoRed)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Community")
+                        Text(AppFeature.community.title)
                             .font(.headline)
-                        Text("Share builds and discover creations")
+                        Text(AppFeature.community.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -595,9 +595,9 @@ struct HomeView: View {
                             .foregroundStyle(.purple)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Puzzles & Games")
+                        Text(AppFeature.puzzles.title)
                             .font(.headline)
-                        Text("Guess builds from clues and test your knowledge")
+                        Text(AppFeature.puzzles.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

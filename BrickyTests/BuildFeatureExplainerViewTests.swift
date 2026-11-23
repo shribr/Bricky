@@ -19,9 +19,19 @@ final class BuildFeatureExplainerViewTests: XCTestCase {
             onLaunchBuilds: { launched = true },
             onStartScan: { scanned = true }
         )
-        view.onLaunchBuilds()
-        view.onStartScan()
+        view.onLaunchBuilds?()
+        view.onStartScan?()
         XCTAssertTrue(launched)
         XCTAssertTrue(scanned)
+    }
+
+    func testConstructsReadOnlyWithoutLaunchActions() {
+        let view = BuildFeatureExplainerView(hasRecentPieces: false)
+        XCTAssertNil(view.onLaunchBuilds)
+        XCTAssertNil(view.onStartScan)
+    }
+
+    func testStepsAreSharedWithSearch() {
+        XCTAssertEqual(BuildFeatureExplainerView.steps.map(\.number), [1, 2, 3])
     }
 }

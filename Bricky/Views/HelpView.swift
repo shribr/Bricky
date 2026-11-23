@@ -3,9 +3,15 @@ import SwiftUI
 /// Comprehensive help center with categorized guides, FAQs, and quick links.
 struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
+    @State private var searchText: String
     @State private var showScanGuide = false
     @State private var showOnboarding = false
+
+    /// - Parameter initialSearch: Pre-fills the search field (used when opening
+    ///   the Help Center from an app-wide search result).
+    init(initialSearch: String = "") {
+        _searchText = State(initialValue: initialSearch)
+    }
 
     private var filteredSections: [HelpSection] {
         if searchText.isEmpty { return helpSections }
@@ -97,11 +103,17 @@ struct HelpView: View {
 
 // MARK: - Replay Onboarding (no completion binding needed)
 
-private struct ReplayOnboardingView: View {
+struct ReplayOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var currentPage = 0
+    @State private var currentPage: Int
 
-    private let pages: [ReplayPage] = [
+    init(startPage: Int = 0) {
+        _currentPage = State(initialValue: min(max(startPage, 0), Self.pages.count - 1))
+    }
+
+    private var pages: [ReplayPage] { Self.pages }
+
+    static let pages: [ReplayPage] = [
         ReplayPage(icon: "camera.viewfinder", title: "Scan Your Bricks",
                    description: "Spread out your LEGO pieces and take a photo. \(AppConfig.appName) identifies every piece using on-device AI.",
                    color: Color.legoRed),
@@ -171,7 +183,7 @@ private struct ReplayOnboardingView: View {
     }
 }
 
-private struct ReplayPage {
+struct ReplayPage {
     let icon: String
     let title: String
     let description: String
@@ -182,7 +194,31 @@ private struct ReplayPage {
 
 /// Shows all available feature tips — users can learn about features they might have missed.
 struct TipsListView: View {
-    private let tips: [FeatureTipInfo] = [
+    var body: some View {
+        List(FeatureTipInfo.all) { tip in
+            DisclosureGroup {
+                Text(tip.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } label: {
+                Label(tip.title, systemImage: tip.icon)
+                    .foregroundStyle(tip.color)
+            }
+        }
+        .navigationTitle("Feature Tips")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct FeatureTipInfo: Identifiable {
+    let id = UUID()
+    let icon: String
+    let color: Color
+    let title: String
+    let detail: String
+
+    static let all: [FeatureTipInfo] = [
         FeatureTipInfo(icon: "camera.viewfinder", color: Color.legoRed, title: "Scanning Modes",
                        detail: "\(AppConfig.appName) offers two scanning modes. Regular mode continuously captures pieces as you move the camera. Detailed mode divides the view into a grid and guides you through each segment for thorough coverage. Switch between them in Settings."),
         FeatureTipInfo(icon: "cube.fill", color: Color.legoBlue, title: "Save Your Inventory",
@@ -204,35 +240,11 @@ struct TipsListView: View {
         FeatureTipInfo(icon: "square.grid.3x3.fill", color: .teal, title: "Detailed Scan Mode",
                        detail: "For large collections, use Detailed mode. It divides your view into segments and guides you through each one, ensuring no piece is missed. Great for sorting trays and bins."),
     ]
-
-    var body: some View {
-        List(tips) { tip in
-            DisclosureGroup {
-                Text(tip.detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 4)
-            } label: {
-                Label(tip.title, systemImage: tip.icon)
-                    .foregroundStyle(tip.color)
-            }
-        }
-        .navigationTitle("Feature Tips")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct FeatureTipInfo: Identifiable {
-    let id = UUID()
-    let icon: String
-    let color: Color
-    let title: String
-    let detail: String
 }
 
 // MARK: - Help Data
 
-private struct HelpSection: Identifiable {
+struct HelpSection: Identifiable {
     let id = UUID()
     let title: String
     let icon: String
@@ -240,14 +252,14 @@ private struct HelpSection: Identifiable {
     let items: [HelpItem]
 }
 
-private struct HelpItem: Identifiable {
+struct HelpItem: Identifiable {
     let id = UUID()
     let icon: String
     let question: String
     let answer: String
 }
 
-private let helpSections: [HelpSection] = [
+let helpSections: [HelpSection] = [
     HelpSection(
         title: "Scanning",
         icon: "camera.viewfinder",

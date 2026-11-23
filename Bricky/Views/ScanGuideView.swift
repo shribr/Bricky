@@ -3,9 +3,15 @@ import SwiftUI
 /// Visual guide explaining the scanning UI phases and controls
 struct ScanGuideView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var currentPage = 0
+    @State private var currentPage: Int
 
-    private let pages: [GuidePage] = [
+    init(startPage: Int = 0) {
+        _currentPage = State(initialValue: min(max(startPage, 0), Self.pages.count - 1))
+    }
+
+    private var pages: [GuidePage] { Self.pages }
+
+    static let pages: [GuidePage] = [
         GuidePage(
             icon: "video.fill",
             iconColor: .blue,
@@ -181,7 +187,7 @@ struct ScanGuideView: View {
     }
 }
 
-private struct GuidePage {
+struct GuidePage {
     let icon: String
     let iconColor: Color
     let title: String
@@ -189,7 +195,7 @@ private struct GuidePage {
     let steps: [GuideStep]
 }
 
-private struct GuideStep {
+struct GuideStep {
     let icon: String
     let text: String
 }

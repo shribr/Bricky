@@ -4,76 +4,75 @@ import SwiftUI
 struct PrivacyPolicyView: View {
     @Environment(\.dismiss) private var dismiss
 
+    struct PolicySection: Identifiable {
+        let title: String
+        let body: String
+        var id: String { title }
+    }
+
+    static let lastUpdated = "April 2026"
+
+    static let sections: [PolicySection] = [
+        PolicySection(title: "Overview", body: "\(AppConfig.appName) is designed with your privacy in mind. We minimize data collection and process as much as possible on your device."),
+        PolicySection(title: "Data We Collect", body:
+            """
+            \(AppConfig.appName) collects minimal data:
+
+            \u{2022} Camera images: Processed entirely on-device for brick scanning. Images never leave your device.
+            \u{2022} Analytics events: If you opt in, we collect anonymous usage events (e.g., scans started, builds viewed) to improve the app. No personally identifiable information is included.
+            \u{2022} Subscription status: Managed by Apple through StoreKit. We do not store payment information.
+            \u{2022} iCloud data: If you enable iCloud Sync, your inventories and settings are stored in your personal iCloud account, not on our servers.
+            """
+        ),
+        PolicySection(title: "On-Device AI", body:
+            """
+            All brick and minifigure scanning uses on-device Core ML. Your images are processed locally and never transmitted to any server. No internet connection is required for scanning.
+            """
+        ),
+        PolicySection(title: "Children's Privacy (COPPA)", body:
+            """
+            \(AppConfig.appName) does not require an account to use. We do not knowingly collect personal information from children under 13. The app is designed to be safe for all ages:
+
+            \u{2022} No account creation required
+            \u{2022} No social features that expose personal information
+            \u{2022} No advertising or ad tracking
+            \u{2022} No third-party data sharing
+            """
+        ),
+        PolicySection(title: "Data Storage", body:
+            """
+            All app data (inventories, scan history, favorites) is stored locally on your device. If you enable iCloud Sync, data is additionally stored in your personal Apple iCloud account.
+
+            We do not operate servers that store your personal data.
+            """
+        ),
+        PolicySection(title: "Third-Party Services", body:
+            """
+            \u{2022} Apple StoreKit: For subscription management
+            \u{2022} Apple iCloud: For optional data sync (user-controlled)
+
+            No advertising networks, social media SDKs, or third-party analytics services are included.
+            """
+        ),
+        PolicySection(title: "Your Rights", body:
+            """
+            \u{2022} Opt out of analytics at any time in Settings
+            \u{2022} Delete all scan history in Settings
+            \u{2022} Disable iCloud Sync at any time in Settings
+            \u{2022} All local data can be removed by deleting the app
+            """
+        ),
+        PolicySection(title: "Contact", body: "For privacy questions or data requests, contact: privacy@\(AppConfig.appName.lowercased()).app"),
+    ]
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Group {
-                        sectionHeader("Last Updated", detail: "April 2026")
+                    sectionHeader("Last Updated", detail: Self.lastUpdated)
 
-                        policySection("Overview") {
-                            "\(AppConfig.appName) is designed with your privacy in mind. We minimize data collection and process as much as possible on your device."
-                        }
-
-                        policySection("Data We Collect") {
-                            """
-                            \(AppConfig.appName) collects minimal data:
-
-                            \u{2022} Camera images: Processed entirely on-device for brick scanning. Images never leave your device.
-                            \u{2022} Analytics events: If you opt in, we collect anonymous usage events (e.g., scans started, builds viewed) to improve the app. No personally identifiable information is included.
-                            \u{2022} Subscription status: Managed by Apple through StoreKit. We do not store payment information.
-                            \u{2022} iCloud data: If you enable iCloud Sync, your inventories and settings are stored in your personal iCloud account, not on our servers.
-                            """
-                        }
-
-                        policySection("On-Device AI") {
-                            """
-                            All brick and minifigure scanning uses on-device Core ML. Your images are processed locally and never transmitted to any server. No internet connection is required for scanning.
-                            """
-                        }
-
-                        policySection("Children's Privacy (COPPA)") {
-                            """
-                            \(AppConfig.appName) does not require an account to use. We do not knowingly collect personal information from children under 13. The app is designed to be safe for all ages:
-
-                            \u{2022} No account creation required
-                            \u{2022} No social features that expose personal information
-                            \u{2022} No advertising or ad tracking
-                            \u{2022} No third-party data sharing
-                            """
-                        }
-                    }
-
-                    Group {
-                        policySection("Data Storage") {
-                            """
-                            All app data (inventories, scan history, favorites) is stored locally on your device. If you enable iCloud Sync, data is additionally stored in your personal Apple iCloud account.
-
-                            We do not operate servers that store your personal data.
-                            """
-                        }
-
-                        policySection("Third-Party Services") {
-                            """
-                            \u{2022} Apple StoreKit: For subscription management
-                            \u{2022} Apple iCloud: For optional data sync (user-controlled)
-
-                            No advertising networks, social media SDKs, or third-party analytics services are included.
-                            """
-                        }
-
-                        policySection("Your Rights") {
-                            """
-                            \u{2022} Opt out of analytics at any time in Settings
-                            \u{2022} Delete all scan history in Settings
-                            \u{2022} Disable iCloud Sync at any time in Settings
-                            \u{2022} All local data can be removed by deleting the app
-                            """
-                        }
-
-                        policySection("Contact") {
-                            "For privacy questions or data requests, contact: privacy@\(AppConfig.appName.lowercased()).app"
-                        }
+                    ForEach(Self.sections) { section in
+                        policySection(section.title) { section.body }
                     }
                 }
                 .padding()

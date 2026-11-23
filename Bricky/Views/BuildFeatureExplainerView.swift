@@ -4,9 +4,32 @@ import SwiftUI
 /// Presented from the Home promo card.
 struct BuildFeatureExplainerView: View {
     /// Whether a recent scan exists, so we can offer a direct launch.
-    let hasRecentPieces: Bool
-    let onLaunchBuilds: () -> Void
-    let onStartScan: () -> Void
+    var hasRecentPieces: Bool
+    /// Launch actions are optional so the explainer can also be shown read-only
+    /// (e.g. from app-wide search), in which case the launch buttons are hidden.
+    var onLaunchBuilds: (() -> Void)?
+    var onStartScan: (() -> Void)?
+
+    struct Step: Identifiable {
+        let number: Int
+        let icon: String
+        let title: String
+        let detail: String
+        var id: Int { number }
+    }
+
+    static let headline = "See What You Can Build"
+    static let subheadline = "Turn a pile of bricks into projects you can actually build — with guided 3D instructions."
+    static let whereToFindText = "Find it any time on the **Scan Results** screen after a scan, under the **See What You Can Build** button."
+
+    static let steps: [Step] = [
+        Step(number: 1, icon: "camera.viewfinder", title: "Scan your bricks",
+             detail: "Use the Scanner to capture a pile of LEGO pieces. Bricky identifies every part and color."),
+        Step(number: 2, icon: "hammer.fill", title: "See what you can build",
+             detail: "On the Scan Results screen, tap “See What You Can Build.” Bricky matches your pieces to buildable projects."),
+        Step(number: 3, icon: "cube.transparent", title: "Follow 3D instructions",
+             detail: "Open any project for step-by-step 3D instructions you can rotate and zoom — built from the exact pieces you own."),
+    ]
 
     @Environment(\.dismiss) private var dismiss
 
@@ -17,24 +40,9 @@ struct BuildFeatureExplainerView: View {
                     header
 
                     VStack(spacing: 16) {
-                        stepRow(
-                            number: 1,
-                            icon: "camera.viewfinder",
-                            title: "Scan your bricks",
-                            detail: "Use the Scanner to capture a pile of LEGO pieces. Bricky identifies every part and color."
-                        )
-                        stepRow(
-                            number: 2,
-                            icon: "hammer.fill",
-                            title: "See what you can build",
-                            detail: "On the Scan Results screen, tap “See What You Can Build.” Bricky matches your pieces to buildable projects."
-                        )
-                        stepRow(
-                            number: 3,
-                            icon: "cube.transparent",
-                            title: "Follow 3D instructions",
-                            detail: "Open any project for step-by-step 3D instructions you can rotate and zoom — built from the exact pieces you own."
-                        )
+                        ForEach(Self.steps) { step in
+                            stepRow(number: step.number, icon: step.icon, title: step.title, detail: step.detail)
+                        }
                     }
 
                     whereToFind
@@ -65,11 +73,11 @@ struct BuildFeatureExplainerView: View {
                     .font(.system(size: 40))
                     .foregroundStyle(Color.legoOrange)
             }
-            Text("See What You Can Build")
+            Text(Self.headline)
                 .font(.title2)
                 .fontWeight(.bold)
                 .multilineTextAlignment(.center)
-            Text("Turn a pile of bricks into projects you can actually build — with guided 3D instructions.")
+            Text(Self.subheadline)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -102,7 +110,7 @@ struct BuildFeatureExplainerView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "mappin.and.ellipse")
                 .foregroundStyle(Color.legoBlue)
-            Text("Find it any time on the **Scan Results** screen after a scan, under the **See What You Can Build** button.")
+            Text(.init(Self.whereToFindText))
                 .font(.footnote)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
@@ -114,34 +122,37 @@ struct BuildFeatureExplainerView: View {
         )
     }
 
+    @ViewBuilder
     private var launchButtons: some View {
-        VStack(spacing: 12) {
-            if hasRecentPieces {
-                Button(action: onLaunchBuilds) {
-                    Label("See Ideas from My Last Scan", systemImage: "hammer.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.legoBlue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                Button(action: onStartScan) {
-                    Text("Start a New Scan")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.legoBlue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                }
-            } else {
-                Button(action: onStartScan) {
-                    Label("Start a Scan", systemImage: "camera.viewfinder")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.legoBlue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+        if let onStartScan {
+            VStack(spacing: 12) {
+                if hasRecentPieces, let onLaunchBuilds {
+                    Button(action: onLaunchBuilds) {
+                        Label("See Ideas from My Last Scan", systemImage: "hammer.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.legoBlue)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    Button(action: onStartScan) {
+                        Text("Start a New Scan")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.legoBlue)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                } else {
+                    Button(action: onStartScan) {
+                        Label("Start a Scan", systemImage: "camera.viewfinder")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.legoBlue)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
                 }
             }
         }

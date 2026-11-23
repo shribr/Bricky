@@ -16,6 +16,8 @@ struct SettingsView: View {
     @State private var showPaywall = false
     @State private var showPrivacyPolicy = false
     @State private var showHelp = false
+    @State private var searchText = ""
+    @State private var isSearchPresented = false
 
     /// Disk cache size for downloaded minifigure reference images.
     /// Refreshed when the Data & About section is opened.
@@ -44,7 +46,35 @@ struct SettingsView: View {
     @ObservedObject private var setCollection = SetCollectionStore.shared
     @State private var rebrickableKey = UserDefaults.standard.string(forKey: AppConfig.rebrickableAPIKeyDefaultsKey) ?? ""
 
+    private var isSearchActive: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
+        ScrollViewReader { proxy in
+            ZStack {
+                settingsForm
+                    .accessibilityHidden(isSearchActive)
+
+                if isSearchActive {
+                    AppSearchResultsView(query: searchText) { anchor in
+                        reveal(anchor, using: proxy)
+                    }
+                }
+            }
+            .searchable(
+                text: $searchText,
+                isPresented: $isSearchPresented,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search \(AppConfig.appName)"
+            )
+            .onChange(of: isSearchPresented) { _, isPresented in
+                if isPresented { AppSearchService.shared.warmUp() }
+            }
+        }
+    }
+
+    private var settingsForm: some View {
         Form {
             // MARK: - Appearance
             Section {
@@ -103,6 +133,7 @@ struct SettingsView: View {
                     Label("Appearance", systemImage: "paintpalette.fill")
                 }
             }
+            .id(SettingsAnchor.appearance)
 
             // MARK: - Puzzles
             Section {
@@ -126,6 +157,7 @@ struct SettingsView: View {
                     Label("Puzzles", systemImage: "puzzlepiece.fill")
                 }
             }
+            .id(SettingsAnchor.puzzles)
 
             // MARK: - Scanning (Scan Mode + Snapshots + Locations + Calibration)
             Section {
@@ -299,6 +331,7 @@ struct SettingsView: View {
                     Label("Scanning", systemImage: "viewfinder")
                 }
             }
+            .id(SettingsAnchor.scanning)
 
             // MARK: - Account
             Section {
@@ -343,6 +376,7 @@ struct SettingsView: View {
                     Label("Account", systemImage: "person.crop.circle.fill")
                 }
             }
+            .id(SettingsAnchor.account)
 
             // MARK: - Subscription
             Section {
@@ -410,6 +444,7 @@ struct SettingsView: View {
                     Label("Subscription", systemImage: "crown.fill")
                 }
             }
+            .id(SettingsAnchor.subscription)
 
             // MARK: - Privacy & Analytics
             Section {
@@ -432,6 +467,7 @@ struct SettingsView: View {
                     Label("Privacy", systemImage: "hand.raised.fill")
                 }
             }
+            .id(SettingsAnchor.privacy)
 
             // MARK: - Help & Support
             Section {
@@ -457,6 +493,7 @@ struct SettingsView: View {
                     Label("Help & Support", systemImage: "questionmark.circle.fill")
                 }
             }
+            .id(SettingsAnchor.help)
 
             // MARK: - About (merged into Data & About below)
 
@@ -533,6 +570,7 @@ struct SettingsView: View {
                     Label("iCloud Sync", systemImage: "icloud.fill")
                 }
             }
+            .id(SettingsAnchor.icloud)
 
             // MARK: - Set Collection
             Section {
@@ -581,6 +619,7 @@ struct SettingsView: View {
                     Label("Set Collection", systemImage: "shippingbox.fill")
                 }
             }
+            .id(SettingsAnchor.setCollection)
 
             // MARK: - Data & About
             Section {
@@ -656,6 +695,7 @@ struct SettingsView: View {
                     Label("Data & About", systemImage: "info.circle.fill")
                 }
             }
+            .id(SettingsAnchor.data)
             .confirmationDialog(
                 "Clear All Scan History?",
                 isPresented: $showClearHistoryConfirmation,
@@ -695,6 +735,30 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showHelp) {
             HelpView()
+        }
+    }
+
+    /// Expand the Settings section a search result points at, leave search,
+    /// and scroll the section into view.
+    private func reveal(_ anchor: SettingsAnchor, using proxy: ScrollViewProxy) {
+        switch anchor {
+        case .appearance: expandedAppearance = true
+        case .puzzles: expandedPuzzles = true
+        case .scanning: expandedScanning = true
+        case .account: expandedAccount = true
+        case .subscription: expandedSubscription = true
+        case .privacy: expandedPrivacy = true
+        case .help: expandedHelp = true
+        case .icloud: expandedICloud = true
+        case .setCollection: expandedSetCollection = true
+        case .data: expandedData = true
+        }
+        searchText = ""
+        isSearchPresented = false
+        Task { @MainActor in
+            // Let the form reappear and lay out the expanded section first.
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation { proxy.scrollTo(anchor, anchor: .top) }
         }
     }
 
