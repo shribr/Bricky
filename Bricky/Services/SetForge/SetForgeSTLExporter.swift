@@ -7,6 +7,11 @@ import simd
 /// 8 mm, 1 brick layer = 9.6 mm), emitted as 12 triangles. Slicers union the
 /// overlapping boxes into one printable solid. Deterministic: the same brick
 /// list always yields byte-identical STL.
+///
+/// Output is **Z-up** (slicers expect the build plate in the XY plane). Brick
+/// layers stack along +Z; the model's stud grid lies in XY. The Set Forge axes
+/// (Y = layer) are mapped with a pure rotation, `(x, y, z) -> (x, zMax - z, y)`,
+/// so the model is not mirrored.
 enum SetForgeSTLExporter {
 
     /// Stud pitch in millimetres (LEGO real-world scale).
@@ -18,14 +23,22 @@ enum SetForgeSTLExporter {
         var triangles: [(n: SIMD3<Float>, a: SIMD3<Float>, b: SIMD3<Float>, c: SIMD3<Float>)] = []
         triangles.reserveCapacity(bricks.count * 12)
 
+        // Depth extent, used to keep printer-space Y non-negative after rotating.
+        let depthMax = Float(bricks.map { $0.z + 1 }.max() ?? 0) * studMM
+
         for brick in bricks {
             let x0 = Float(brick.x) * studMM
             let x1 = Float(brick.x + brick.length) * studMM
-            let y0 = Float(brick.y) * layerMM
-            let y1 = Float(brick.y + 1) * layerMM
-            let z0 = Float(brick.z) * studMM
-            let z1 = Float(brick.z + 1) * studMM
-            appendBox(&triangles, x0: x0, x1: x1, y0: y0, y1: y1, z0: z0, z1: z1)
+            let layer0 = Float(brick.y) * layerMM
+            let layer1 = Float(brick.y + 1) * layerMM
+            let row0 = Float(brick.z) * studMM
+            let row1 = Float(brick.z + 1) * studMM
+            appendBox(
+                &triangles,
+                x0: x0, x1: x1,
+                y0: depthMax - row1, y1: depthMax - row0,
+                z0: layer0, z1: layer1
+            )
         }
 
         return encode(triangles)

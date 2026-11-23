@@ -9,10 +9,7 @@ struct ModelViewerView: View {
     @State private var showStuds = true
     @State private var showTubes = true
     @State private var isHollow = true
-    @State private var isExporting = false
-    @State private var exportURL: URL?
-    @State private var exportError: String?
-    @State private var showShareSheet = false
+    @State private var showSendToPrinter = false
     @State private var showPieceLocation = false
     @Environment(\.dismiss) private var dismiss
 
@@ -60,9 +57,20 @@ struct ModelViewerView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showShareSheet) {
-                if let url = exportURL {
-                    ShareSheet(items: [url])
+            .sheet(isPresented: $showSendToPrinter) {
+                let currentPiece = piece
+                let studs = showStuds
+                let tubes = showTubes
+                let hollow = isHollow
+                SendToPrinterView(title: "\(currentPiece.name)_\(currentPiece.color.rawValue)") {
+                    let node = BrickGeometryGenerator.generateBrick(
+                        for: currentPiece, showStuds: studs, showTubes: tubes, hollow: hollow
+                    )
+                    let url = try STLExporter.exportToSTL(
+                        node: node, fileName: "sendToPrinter-\(UUID().uuidString)"
+                    )
+                    defer { try? STLExporter.deleteExport(at: url) }
+                    return try Data(contentsOf: url)
                 }
             }
             .fullScreenCover(isPresented: $showPieceLocation) {
@@ -197,7 +205,7 @@ struct ModelViewerView: View {
             printSettingsRow
 
             // Export hint
-            Label("Tap the share button above to export as STL for 3D printing", systemImage: "square.and.arrow.up")
+            Label("Tap the share button above to send this model to a 3D printer", systemImage: "square.and.arrow.up")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
@@ -248,49 +256,11 @@ struct ModelViewerView: View {
 
     private var exportButton: some View {
         Button {
-            exportSTL()
+            showSendToPrinter = true
         } label: {
-            if isExporting {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Label("Export STL", systemImage: "square.and.arrow.up")
-            }
+            Label("Send to 3D Printer", systemImage: "square.and.arrow.up")
         }
-        .disabled(isExporting)
-        .accessibilityLabel("Export as STL file for 3D printing")
-    }
-
-    private func exportSTL() {
-        isExporting = true
-        exportError = nil
-
-        let currentPiece = piece
-        let studs = showStuds
-        let tubes = showTubes
-        let hollow = isHollow
-
-        Task.detached(priority: .userInitiated) {
-            let node = BrickGeometryGenerator.generateBrick(
-                for: currentPiece, showStuds: studs, showTubes: tubes, hollow: hollow
-            )
-            do {
-                let url = try STLExporter.exportToSTL(
-                    node: node,
-                    fileName: "\(currentPiece.name)_\(currentPiece.color.rawValue)"
-                )
-                await MainActor.run {
-                    exportURL = url
-                    isExporting = false
-                    showShareSheet = true
-                }
-            } catch {
-                await MainActor.run {
-                    exportError = error.localizedDescription
-                    isExporting = false
-                }
-            }
-        }
+        .accessibilityLabel("Send \(piece.name) to a 3D printer")
     }
 
     // MARK: - Scene Setup
@@ -311,9 +281,7 @@ struct ModelViewerView: View {
 /// 3D viewer for a complete build project showing all pieces laid out
 struct BuildModelViewerView: View {
     let project: LegoProject
-    @State private var isExporting = false
-    @State private var exportURL: URL?
-    @State private var showShareSheet = false
+    @State private var showSendToPrinter = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -342,19 +310,14 @@ struct BuildModelViewerView: View {
                     Spacer()
 
                     Button {
-                        exportBuildSTL()
+                        showSendToPrinter = true
                     } label: {
-                        if isExporting {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Label("Export STL", systemImage: "square.and.arrow.up")
-                                .font(.subheadline)
-                        }
+                        Label("Send to 3D Printer", systemImage: "square.and.arrow.up")
+                            .font(.subheadline)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Color.legoBlue)
-                    .disabled(isExporting)
-                    .accessibilityLabel("Export all pieces as STL for 3D printing")
+                    .accessibilityLabel("Send all pieces in this build to a 3D printer")
                 }
                 .padding()
                 .background(.regularMaterial)
@@ -366,9 +329,15 @@ struct BuildModelViewerView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showShareSheet) {
-                if let url = exportURL {
-                    ShareSheet(items: [url])
+            .sheet(isPresented: $showSendToPrinter) {
+                let currentProject = project
+                SendToPrinterView(title: currentProject.name) {
+                    let node = BrickGeometryGenerator.generateBuildModel(for: currentProject)
+                    let url = try STLExporter.exportToSTL(
+                        node: node, fileName: "sendToPrinter-\(UUID().uuidString)"
+                    )
+                    defer { try? STLExporter.deleteExport(at: url) }
+                    return try Data(contentsOf: url)
                 }
             }
         }
@@ -407,28 +376,5 @@ struct BuildModelViewerView: View {
         cameraNode.look(at: SCNVector3(50, 0, 50))
 
         return cameraNode
-    }
-
-    private func exportBuildSTL() {
-        isExporting = true
-        let node = BrickGeometryGenerator.generateBuildModel(for: project)
-
-        Task {
-            do {
-                let url = try STLExporter.exportToSTL(
-                    node: node,
-                    fileName: project.name
-                )
-                await MainActor.run {
-                    exportURL = url
-                    isExporting = false
-                    showShareSheet = true
-                }
-            } catch {
-                await MainActor.run {
-                    isExporting = false
-                }
-            }
-        }
     }
 }

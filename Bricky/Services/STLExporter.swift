@@ -50,7 +50,12 @@ final class STLExporter {
             clonedNode.scale = SCNVector3(scale, scale, scale)
         }
 
-        scene.rootNode.addChildNode(clonedNode)
+        // SceneKit is Y-up; slicers expect Z-up. Rotate +90° about X (a proper
+        // rotation, so the model is not mirrored).
+        let printOrientation = SCNNode()
+        printOrientation.eulerAngles.x = .pi / 2
+        printOrientation.addChildNode(clonedNode)
+        scene.rootNode.addChildNode(printOrientation)
 
         // Convert to MDLAsset via ModelIO
         let asset = MDLAsset(scnScene: scene)

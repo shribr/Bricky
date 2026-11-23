@@ -18,6 +18,13 @@ is `CURRENT_PROJECT_VERSION`.
   inventory. This is the accurate per-brick path (one part per capture), distinct
   from the heuristic pile scanner. Honors the existing cloud-recognition setting
   and never invents a color the recognizer can't see.
+- **Send to 3D Printer.** A shared screen (from the piece viewer, build viewer,
+  and Set Forge's Generated Set view) that prepares a printable STL, lets you
+  pick a printer's build volume — Bambu Lab A1 mini/X1 Carbon, Prusa MK4,
+  Creality K2 Plus presets, or a custom size — and choose original size or
+  scale-to-fit, then hands the STL to the share sheet. Hardware-agnostic by
+  design: Bricky never talks to a printer directly, so it works with any
+  slicer. The "doesn't fit" warning states the exact per-axis overage in mm.
 - **Sets You Can Rebuild.** A new Scanner entry that checks each set you own
   against your scanned inventory and shows how much of it you can build plus the
   exact parts you're missing, ranked most-buildable-first. Coverage is

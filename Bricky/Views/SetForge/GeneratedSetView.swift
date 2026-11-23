@@ -13,6 +13,7 @@ struct GeneratedSetView: View {
     @State private var showInstructions = false
     @State private var show3DInstructions = false
     @State private var show3DViewer = false
+    @State private var showSendToPrinter = false
     @State private var previewImage: PreviewImage?
     @Environment(\.dismiss) private var dismiss
 
@@ -74,6 +75,9 @@ struct GeneratedSetView: View {
         }
         .fullScreenCover(item: $previewImage) { item in
             ImageViewerView(images: sourceImages, startIndex: item.id)
+        }
+        .sheet(isPresented: $showSendToPrinter) {
+            SendToPrinterView(title: set.name) { SetForgeSTLExporter.export(set.bricks) }
         }
     }
 
@@ -243,9 +247,9 @@ struct GeneratedSetView: View {
             }
 
             Button {
-                exportSTL()
+                showSendToPrinter = true
             } label: {
-                Label("Export for 3D Printing (STL)", systemImage: "cube.fill")
+                Label("Send to 3D Printer", systemImage: "cube.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -293,18 +297,6 @@ struct GeneratedSetView: View {
         let url = dir.appendingPathComponent("\(safeName).ldr")
         do {
             try set.ldrText.write(to: url, atomically: true, encoding: .utf8)
-            shareItem = ShareItem(url: url)
-        } catch {
-            // Non-fatal; simply don't present the share sheet.
-        }
-    }
-
-    private func exportSTL() {
-        let dir = FileManager.default.temporaryDirectory
-        let safeName = set.name.replacingOccurrences(of: "/", with: "-")
-        let url = dir.appendingPathComponent("\(safeName).stl")
-        do {
-            try SetForgeSTLExporter.export(set.bricks).write(to: url, options: .atomic)
             shareItem = ShareItem(url: url)
         } catch {
             // Non-fatal; simply don't present the share sheet.

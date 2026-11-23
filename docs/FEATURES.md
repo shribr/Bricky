@@ -38,6 +38,7 @@ Detailed feature descriptions and status for Bricky. For a short summary see the
 | Build suggestions | ✅ | Engine recommends buildable projects from your inventory with match percentages. Free tier shows a capped number of suggestions. |
 | Daily challenges | ✅ | Daily build challenges with completion tracking and timing. |
 | Mosaic Studio | ✅ 🔒 | Turn a photo into a buildable single-layer LEGO mosaic. Returns an LDraw model, instructions PDF, thumbnail, and full parts list to share. Launch from **Home → Mosaic Studio**. Powered by the LEGO Model Generation backend. |
+| Send to 3D Printer | ✅ | Prepares a real-world-scale STL (1 stud = 8mm) for a scanned piece, a full build, or a Set Forge set, lets you pick a printer's build volume (presets or a custom size) and choose original size or scale-to-fit, then hands it to the share sheet. Hardware-agnostic — Bricky never talks to a printer directly; slicing and sending happen in whatever slicer app you choose. |
 | Demo mode | ✅ | Explore the app flow with sample pieces, no scan required. |
 
 ## Community & account
